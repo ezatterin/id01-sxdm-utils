@@ -1,3 +1,7 @@
+"""
+IO of SXDM data.
+"""
+
 import re
 import numpy as np
 
