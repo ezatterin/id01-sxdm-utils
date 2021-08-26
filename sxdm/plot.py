@@ -3,6 +3,8 @@ Helper functions useful to plot SXDM maps.
 """
 
 import matplotlib.font_manager as fm
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable, anchored_artists
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
