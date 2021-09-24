@@ -64,3 +64,23 @@ def add_roilabel(ax, roi):
                                     prop=dict(color='black', fontsize='small',  
                                     bbox=dict(facecolor='whitesmoke', alpha=0.7, lw=0, pad=1.5)))
     ax.add_artist(at)
+
+# TODO - change with anchored dir arrows or auto ax calc
+def add_directions(ax, up, right, x=0.07, y=0.07, labelpadx=0.12, labelpady=0.12, alx=0.1, aly=0.1, hw=1.2, hl=3, fs='small', custom=False, **kwargs):
+
+    arr = FancyArrowPatch((x,y), (x, y+aly), transform=ax.transAxes,
+                          arrowstyle='->, head_width={}, head_length={}'.format(hw,hl), linewidth=0.5, shrinkA=0.0, shrinkB=0.0, **kwargs)
+    arr2 = FancyArrowPatch((x,y), (x+alx, y), transform=ax.transAxes,
+                          arrowstyle='->, head_width={}, head_length={}'.format(hw,hl), linewidth=0.5, shrinkA=0.0, shrinkB=0.0, **kwargs)
+    ax.add_patch(arr)
+    ax.add_patch(arr2)
+
+    if custom:
+        txt_up = up
+        txt_right = right
+    else:
+        txt_up = r'$\;\;[{}]_c$'.format(up)
+        txt_right = r'$[{}]_c$'.format(right)
+
+    ax.text(x, y+aly+labelpady, txt_up, ha='center', va='bottom', transform=ax.transAxes, fontsize=fs, **kwargs)
+    ax.text(x+alx+labelpadx, y, txt_right, ha='left', va='center', transform=ax.transAxes, fontsize=fs, **kwargs)
