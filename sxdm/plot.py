@@ -79,8 +79,8 @@ def add_directions(ax, up, right, x=0.07, y=0.07, labelpadx=0.12, labelpady=0.12
         txt_up = up
         txt_right = right
     else:
-        txt_up = r'$\;\;[{}]_c$'.format(up)
-        txt_right = r'$[{}]_c$'.format(right)
+        txt_up = r'$\;\;[{}]$'.format(up)
+        txt_right = r'$[{}]$'.format(right)
 
     ax.text(x, y+aly+labelpady, txt_up, ha='center', va='bottom', transform=ax.transAxes, fontsize=fs, **kwargs)
     ax.text(x+alx+labelpadx, y, txt_right, ha='left', va='center', transform=ax.transAxes, fontsize=fs, **kwargs)
