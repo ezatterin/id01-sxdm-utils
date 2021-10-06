@@ -2,6 +2,8 @@
 Helper functions useful to plot SXDM maps.
 """
 
+import numpy as np
+
 import matplotlib.font_manager as fm
 import matplotlib as mpl
 import matplotlib.pyplot as plt
