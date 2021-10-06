@@ -11,6 +11,26 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar, AnchoredDirectionArrows
 from matplotlib.patches import FancyArrowPatch, Rectangle, Circle
 
+def make_hsv(tiltmag, azimuth, stretch=False):
+
+    # hue is the azimuth - normalised [0,1] - needed for HSV
+    h = (azimuth % 360) / (360) 
+
+    # saturation is the tilt - normalised [0,1]
+    s = np.abs(tiltmag)
+    if stretch:
+        s -= s.min()
+    s /= s.max()
+
+    # value is just 1
+    v = np.ones_like(h)
+
+    # stack the array
+    im = np.dstack((h,v,s))
+    im = mpl.colors.hsv_to_rgb(im)
+
+    return im
+
 def add_scalebar(ax, xsize, unit, h_scale=5, v_scale=150,
                 font_size='small', label='auto', color='black',
                  loc='lower right', pad=0.5, sep=5, **kwargs):
