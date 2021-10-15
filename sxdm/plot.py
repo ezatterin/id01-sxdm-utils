@@ -11,6 +11,26 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar, AnchoredDirectionArrows
 from matplotlib.patches import FancyArrowPatch, Rectangle, Circle
 
+def make_hsv(tiltmag, azimuth, stretch=False):
+
+    # hue is the azimuth - normalised [0,1] - needed for HSV
+    h = (azimuth % 360) / (360) 
+
+    # saturation is the tilt - normalised [0,1]
+    s = np.abs(tiltmag)
+    if stretch:
+        s -= s.min()
+    s /= s.max()
+
+    # value is just 1
+    v = np.ones_like(h)
+
+    # stack the array
+    im = np.dstack((h,v,s))
+    im = mpl.colors.hsv_to_rgb(im)
+
+    return im
+
 def add_scalebar(ax, xsize, unit, h_scale=5, v_scale=150,
                 font_size='small', label='auto', color='black',
                  loc='lower right', pad=0.5, sep=5, **kwargs):
@@ -79,8 +99,8 @@ def add_directions(ax, up, right, x=0.07, y=0.07, labelpadx=0.12, labelpady=0.12
         txt_up = up
         txt_right = right
     else:
-        txt_up = r'$\;\;[{}]_c$'.format(up)
-        txt_right = r'$[{}]_c$'.format(right)
+        txt_up = r'$\;\;[{}]$'.format(up)
+        txt_right = r'$[{}]$'.format(right)
 
     ax.text(x, y+aly+labelpady, txt_up, ha='center', va='bottom', transform=ax.transAxes, fontsize=fs, **kwargs)
     ax.text(x+alx+labelpadx, y, txt_right, ha='left', va='center', transform=ax.transAxes, fontsize=fs, **kwargs)
