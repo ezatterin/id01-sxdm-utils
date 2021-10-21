@@ -1,15 +1,54 @@
 """
-IO of SXDM data.
+Read SXDM data, i.e. the output of pscan commands on ID01.
 """
 
-from msilib.schema import Error
 import re
 import numpy as np
+import os
 
 from silx.io.specfile import SpecFile, Scan, SfErrColNotFound
 
 
 class FastSpecFile(SpecFile):
+    """
+    Opens a _fast_xxxxx.spec file.
+
+    To select a single ``pscan`` from those contained in the _fast_xxxx.spec file, use
+    the syntax `FastSpecFile[key]` where `key` is either an `int` corresponding to a
+    scan index or a `str` of the kind `"n.m"`, with `n` being the scan number defined
+    in the scan header and `m` the order.
+
+    Parameters
+    ----------
+    filename : str
+        Path to the _fast_xxxxx.spec file to read.
+
+    Attributes
+    ----------
+    filename : str
+        Path to the _fast_xxxx.spec file read.
+
+
+    Methods
+    -------
+    keys : list
+        Indexes of the scans contained within the _fast_xxxx.spec file. Use one of
+        such ``n.m`` indexes to slice the `FastSpecFile` instance obtaining a
+        `PiezoScan` instance.
+
+    Returns
+    -------
+    pscan : `PiezoScan`
+        Instance of the selected scan.
+
+    Examples
+    --------
+    Load scan ``10.2``:
+
+    >>> fsf = FastSpecFile('/path/to/file_fast_xxxxx.spec')
+    >>> pscan = fsf['10.2']
+    """
+
     def __new__(cls, filename):
         return super(FastSpecFile, cls).__new__(cls, filename)
 
@@ -19,9 +58,18 @@ class FastSpecFile(SpecFile):
         else:
             self.filename = filename
 
+    def __repr__(self):
+        fname = os.path.basename(self.filename)
+
+        frepr = "{0} \n --> {1}".format(self.__class__, fname)
+        frepr += "\n --> {0} scans".format(len(self.keys()))
+        frepr += "\n --> {0}".format(self.date())
+
+        return frepr
+
     def __getitem__(self, key):
         """
-        See docstring of SpecFile.__getitem__
+        Returns a `PiezoScan` object.
         """
         msg = "The scan identification key can be an integer representing "
         msg += "the unique scan index or a string 'N.M' with N being the scan"
@@ -54,6 +102,20 @@ class FastSpecFile(SpecFile):
 
 
 class PiezoScan(Scan):
+    """
+    Exposes a ``pscan`` contained within a `FastSpecFile`.
+
+    Methods
+    -------
+    get_roidata(roi_name)
+        Loads roi_name as a 2D `np.array`.
+    get_pis()
+        Loads the motor_1, motor_2 coordinates as a 2D `np.array`.
+    get_motorpos()
+    get_roipos()
+    get_edf_file()
+    get_detcalib()
+    """
 
     motordef = dict(pix="adcY", piy="adcX", piz="adcZ")
 
@@ -63,6 +125,13 @@ class PiezoScan(Scan):
         self.command = self.scan_header_dict["S"]
         self.shape = int(self.command.split()[9]), int(self.command.split()[5])
         self.datetime = self.scan_header_dict["D"]
+
+    def __repr__(self):
+        rep = "{0} \n --> {1}".format(self.__class__, self.command)
+        rep += "\n --> {}".format(self.datetime)
+        rep += "\n --> {}".format(self.shape)
+
+        return rep
 
     def get_roidata(self, counter):
         try:
@@ -148,13 +217,3 @@ class PiezoScan(Scan):
                         if key in converters:
                             calibration[key] = converters[key](value)
         return calibration
-
-
-all_errors = (OSError, EOFError)
-
-
-def func():
-    try:
-        pass
-    except all_errors as e:
-        pass
