@@ -61,7 +61,7 @@ class FastSpecFile(SpecFile):
     def __repr__(self):
         fname = os.path.basename(self.filename)
 
-        frepr = "{0} \n --> {1}".format(self.__class__, fname)
+        frepr = "{0} \n\n --> {1}".format(self.__class__, fname)
         frepr += "\n --> {0} scans".format(len(self.keys()))
         frepr += "\n --> {0}".format(self.date())
 
