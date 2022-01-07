@@ -133,7 +133,7 @@ class PiezoScan(Scan):
 
         return rep
 
-    def _repr_html(self):
+    def _repr_html_(self):
         
         table = [
             "<div>",
