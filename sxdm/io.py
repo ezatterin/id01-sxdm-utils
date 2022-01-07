@@ -133,6 +133,36 @@ class PiezoScan(Scan):
 
         return rep
 
+    def _repr_html(self):
+        
+        table = [
+            "<div>",
+            "<style scoped>", # why scoped?
+            "    .pscan tbody tr th {",
+            "        vertical-align: middle;",
+            "    }",
+            "</style>",
+            '<table border="1" class="pscan">',
+            "  <tbody>",
+            '    <tr style="text-align: right;">',
+            "      <th>Command</th>",
+            "      <td>{}</td>".format(self.command),
+            "    </tr>",
+            '    <tr style="text-align: right;">',
+            "      <th>Datetime</th>",
+            "      <td>{}</td>".format(self.datetime),
+            "    </tr>",
+            '    <tr style="text-align: right;">',
+            "      <th>Shape</th>",
+            "      <td>{}</td>".format(self.shape),
+            "    </tr>",
+            "  </tbody>",
+            "</table>",
+            "</div>",
+        ]
+
+        return "\n".join(table)
+
     def get_roidata(self, counter):
         try:
             return self.data_column_by_name(counter).reshape(self.shape)
