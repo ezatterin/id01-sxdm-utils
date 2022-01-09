@@ -143,7 +143,7 @@ class PiezoScan(Scan):
     def __init__(self, fast_specfile, scan_number):
         super().__init__(fast_specfile, scan_number)
 
-        self.command = self.scan_header_dict["S"][3:]
+        self.command = self.scan_header_dict["S"]
         self.shape = int(self.command.split()[9]), int(self.command.split()[5])
         self.datetime = self.scan_header_dict["D"]
 
