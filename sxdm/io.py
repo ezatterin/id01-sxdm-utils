@@ -240,8 +240,8 @@ class PiezoScan(Scan):
         t0 = time.time()
         print("Uncompressing data...", end="")
         edf_h5 = silx.io.open(edf_filename)
-        frames = edf_h5["scan_0/image/data"]
-        print("Done in {}".format(time.time() - t0))
+        frames = edf_h5["scan_0/image/data"][...]
+        print("Done in {:.2f}s".format(time.time() - t0))
 
         return frames
 
