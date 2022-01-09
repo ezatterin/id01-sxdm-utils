@@ -5,8 +5,11 @@ Read SXDM data, i.e. the output of pscan commands on ID01.
 import re
 import numpy as np
 import os
+import time
+import silx.io
 
-from silx.io.specfile import SpecFile, Scan, SfErrColNotFound
+from silx.io.specfile import SpecFile, Scan, SfErrColNotFound  # TODO use silx.io
+from tqdm import tqdm
 
 
 class FastSpecFile(SpecFile):
@@ -114,13 +117,13 @@ class PiezoScan(Scan):
     get_motorpos(motor_name)
         Returns the position of the SPEC motor `motor_name`.
     get_roipos(roi_name)
-        Returns a dictionary as `roi_name`:[x0, x1, y0, y1] where [x0, x1, y0, y1] 
+        Returns a dictionary as `roi_name`:[x0, x1, y0, y1] where [x0, x1, y0, y1]
         are the ROI edges specified as detector pixels.
     get_edf_filename()
-        Returns the full path to the .edf.gz file containing the detector frames 
+        Returns the full path to the .edf.gz file containing the detector frames
         collected as part of the scan.
     get_detcalib()
-        Returns the output of the SPEC `det_calib` command, i.e. the detector 
+        Returns the output of the SPEC `det_calib` command, i.e. the detector
         distance, central pixel, pixels per degree, and incident beam energy.
     """
 
@@ -230,6 +233,17 @@ class PiezoScan(Scan):
             info["suffix"],
         )
         return edf_path
+
+    def get_detector_frames(self):
+        edf_filename = self.get_edf_filename()
+
+        t0 = time.time()
+        print("Uncompressing data...", end="")
+        edf_h5 = silx.io.open(edf_filename)
+        frames = edf_h5["scan_0/image/data"]
+        print("Done in {}".format(time.time() - t0))
+
+        return frames
 
     def get_detcalib(self):
         # specify keys to look for
