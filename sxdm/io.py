@@ -108,12 +108,22 @@ class PiezoScan(Scan):
     """
     Exposes a ``pscan`` contained within a `FastSpecFile`.
 
+    Attributes
+    ----------
+    command : str
+        The SPEC pscan command that was launched to produce these data.
+    shape: tuple
+        The 2D shape of the pscan.
+    datetime: 
+        The date and time when the scan was launched.
+
     Methods
     -------
     get_roidata(roi_name)
         Returns roi_name as a 2D `np.array`.
     get_piezo_coordinates()
-        Returns the motor_1, motor_2 coordinates as a 2D `np.array`.
+        Returns the first, second motor (in the same order used when launching the 
+        SPEC command) coordinates as a 2D `np.array`.
     get_motorpos(motor_name)
         Returns the position of the SPEC motor `motor_name`.
     get_roipos(roi_name)
@@ -122,6 +132,7 @@ class PiezoScan(Scan):
     get_edf_filename()
         Returns the full path to the .edf.gz file containing the detector frames
         collected as part of the scan.
+    get_detector_frames()
     get_detcalib()
         Returns the output of the SPEC `det_calib` command, i.e. the detector
         distance, central pixel, pixels per degree, and incident beam energy.
@@ -132,7 +143,7 @@ class PiezoScan(Scan):
     def __init__(self, fast_specfile, scan_number):
         super().__init__(fast_specfile, scan_number)
 
-        self.command = self.scan_header_dict["S"]
+        self.command = self.scan_header_dict["S"][3:]
         self.shape = int(self.command.split()[9]), int(self.command.split()[5])
         self.datetime = self.scan_header_dict["D"]
 
@@ -238,7 +249,7 @@ class PiezoScan(Scan):
         edf_filename = self.get_edf_filename()
 
         t0 = time.time()
-        print("Uncompressing data...", end="")
+        print("Uncompressing data...", end=" ")
         edf_h5 = silx.io.open(edf_filename)
         frames = edf_h5["scan_0/image/data"][...]
         print("Done in {:.2f}s".format(time.time() - t0))
