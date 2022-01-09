@@ -108,13 +108,20 @@ class PiezoScan(Scan):
     Methods
     -------
     get_roidata(roi_name)
-        Loads roi_name as a 2D `np.array`.
-    get_pis()
-        Loads the motor_1, motor_2 coordinates as a 2D `np.array`.
-    get_motorpos()
-    get_roipos()
-    get_edf_file()
+        Returns roi_name as a 2D `np.array`.
+    get_piezo_coordinates()
+        Returns the motor_1, motor_2 coordinates as a 2D `np.array`.
+    get_motorpos(motor_name)
+        Returns the position of the SPEC motor `motor_name`.
+    get_roipos(roi_name)
+        Returns a dictionary as `roi_name`:[x0, x1, y0, y1] where [x0, x1, y0, y1] 
+        are the ROI edges specified as detector pixels.
+    get_edf_filename()
+        Returns the full path to the .edf.gz file containing the detector frames 
+        collected as part of the scan.
     get_detcalib()
+        Returns the output of the SPEC `det_calib` command, i.e. the detector 
+        distance, central pixel, pixels per degree, and incident beam energy.
     """
 
     motordef = dict(pix="adcY", piy="adcX", piz="adcZ")
@@ -127,17 +134,17 @@ class PiezoScan(Scan):
         self.datetime = self.scan_header_dict["D"]
 
     def __repr__(self):
-        rep = "{0} \n --> {1}".format(self.__class__, self.command)
+        rep = "{0} \n\n --> {1}".format(self.__class__, self.command)
         rep += "\n --> {}".format(self.datetime)
         rep += "\n --> {}".format(self.shape)
 
         return rep
 
     def _repr_html_(self):
-        
+
         table = [
             "<div>",
-            "<style scoped>", # why scoped?
+            "<style scoped>",  # why scoped?
             "    .pscan tbody tr th {",
             "        vertical-align: middle;",
             "    }",
@@ -172,7 +179,7 @@ class PiezoScan(Scan):
                 "are: {1}".format(counter, self.labels)
             )
 
-    def get_pis(self):
+    def get_piezo_coordinates(self):
         motor_names = self.command.split()[2], self.command.split()[6]
         motor1, motor2 = [
             self.data_column_by_name(self.motordef[x]).reshape(self.shape)
@@ -192,7 +199,7 @@ class PiezoScan(Scan):
         }
         return roipos
 
-    def get_edf_file(self):
+    def get_edf_filename(self):
         # regular expression matching the imageFile comment line
         _imgfile_pattern = (
             "^#C imageFile "
