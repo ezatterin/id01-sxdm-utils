@@ -89,7 +89,7 @@ class FastSpecFile(SpecFile):
             "    </tr>",
             '    <tr style="text-align: right;">',
             "      <th>Number of scans</th>",
-            "      <td>{}</td>".format(self.len(self.keys())),
+            "      <td>{}</td>".format(len(self.keys())),
             "    </tr>",
             '    <tr style="text-align: right;">',
             "      <th>Datetime</th>",
