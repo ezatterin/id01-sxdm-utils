@@ -70,6 +70,36 @@ class FastSpecFile(SpecFile):
 
         return frepr
 
+    def _repr_html_(self):
+
+        table = [
+            "<div>",
+            "<style scoped>",  # why scoped?
+            "    .pscan tbody tr th {",
+            "        vertical-align: middle;",
+            "    }",
+            "</style>",
+            '<table border="1" class="pscan">',
+            "  <tbody>",
+            '    <tr style="text-align: right;">',
+            "      <th>Filename</th>",
+            "      <td>{}</td>".format(self.fname),
+            "    </tr>",
+            '    <tr style="text-align: right;">',
+            "      <th>Number of scans</th>",
+            "      <td>{}</td>".format(self.len(self.keys())),
+            "    </tr>",
+            '    <tr style="text-align: right;">',
+            "      <th>Datetime</th>",
+            "      <td>{}</td>".format(self.date()),
+            "    </tr>",
+            "  </tbody>",
+            "</table>",
+            "</div>",
+        ]
+
+        return "\n".join(table)
+
     def __getitem__(self, key):
         """
         Returns a `PiezoScan` object.
