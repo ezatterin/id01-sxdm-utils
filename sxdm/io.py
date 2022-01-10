@@ -72,6 +72,8 @@ class FastSpecFile(SpecFile):
 
     def _repr_html_(self):
 
+        fname = os.path.basename(self.filename)
+
         table = [
             "<div>",
             "<style scoped>",  # why scoped?
@@ -83,7 +85,7 @@ class FastSpecFile(SpecFile):
             "  <tbody>",
             '    <tr style="text-align: right;">',
             "      <th>Filename</th>",
-            "      <td>{}</td>".format(self.fname),
+            "      <td>{}</td>".format(fname),
             "    </tr>",
             '    <tr style="text-align: right;">',
             "      <th>Number of scans</th>",
@@ -144,7 +146,7 @@ class PiezoScan(Scan):
         The SPEC pscan command that was launched to produce these data.
     shape: tuple
         The 2D shape of the pscan.
-    datetime: 
+    datetime:
         The date and time when the scan was launched.
 
     Methods
@@ -152,7 +154,7 @@ class PiezoScan(Scan):
     get_roidata(roi_name)
         Returns roi_name as a 2D `np.array`.
     get_piezo_coordinates()
-        Returns the first, second motor (in the same order used when launching the 
+        Returns the first, second motor (in the same order used when launching the
         SPEC command) coordinates as a 2D `np.array`.
     get_motorpos(motor_name)
         Returns the position of the SPEC motor `motor_name`.
