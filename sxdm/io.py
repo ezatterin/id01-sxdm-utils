@@ -144,9 +144,9 @@ class PiezoScan(Scan):
     ----------
     command : str
         The SPEC pscan command that was launched to produce these data.
-    shape: tuple
+    shape : tuple
         The 2D shape of the pscan.
-    datetime:
+    datetime : str
         The date and time when the scan was launched.
 
     Methods
@@ -216,14 +216,24 @@ class PiezoScan(Scan):
 
         return "\n".join(table)
 
+    def get_data(self, counter):
+        pass
+
     def get_roidata(self, counter):
         try:
-            return self.data_column_by_name(counter).reshape(self.shape)
-        except SfErrColNotFound:
-            print(
-                '"{0}" is not a valid counter; available counters'
-                "are: {1}".format(counter, self.labels)
-            )
+            data = self.data_column_by_name(counter)
+        except SfErrColNotFound as err:
+            msg = '"{0}" is not a valid counter; available '.format(counter)
+            msg += "counters are: {0}".format(self.labels)
+
+            raise ValueError(msg) from err
+
+        if data.size == self.shape[0] * self.shape[1]:
+            return data.reshape(self.shape)
+        else:
+            empty = np.zeros(self.shape).flatten()
+            empty[:data.size] = data
+            return empty.reshape(self.shape)
 
     def get_piezo_coordinates(self):
         motor_names = self.command.split()[2], self.command.split()[6]
