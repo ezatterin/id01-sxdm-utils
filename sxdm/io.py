@@ -183,10 +183,10 @@ class PiezoScan(Scan):
         self.shape = int(self.command.split()[9]), int(self.command.split()[5])
         self.datetime = self.scan_header_dict["D"]
 
-        _geometry = xrd.geometries.ID01psic() 
+        self.geometry = xrd.geometries.ID01psic() 
         
-        self._angles = _geometry.sample_rot.copy()
-        self._angles.update(_geometry.detector_rot) # order should be maintained
+        self._angles = self.geometry.sample_rot.copy()
+        self._angles.update(self.geometry.detector_rot) # order should be maintained
 
         self.qconversion_motors_use = ['eta', 'phi', 'nu', 'del']
         self.qconversion_motors_offsets = {a:0 for a in self._angles}
@@ -418,11 +418,8 @@ class PiezoScan(Scan):
                 pos = 0.
             self._angles[a] = pos - self.qconversion_motors_offsets[a]
 
-        # id01: RHS, z downstream y up // eta, phi, rhy - nu, del
-        qconv = xu.experiment.QConversion(["y-", "z-", "x-"], ["z-", "y-"], [1, 0, 0])
-
         # Init the experiment class feeding it the geometry
-        hxrd = xu.HXRD(ipdir, ndir, en=nrj, qconv=qconv)
+        hxrd = xu.HXRD(ipdir, ndir, en=nrj, qconv=self.geometry.getQconversion())
 
         # init detector
         if detector == "maxipix":
@@ -430,7 +427,7 @@ class PiezoScan(Scan):
         elif detector == "eiger":
             det = xrd.detectors.Eiger2M()
         else:
-            raise ValueError('Only "maxipix" and "eiger" are supported as detectors.')
+            raise ValueError('Only "maxipix" and "eiger" are supported as detectors.') 
 
         # init XU detector class
         hxrd.Ang2Q.init_area(
