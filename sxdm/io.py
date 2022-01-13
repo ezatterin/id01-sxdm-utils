@@ -183,6 +183,14 @@ class PiezoScan(Scan):
         self.shape = int(self.command.split()[9]), int(self.command.split()[5])
         self.datetime = self.scan_header_dict["D"]
 
+        _geometry = xrd.geomtries.ID01psic() 
+        
+        self.angles = _geometry.sample_rot.copy()
+        self.angles.update(_geometry.detector_rot) # order should be maintained
+
+        self.qconversion_motors = ['eta', 'phi', 'nu', 'del']
+        self.qconversion_motors_offsets = {a:0 for a in self.angles}
+
     def __str__(self):
         rep = "{0} \n\n --> {1}".format(self.__class__, self.command)
         rep += "\n --> {}".format(self.datetime)
@@ -348,7 +356,6 @@ class PiezoScan(Scan):
             in keV
         """
 
-        # load detector params
         names = "cen_pix_y,cen_pix_x,det_distance_CC,mononrj".split(",")
         try:
             cpx, cpy, detdist, nrj = [self.get_detcalib()[x] for x in names]
@@ -404,16 +411,12 @@ class PiezoScan(Scan):
         elif energy is None and _calib:
             pass
 
-        # load angles
-        angles = collections.OrderedDict(
-            (key, 0) for key in "eta,phi,rhy,nu,del".split(",")
-        )
-        for a in angles.keys():
-            angles[a] = self.get_motorpos(a)
-
-        # offsets
-        angles["rhy"] = 0
-        angles["phi"] = 0
+        for a in self.angles:
+            if a in self.qconversion_motors:
+                pos = self.get_motorpos(a) 
+            else:
+                pos = 0.
+            self.angles[a] = pos - self.qconversion_motors_offsets[a]
 
         # id01: RHS, z downstream y up // eta, phi, rhy - nu, del
         qconv = xu.experiment.QConversion(["y-", "z-", "x-"], ["z-", "y-"], [1, 0, 0])
