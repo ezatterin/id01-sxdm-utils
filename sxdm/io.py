@@ -478,10 +478,10 @@ class PiezoScan(Scan):
                     np.sum(frames[index] * pos, axis=(0, 1))
                     / frames[index].sum(axis=(0, 1))
                 )
-                for pos in (qy, qz)
+                for pos in (y, z)
             ]
             coms[index, :] = cy, cz
 
-        cy, cz = coms.reshape(100, 100, 2).T
+        cy, cz = coms.reshape(*self.shape, 2).T
 
         return cy, cz
