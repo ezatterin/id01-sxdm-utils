@@ -5,7 +5,8 @@ Read SXDM data, i.e. the output of pscan commands on ID01.
 import re
 import os
 import time
-import collections
+import multiprocessing as mp
+from importlib_metadata import collections
 
 import numpy as np
 import silx.io
@@ -13,7 +14,9 @@ import id01lib.xrd as xrd
 import xrayutilities as xu
 
 from silx.io.specfile import SpecFile, Scan, SfErrColNotFound  # TODO use silx.io
-from tqdm import tqdm
+from tqdm.auto import tqdm
+
+from .math import com2d
 
 
 class FastSpecFile(SpecFile):
@@ -228,9 +231,6 @@ class PiezoScan(Scan):
 
         return "\n".join(table)
 
-    def get_data(self, counter):
-        pass
-
     def get_roidata(self, counter):
         try:
             data = self.data_column_by_name(counter)
@@ -302,11 +302,20 @@ class PiezoScan(Scan):
     def get_detector_frames(self):
         edf_filename = self.get_edf_filename()
 
+        # decompress edf file and load to memory
         t0 = time.time()
         print("Uncompressing data...", end=" ")
         edf_h5 = silx.io.open(edf_filename)
         self.frames = edf_h5["scan_0/image/data"][...]
         print("Done in {:.2f}s".format(time.time() - t0))
+
+        # write to hdf5
+        try: 
+            os.remove('temp_frames.h5')
+        except FileNotFoundError:
+            pass
+        with h5py.File('temp_frames.h5', 'a') as h5f:
+            h5f.create_dataset('frames', data=self.frames)
 
         return self.frames
 
@@ -334,7 +343,7 @@ class PiezoScan(Scan):
                             calibration[key] = converters[key](value)
         return calibration
 
-    def get_qspace_coordinates(
+    def calc_qspace_coordinates(
         self,
         cen_pix=None,
         detector_distance=None,
@@ -342,8 +351,7 @@ class PiezoScan(Scan):
         detector="maxipix",
         ipdir=[1, 0, 0],
         ndir=[0, 0, 1],
-        ignore_mpx_motors=True,
-    ):
+        ignore_mpx_motors=True):
 
         """
 
@@ -450,3 +458,58 @@ class PiezoScan(Scan):
         # qyy, qzz = gridder.xaxis, gridder.yaxis
 
         return qx, qy, qz
+
+    def calc_coms(self, roi=None, npix=100):
+        """
+        roi : [x0,x1,y0,y1]
+        """
+
+        self.roi_idx_com = roi
+        self.npix = npix
+
+        if not self.frames:
+            _ = self.get_detector_frames()
+            frames = h5py.File('temp_frames.h5')['frames']
+        else:
+            frames = h5py.File('temp_frames.h5')['frames']
+
+        # spawn the process pool
+        pool = mp.Pool(os.cpu_count())
+
+        coms = []
+        for res in tqdm(pool.imap(self._compute_coms_mp, range(frames.shape[0]))):
+            coms.append(res)
+
+        pool.close()
+        pool.join()
+
+        coms = np.array(coms).reshape(*pscan.shape,2)
+
+        return coms
+
+    def _compute_coms_mp(frames):
+        """
+        frames is an h5f dset
+        """
+
+        roi = self.roi_idx_com
+
+        if roi is not None:
+            roi = np.s_[roi[2]:roi[3], roi[0]:roi[1]]
+        else:
+            roi = np.s_[:,:]
+        roi = slice(None,None,None), *roi
+
+        arr = frames[roi]
+        detrow, detcol = np.indices(arr.shape)
+        cy, cz = com2d(detrow, detcol, arr, self.npix)
+
+        return cy, cz
+
+
+
+
+
+        
+        
+
