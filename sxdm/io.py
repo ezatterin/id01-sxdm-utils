@@ -186,13 +186,13 @@ class PiezoScan(Scan):
         self.shape = int(self.command.split()[9]), int(self.command.split()[5])
         self.datetime = self.scan_header_dict["D"]
 
-        self.geometry = xrd.geometries.ID01psic() 
-        
-        self._angles = self.geometry.sample_rot.copy()
-        self._angles.update(self.geometry.detector_rot) # order should be maintained
+        self.geometry = xrd.geometries.ID01psic()
 
-        self.qconversion_motors_use = ['eta', 'phi', 'nu', 'del']
-        self.qconversion_motors_offsets = {a:0 for a in self._angles}
+        self._angles = self.geometry.sample_rot.copy()
+        self._angles.update(self.geometry.detector_rot)  # order should be maintained
+
+        self.qconversion_motors_use = ["eta", "phi", "nu", "del"]
+        self.qconversion_motors_offsets = {a: 0 for a in self._angles}
 
     def __str__(self):
         rep = "{0} \n\n --> {1}".format(self.__class__, self.command)
@@ -310,12 +310,12 @@ class PiezoScan(Scan):
         print("Done in {:.2f}s".format(time.time() - t0))
 
         # write to hdf5
-        try: 
-            os.remove('temp_frames.h5')
-        except FileNotFoundError:
-            pass
-        with h5py.File('temp_frames.h5', 'a') as h5f:
-            h5f.create_dataset('frames', data=self.frames)
+        # try:
+        #     os.remove('temp_frames.h5')
+        # except FileNotFoundError:
+        #     pass
+        # with h5py.File('temp_frames.h5', 'a') as h5f:
+        #     h5f.create_dataset('frames', data=self.frames)
 
         return self.frames
 
@@ -351,7 +351,8 @@ class PiezoScan(Scan):
         detector="maxipix",
         ipdir=[1, 0, 0],
         ndir=[0, 0, 1],
-        ignore_mpx_motors=True):
+        ignore_mpx_motors=True,
+    ):
 
         """
 
@@ -421,9 +422,9 @@ class PiezoScan(Scan):
 
         for a in self._angles:
             if a in self.qconversion_motors_use:
-                pos = self.get_motorpos(a) 
+                pos = self.get_motorpos(a)
             else:
-                pos = 0.
+                pos = 0.0
             self._angles[a] = pos - self.qconversion_motors_offsets[a]
 
         # Init the experiment class feeding it the geometry
@@ -435,7 +436,7 @@ class PiezoScan(Scan):
         elif detector == "eiger":
             det = xrd.detectors.Eiger2M()
         else:
-            raise ValueError('Only "maxipix" and "eiger" are supported as detectors.') 
+            raise ValueError('Only "maxipix" and "eiger" are supported as detectors.')
 
         # init XU detector class
         hxrd.Ang2Q.init_area(
@@ -459,62 +460,31 @@ class PiezoScan(Scan):
 
         return qx, qy, qz
 
-    def calc_coms(self, roi=None, npix=100):
+    def calc_coms(self, roi=None):
         """
         roi : [x0,x1,y0,y1]
         """
 
         self.roi_idx_com = roi
         self.npix = npix
-        
-        os.remove('temp_frames.h5')
+
         try:
-            self.framesh5 = h5py.File('temp_frames.h5')['frames']
-        except FileNotFoundError:
-            _ = self.get_detector_frames()
-            self.framesh5 = h5py.File('temp_frames.h5')['frames']
+            frames = self.frames
+        except:
+            frames = self.get_detector_frames()
 
-        # spawn the process pool
-        pool = mp.Pool(os.cpu_count())
+        coms = np.zeros((frames.shape[0], 2))
 
-        coms = []
-#        for res in pool.imap(self._compute_coms_mp, range(self.framesh5.shape[0])):
-#            coms.append(res)
+        for index in tqdm(range(frames.shape[0])):
+            cy, cz = [
+                (
+                    np.sum(frames[index] * pos, axis=(0, 1))
+                    / frames[index].sum(axis=(0, 1))
+                )
+                for pos in (qy, qz)
+            ]
+            coms[index, :] = cy, cz
 
-        pool.map(self._compute_coms_mp, range(self.framesh5.shape[0]))
-
-        pool.close()
-        pool.join()
-
-        coms = np.array(coms).reshape(*pscan.shape,2)
-
-        return coms
-
-    def _compute_coms_mp(self, idx):
-        """
-        frames is an h5f dset
-        """
-
-        roi = self.roi_idx_com
-
-        if roi is not None:
-            roi = np.s_[roi[2]:roi[3], roi[0]:roi[1]]
-        else:
-            roi = np.s_[:,:]
-        roi = slice(None,None,None), *roi
-
-        arr = self.framesh5[roi][idx]
-        detrow, detcol = np.indices(arr.shape)
-        cy, cz = com2d(detrow, detcol, arr, self.npix)
-
-        print(cy)
+        cy, cz = coms.reshape(100, 100, 2).T
 
         return cy, cz
-
-
-
-
-
-        
-        
-
