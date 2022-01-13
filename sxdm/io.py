@@ -465,13 +465,10 @@ class PiezoScan(Scan):
         roi : [x0,x1,y0,y1]
         """
 
-        self.roi_idx_com = roi
-        self.npix = npix
-
         try:
-            frames = self.frames
+            frames = self.frames[roi]
         except:
-            frames = self.get_detector_frames()
+            frames = self.get_detector_frames()[roi]
 
         coms = np.zeros((frames.shape[0], 2))
 
