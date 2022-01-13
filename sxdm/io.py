@@ -65,7 +65,7 @@ class FastSpecFile(SpecFile):
         else:
             self.filename = filename
 
-    def __repr__(self):
+    def __str__(self):
         fname = os.path.basename(self.filename)
 
         frepr = "{0} \n\n --> {1}".format(self.__class__, fname)
@@ -183,7 +183,7 @@ class PiezoScan(Scan):
         self.shape = int(self.command.split()[9]), int(self.command.split()[5])
         self.datetime = self.scan_header_dict["D"]
 
-    def __repr__(self):
+    def __str__(self):
         rep = "{0} \n\n --> {1}".format(self.__class__, self.command)
         rep += "\n --> {}".format(self.datetime)
         rep += "\n --> {}".format(self.shape)
