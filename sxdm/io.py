@@ -183,13 +183,13 @@ class PiezoScan(Scan):
         self.shape = int(self.command.split()[9]), int(self.command.split()[5])
         self.datetime = self.scan_header_dict["D"]
 
-        _geometry = xrd.geomtries.ID01psic() 
+        _geometry = xrd.geometries.ID01psic() 
         
-        self.angles = _geometry.sample_rot.copy()
-        self.angles.update(_geometry.detector_rot) # order should be maintained
+        self._angles = _geometry.sample_rot.copy()
+        self._angles.update(_geometry.detector_rot) # order should be maintained
 
-        self.qconversion_motors = ['eta', 'phi', 'nu', 'del']
-        self.qconversion_motors_offsets = {a:0 for a in self.angles}
+        self.qconversion_motors_use = ['eta', 'phi', 'nu', 'del']
+        self.qconversion_motors_offsets = {a:0 for a in self._angles}
 
     def __str__(self):
         rep = "{0} \n\n --> {1}".format(self.__class__, self.command)
@@ -411,12 +411,12 @@ class PiezoScan(Scan):
         elif energy is None and _calib:
             pass
 
-        for a in self.angles:
-            if a in self.qconversion_motors:
+        for a in self._angles:
+            if a in self.qconversion_motors_use:
                 pos = self.get_motorpos(a) 
             else:
                 pos = 0.
-            self.angles[a] = pos - self.qconversion_motors_offsets[a]
+            self._angles[a] = pos - self.qconversion_motors_offsets[a]
 
         # id01: RHS, z downstream y up // eta, phi, rhy - nu, del
         qconv = xu.experiment.QConversion(["y-", "z-", "x-"], ["z-", "y-"], [1, 0, 0])
@@ -445,7 +445,7 @@ class PiezoScan(Scan):
         )
 
         # Calculate q space values
-        qx, qy, qz = hxrd.Ang2Q.area(*self.angles.values())
+        qx, qy, qz = hxrd.Ang2Q.area(*self._angles.values())
 
         # grid
         # gridder = xu.gridder2d.Gridder2D(*mpx.pixnum)
