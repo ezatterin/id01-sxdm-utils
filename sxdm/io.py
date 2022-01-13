@@ -351,7 +351,7 @@ class PiezoScan(Scan):
         # load detector params
         names = "cen_pix_y,cen_pix_x,det_distance_CC,mononrj".split(",")
         try:
-            cpx, cpy, detdist, nrj = [self.pscan.get_detcalib()[x] for x in names]
+            cpx, cpy, detdist, nrj = [self.get_detcalib()[x] for x in names]
             nrj *= 1e3
             _calib = True
         except KeyError as kerr:
@@ -370,7 +370,7 @@ class PiezoScan(Scan):
         if cen_pix is None:
             if _calib:
                 if detector == "maxipix" and not ignore_mpx_motors:
-                    mpxy, mpxz = [self.pscan.get_motorpos(m) for m in ("mpxy", "mpxz")]
+                    mpxy, mpxz = [self.get_motorpos(m) for m in ("mpxy", "mpxz")]
                     cpy += mpxz / 1000.0 / detector.pixsize[0]  # row
                     cpx -= mpxy / 1000.0 / detector.pixsize[1]  # col
 
@@ -409,7 +409,7 @@ class PiezoScan(Scan):
             (key, 0) for key in "eta,phi,rhy,nu,del".split(",")
         )
         for a in angles.keys():
-            angles[a] = self.pscan.get_motorpos(a)
+            angles[a] = self.get_motorpos(a)
 
         # offsets
         angles["rhy"] = 0
