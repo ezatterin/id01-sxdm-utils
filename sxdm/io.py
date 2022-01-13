@@ -3,10 +3,14 @@ Read SXDM data, i.e. the output of pscan commands on ID01.
 """
 
 import re
-import numpy as np
 import os
 import time
+import collections
+
+import numpy as np
 import silx.io
+import id01lib.xrd as xrd
+import xrayutilities as xu
 
 from silx.io.specfile import SpecFile, Scan, SfErrColNotFound  # TODO use silx.io
 from tqdm import tqdm
@@ -232,7 +236,7 @@ class PiezoScan(Scan):
             return data.reshape(self.shape)
         else:
             empty = np.zeros(self.shape).flatten()
-            empty[:data.size] = data
+            empty[: data.size] = data
             return empty.reshape(self.shape)
 
     def get_piezo_coordinates(self):
@@ -321,3 +325,128 @@ class PiezoScan(Scan):
                         if key in converters:
                             calibration[key] = converters[key](value)
         return calibration
+
+    def get_qspace_coordinates(
+        self,
+        cen_pix=None,
+        detector_distance=None,
+        energy=None,
+        detector="maxipix",
+        ipdir=[1, 0, 0],
+        ndir=[0, 0, 1],
+        ignore_mpx_motors=True,
+    ):
+
+        """
+
+        Parameters
+        ----------
+        cen_pix : list
+            y, x
+        detector_distance : float
+        energy : float
+            in keV
+        """
+
+        # load detector params
+        names = "cen_pix_y,cen_pix_x,det_distance_CC,mononrj".split(",")
+        try:
+            cpx, cpy, detdist, nrj = [self.pscan.get_detcalib()[x] for x in names]
+            nrj *= 1e3
+            _calib = True
+        except KeyError as kerr:
+            _calib = False
+            msg = "Incomplete det_calib found in the spec file! Using user specified values..."
+            raise ValueError(msg) from kerr
+
+        # central pixel
+        if cen_pix is not None:
+            _type = type(cen_pix)
+            if _type != list and _type != tuple:
+                raise ValueError(
+                    "cen_pix must be a two-membered list or tuple, not {}".format(_type)
+                )
+            cpy, cpx = cen_pix
+        if cen_pix is None:
+            if _calib:
+                if detector == "maxipix" and not ignore_mpx_motors:
+                    mpxy, mpxz = [self.pscan.get_motorpos(m) for m in ("mpxy", "mpxz")]
+                    cpy += mpxz / 1000.0 / detector.pixsize[0]  # row
+                    cpx -= mpxy / 1000.0 / detector.pixsize[1]  # col
+
+                    _msg = "Correcting mpxy={:.2f}, mpxz={:.2f}".format(mpxy, mpxz)
+                    _msg += "cen_pix = ({:.1f},{:.1f})".format(cpy, cpx)
+                    print(_msg)
+                else:
+                    pass
+            else:
+                raise ValueError(
+                    "cen_pix not found in scan header and set to None, please specify"
+                )
+
+        # detector distance
+        if detector_distance is not None:
+            detdist = detector_distance
+        elif detector_distance is not None and not _calib:
+            raise ValueError(
+                "detector_distance not found in scan header and set to None, please specify"
+            )
+        elif detector_distance is None and _calib:
+            pass
+
+        # energy
+        if energy is not None:
+            nrj = energy
+        elif energy is not None and not _calib:
+            raise ValueError(
+                "energy not found in scan header and set to None, please specify"
+            )
+        elif energy is None and _calib:
+            pass
+
+        # load angles
+        angles = collections.OrderedDict(
+            (key, 0) for key in "eta,phi,rhy,nu,del".split(",")
+        )
+        for a in angles.keys():
+            angles[a] = self.pscan.get_motorpos(a)
+
+        # offsets
+        angles["rhy"] = 0
+        angles["phi"] = 0
+
+        # id01: RHS, z downstream y up // eta, phi, rhy - nu, del
+        qconv = xu.experiment.QConversion(["y-", "z-", "x-"], ["z-", "y-"], [1, 0, 0])
+
+        # Init the experiment class feeding it the geometry
+        hxrd = xu.HXRD(ipdir, ndir, en=nrj, qconv=qconv)
+
+        # init detector
+        if detector == "maxipix":
+            det = xrd.detectors.MaxiPix()
+        elif detector == "eiger":
+            det = xrd.detectors.Eiger2M()
+        else:
+            raise ValueError('Only "maxipix" and "eiger" are supported as detectors.')
+
+        # init XU detector class
+        hxrd.Ang2Q.init_area(
+            *det.directions,
+            cch1=cpy,
+            cch2=cpx,
+            Nch1=det.pixnum[0],
+            Nch2=det.pixnum[1],
+            pwidth1=det.pixsize[0],
+            pwidth2=det.pixsize[1],
+            distance=detdist
+        )
+
+        # Calculate q space values
+        qx, qy, qz = hxrd.Ang2Q.area(*angles.values())
+
+        # grid
+        # gridder = xu.gridder2d.Gridder2D(*mpx.pixnum)
+        # gridder(qy, qz, np.empty(mpx.pixnum))
+        # qyy, qzz = gridder.xaxis, gridder.yaxis
+
+        return qx, qy, qz
