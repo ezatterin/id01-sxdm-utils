@@ -6,7 +6,7 @@ import re
 import os
 import time
 import multiprocessing as mp
-from importlib_metadata import collections
+import h5py
 
 import numpy as np
 import silx.io
@@ -467,10 +467,10 @@ class PiezoScan(Scan):
         self.roi_idx_com = roi
         self.npix = npix
 
-        if not self.frames:
-            _ = self.get_detector_frames()
+        try:
             frames = h5py.File('temp_frames.h5')['frames']
-        else:
+        except FileNotFoundError:
+            _ = self.get_detector_frames()
             frames = h5py.File('temp_frames.h5')['frames']
 
         # spawn the process pool
