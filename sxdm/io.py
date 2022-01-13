@@ -445,7 +445,7 @@ class PiezoScan(Scan):
         )
 
         # Calculate q space values
-        qx, qy, qz = hxrd.Ang2Q.area(*angles.values())
+        qx, qy, qz = hxrd.Ang2Q.area(*self.angles.values())
 
         # grid
         # gridder = xu.gridder2d.Gridder2D(*mpx.pixnum)
