@@ -466,19 +466,22 @@ class PiezoScan(Scan):
 
         self.roi_idx_com = roi
         self.npix = npix
-
+        
+        os.remove('temp_frames.h5')
         try:
-            frames = h5py.File('temp_frames.h5')['frames']
+            self.framesh5 = h5py.File('temp_frames.h5')['frames']
         except FileNotFoundError:
             _ = self.get_detector_frames()
-            frames = h5py.File('temp_frames.h5')['frames']
+            self.framesh5 = h5py.File('temp_frames.h5')['frames']
 
         # spawn the process pool
         pool = mp.Pool(os.cpu_count())
 
         coms = []
-        for res in tqdm(pool.imap(self._compute_coms_mp, range(frames.shape[0]))):
-            coms.append(res)
+#        for res in pool.imap(self._compute_coms_mp, range(self.framesh5.shape[0])):
+#            coms.append(res)
+
+        pool.map(self._compute_coms_mp, range(self.framesh5.shape[0]))
 
         pool.close()
         pool.join()
@@ -487,7 +490,7 @@ class PiezoScan(Scan):
 
         return coms
 
-    def _compute_coms_mp(frames):
+    def _compute_coms_mp(self, idx):
         """
         frames is an h5f dset
         """
@@ -500,9 +503,11 @@ class PiezoScan(Scan):
             roi = np.s_[:,:]
         roi = slice(None,None,None), *roi
 
-        arr = frames[roi]
+        arr = self.framesh5[roi][idx]
         detrow, detcol = np.indices(arr.shape)
         cy, cz = com2d(detrow, detcol, arr, self.npix)
+
+        print(cy)
 
         return cy, cz
 
