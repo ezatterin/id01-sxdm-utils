@@ -186,7 +186,7 @@ class PiezoScan(Scan):
         self.shape = int(self.command.split()[9]), int(self.command.split()[5])
         self.datetime = self.scan_header_dict["D"]
 
-        self.motor_names = self.command.split()[2], self.command.split()[6]
+        self.piezo_motor_names = self.command.split()[2], self.command.split()[6]
 
         self.geometry = xrd.geometries.ID01psic()
 
@@ -252,7 +252,7 @@ class PiezoScan(Scan):
     def get_piezo_coordinates(self):
         motor1, motor2 = [
             self.data_column_by_name(self.motordef[x]).reshape(self.shape)
-            for x in self.motor_names
+            for x in self.piezo_motor_names
         ]
         return motor1, motor2
 
