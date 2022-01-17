@@ -22,7 +22,7 @@ class RoiPlotter(object):
         self.detector = detector
         self.fsf = fast_spec_file
 
-        self.pscan = fsf[0]
+        self.pscan = self.fsf[0]
         self.motors = self.pscan.motor_names
 
         self.rois, self.roi_init = load_detector_roilist(self.pscan, detector)
