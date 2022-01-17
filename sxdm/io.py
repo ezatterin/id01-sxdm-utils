@@ -474,7 +474,7 @@ class PiezoScan(Scan):
 
         try:
             frames = self.frames
-        except:
+        except AttributeError:
             frames = self.get_detector_frames()
         y, z = np.indices(self.frames.shape[1:])[roi]
         frames = frames[roi]
