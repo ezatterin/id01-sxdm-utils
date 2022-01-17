@@ -429,8 +429,8 @@ class FramesExplorer(object):
         roinames, _ = load_detector_roilist(self.pscan, self.detector)
         colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
-        texts, patches = [], []
         if change["new"]:
+            texts, patches = [], []
             for i, r in enumerate(roinames):
                 roi = roipos[r]
                 _rect = mpl.patches.Rectangle(
