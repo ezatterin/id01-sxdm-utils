@@ -365,6 +365,14 @@ class PiezoScan(Scan):
             in keV
         """
 
+        # init detector
+        if detector == "maxipix":
+            det = xrd.detectors.MaxiPix()
+        elif detector == "eiger":
+            det = xrd.detectors.Eiger2M()
+        else:
+            raise ValueError('Only "maxipix" and "eiger" are supported as detectors.')
+
         # load det_calib if it is complete
         names = "cen_pix_y,cen_pix_x,det_distance_CC,mononrj".split(",")
         try:
@@ -390,8 +398,8 @@ class PiezoScan(Scan):
             if _calib:
                 if detector == "maxipix" and not ignore_mpx_motors:
                     mpxy, mpxz = [self.get_motorpos(m) for m in ("mpxy", "mpxz")]
-                    cpy += mpxz / 1000.0 / detector.pixsize[0]  # row
-                    cpx -= mpxy / 1000.0 / detector.pixsize[1]  # col
+                    cpy += mpxz / 1000.0 / det.pixsize[0]  # row
+                    cpx -= mpxy / 1000.0 / det.pixsize[1]  # col
 
                     _msg = "Correcting mpxy={:.2f}, mpxz={:.2f}".format(mpxy, mpxz)
                     _msg += "cen_pix = ({:.1f},{:.1f})".format(cpy, cpx)
@@ -435,14 +443,6 @@ class PiezoScan(Scan):
 
         # Init the experiment class feeding it the geometry
         hxrd = xu.HXRD(ipdir, ndir, en=nrj, qconv=self.geometry.getQconversion())
-
-        # init detector
-        if detector == "maxipix":
-            det = xrd.detectors.MaxiPix()
-        elif detector == "eiger":
-            det = xrd.detectors.Eiger2M()
-        else:
-            raise ValueError('Only "maxipix" and "eiger" are supported as detectors.')
 
         # init XU detector class
         hxrd.Ang2Q.init_area(
