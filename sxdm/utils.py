@@ -57,4 +57,4 @@ def load_detector_roilist(pscan, detector):
     else:
         raise ValueError('Only "maxipix" and "eiger" are supported as detectors.')
         
-    return rois, roi_init
+    return rois, roi_init 

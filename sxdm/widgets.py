@@ -427,7 +427,7 @@ class FramesExplorer(object):
 
         roipos = self.pscan.get_roipos()
         roinames, _ = load_detector_roilist(self.pscan, self.detector)
-        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"] * 2
 
         if change["new"]:
             texts, patches = [], []
