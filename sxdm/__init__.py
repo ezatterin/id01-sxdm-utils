@@ -1,1 +1,1 @@
-from . import (utils, io, plot, math)
+from . import (utils, io, plot, math, widgets)
