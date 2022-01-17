@@ -518,7 +518,7 @@ class PiezoScan(Scan):
 
     #     return frames[roi].sum(0), frames[roi].sum(1)
 
-    def fit_gaussian(self, index, roi=None):        
+    def fit_gaussian(self, index, roi=None, **qspace_kwargs):        
 
         # roi
         if roi is not None:
