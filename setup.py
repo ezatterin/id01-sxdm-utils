@@ -13,6 +13,10 @@ setup(
     long_description=open("README.md").read(),
     install_requires=[
         "numpy >= 1.1.1",
+        "matplotlib",
+        "ipywigdets",
+        "tqdm",
+        "silx" # xsocs, id01lib
     ],
 )
 
