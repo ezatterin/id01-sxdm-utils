@@ -17,9 +17,6 @@ from tqdm.auto import tqdm
 from xsocs.util import project
 from silx.math import fit
 
-import multiprocessing as mp
-import functools
-
 class FastSpecFile(SpecFile):
     """
     Opens a _fast_xxxxx.spec file.

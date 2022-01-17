@@ -44,3 +44,16 @@ def get_q_extents(qx, qy, qz):
     )  # xy
 
     return extents
+
+def load_detector_roilist(pscan, detector):
+
+    if detector == 'maxipix':
+        rois = [roi for roi, roipos in pscan.get_roipos().items() if max(roipos) <= 516]
+        roi_init = 'mpx4int'
+    elif detector == 'eiger':
+        rois = [roi for roi in pscan.get_roipos().keys() if 'mpx4' not in roi]
+        roi_init = 'ei2mint'
+    else:
+        raise ValueError('Only "maxipix" and "eiger" are supported as detectors.')
+        
+    return rois, roi_init
