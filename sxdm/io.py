@@ -473,12 +473,13 @@ class PiezoScan(Scan):
         roi = slice(None,None,None), *roi
 
         try:
-            frames = self.frames[roi]
+            frames = self.frames
         except:
-            frames = self.get_detector_frames()[roi]
+            frames = self.get_detector_frames()
+        y, z = np.indices(self.frames.shape[1:])[roi]
+        frames = frames[roi]
 
         coms = np.zeros((frames.shape[0], 2))
-        y, z = np.indices(frames.shape[1:])
         for index in tqdm(range(frames.shape[0])):
             cy, cz = [
                 (
