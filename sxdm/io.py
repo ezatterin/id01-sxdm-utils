@@ -186,6 +186,8 @@ class PiezoScan(Scan):
         self.shape = int(self.command.split()[9]), int(self.command.split()[5])
         self.datetime = self.scan_header_dict["D"]
 
+        self.motor_names = self.command.split()[2], self.command.split()[6]
+
         self.geometry = xrd.geometries.ID01psic()
 
         self._angles = self.geometry.sample_rot.copy()
@@ -248,10 +250,9 @@ class PiezoScan(Scan):
             return empty.reshape(self.shape)
 
     def get_piezo_coordinates(self):
-        motor_names = self.command.split()[2], self.command.split()[6]
         motor1, motor2 = [
             self.data_column_by_name(self.motordef[x]).reshape(self.shape)
-            for x in motor_names
+            for x in self.motor_names
         ]
         return motor1, motor2
 
@@ -510,7 +511,8 @@ class PiezoScan(Scan):
 #         # spawn the process pool
 #         pool = mp.Pool(os.cpu_count())
 
-#         coms = []
+#         coms = []00
+
 # #        for res in pool.imap(self._compute_coms_mp, range(self.framesh5.shape[0])):
 # #            coms.append(res)
 
