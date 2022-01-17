@@ -531,10 +531,11 @@ class PiezoScan(Scan):
             qy, qz = self.qy, self.qz 
         except AttributeError:
             _, qy, qz = self.calc_qspace_coordinates(**qspace_kwargs)
+        qy, qz = qy[roi], qz[roi]
 
-        gridder = xu.gridder2d.Gridder2D(qy.shape)
+        gridder = xu.gridder2d.Gridder2D(*qy.shape)
         gridder(qy, qz, np.empty(qy.shape))
-        qyy, qzz = gridder.xaxis[roi], gridder.yaxis[roi]
+        qyy, qzz = gridder.xaxis, gridder.yaxis
         
         # frames
         try:
