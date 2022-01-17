@@ -49,6 +49,7 @@ def load_detector_roilist(pscan, detector):
 
     if detector == 'maxipix':
         rois = [roi for roi, roipos in pscan.get_roipos().items() if max(roipos) <= 516]
+        rois = [roi for roi in rois if 'mpx22' not in roi]
         roi_init = 'mpx4int'
     elif detector == 'eiger':
         rois = [roi for roi in pscan.get_roipos().keys() if 'mpx4' not in roi]
