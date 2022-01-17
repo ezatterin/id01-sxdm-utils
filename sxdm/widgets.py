@@ -42,7 +42,7 @@ class RoiPlotter(object):
             for ax, im in zip(self.axs, [self.imgL, self.imgR])
         ]
 
-        pm = pscan.piezo_motor_names
+        pm = self.pscan.piezo_motor_names
         _ = [a.set_xlabel("{} (um)".format(pm[0])) for a in self.axs]
         _ = self.axs[0].set_ylabel("{} (um)".format(pm[1]))
 
