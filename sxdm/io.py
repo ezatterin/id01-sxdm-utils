@@ -5,8 +5,6 @@ Read SXDM data, i.e. the output of pscan commands on ID01.
 import re
 import os
 import time
-import multiprocessing as mp
-import h5py
 
 import numpy as np
 import silx.io
@@ -16,8 +14,11 @@ import xrayutilities as xu
 from silx.io.specfile import SpecFile, Scan, SfErrColNotFound  # TODO use silx.io
 from tqdm.auto import tqdm
 
-from .math import com2d
+from xsocs.util import project
+from silx.math import fit
 
+import multiprocessing as mp
+import functools
 
 class FastSpecFile(SpecFile):
     """
@@ -453,6 +454,10 @@ class PiezoScan(Scan):
 
         # Calculate q space values
         qx, qy, qz = hxrd.Ang2Q.area(*self._angles.values())
+        
+        self.qx = qx
+        self.qy = qy
+        self.qz = qz
 
         # grid
         # gridder = xu.gridder2d.Gridder2D(*mpx.pixnum)
@@ -493,6 +498,78 @@ class PiezoScan(Scan):
         cy, cz = coms.reshape(*self.shape, 2).T
 
         return cy, cz
+
+    # def _calc_projections(self, roi=None, **qspace_kwargs):
+
+    #     '''
+    #     see the docstring of calc_qspace_coordinates for **qspace_kwargs
+    #     '''
+
+    #     try:
+    #         frames = self.frames
+    #     except AttributeError:
+    #         frames = self.get_detector_frames()
+
+    #     if roi is not None:
+    #         roi = np.s_[roi[2]:roi[3], roi[0]:roi[1]]
+    #     else:
+    #         roi = np.s_[:,:]
+    #     roi = slice(None,None,None), *roi
+
+    #     return frames[roi].sum(0), frames[roi].sum(1)
+
+    def fit_gaussian(self, index, roi=None):        
+
+        # roi
+        if roi is not None:
+            roi = np.s_[roi[2]:roi[3], roi[0]:roi[1]]
+        else:
+            roi = np.s_[:,:]
+
+        # qcoords
+        try:
+            qy, qz = self.qy, self.qz 
+        except AttributeError:
+            _, qy, qz = self.calc_qspace_coordinates(**qspace_kwargs)
+
+        gridder = xu.gridder2d.Gridder2D(qy.shape)
+        gridder(qy, qz, np.empty(qy.shape))
+        qyy, qzz = gridder.xaxis[roi], gridder.yaxis[roi]
+        
+        # frames
+        try:
+            frames = self.frames
+        except AttributeError:
+            frames = self.get_detector_frames()
+
+        roi = slice(None,None,None), *roi
+        py, pz = frames[roi].sum(1)[index], frames[roi].sum(2)[index]
+
+        for ax, proj in zip([qyy, qzz], [py, pz]):
+            
+            # load profile
+            x, y = ax, proj
+
+            # estimate and subtract background
+            bg = fit.snip1d(y, len(y))
+            y -= bg
+            
+            # guess initial params
+            area = y.sum() * (x[-1] - x[0]) / len(x)
+            mu = x[y.argmax()]
+            fwhm = 2.3 * area / (y.max() * np.sqrt(2*np.pi))
+
+            # area, centroid, fwhm
+            params, cov, info = fit.leastsq(fit.sum_agauss, 
+                                            x, 
+                                            y, 
+                                            p0=[area, mu, fwhm], 
+        #                                     sigma=np.sqrt(y),
+                                            full_output=True)
+                                            
+        return params
+            
+
 
 #     def calc_coms(self, roi=None):
 #         """
