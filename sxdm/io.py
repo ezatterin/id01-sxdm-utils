@@ -17,6 +17,7 @@ from tqdm.auto import tqdm
 from xsocs.util import project
 from silx.math import fit
 
+
 class FastSpecFile(SpecFile):
     """
     Opens a _fast_xxxxx.spec file.
@@ -364,15 +365,18 @@ class PiezoScan(Scan):
             in keV
         """
 
+        # load det_calib if it is complete
         names = "cen_pix_y,cen_pix_x,det_distance_CC,mononrj".split(",")
         try:
             cpx, cpy, detdist, nrj = [self.get_detcalib()[x] for x in names]
             nrj *= 1e3
             _calib = True
-        except KeyError as kerr:
+        except KeyError:
             _calib = False
-            msg = "Incomplete det_calib found in the spec file! Using user specified values..."
-            raise ValueError(msg) from kerr
+            msg = "Incomplete det_calib found in the spec file!"
+            msg += "Using user specified values..."
+            print(msg)
+            # raise ValueError(msg) from kerr
 
         # central pixel
         if cen_pix is not None:
@@ -402,23 +406,26 @@ class PiezoScan(Scan):
         # detector distance
         if detector_distance is not None:
             detdist = detector_distance
-        elif detector_distance is not None and not _calib:
-            raise ValueError(
-                "detector_distance not found in scan header and set to None, please specify"
-            )
-        elif detector_distance is None and _calib:
-            pass
+        elif detector_distance is None:
+            if not _calib:
+                raise ValueError(
+                    "detector_distance not found in scan header and set to None, please specify"
+                )
+            else:
+                pass
 
         # energy
         if energy is not None:
             nrj = energy
-        elif energy is not None and not _calib:
-            raise ValueError(
-                "energy not found in scan header and set to None, please specify"
-            )
-        elif energy is None and _calib:
-            pass
+        elif energy is None:
+            if not _calib:
+                raise ValueError(
+                    "energy not found in scan header and set to None, please specify"
+                )
+            else:
+                pass
 
+        # subtract offset from used angles
         for a in self._angles:
             if a in self.qconversion_motors_use:
                 pos = self.get_motorpos(a)
@@ -451,7 +458,7 @@ class PiezoScan(Scan):
 
         # Calculate q space values
         qx, qy, qz = hxrd.Ang2Q.area(*self._angles.values())
-        
+
         self.qx = qx
         self.qy = qy
         self.qz = qz
@@ -467,12 +474,12 @@ class PiezoScan(Scan):
         """
         roi : [x0,x1,y0,y1]
         """
-        
+
         if roi is not None:
-            roi = np.s_[roi[2]:roi[3], roi[0]:roi[1]]
+            roi = np.s_[roi[2] : roi[3], roi[0] : roi[1]]
         else:
-            roi = np.s_[:,:]
-        roi = slice(None,None,None), *roi
+            roi = np.s_[:, :]
+        roi = slice(None, None, None), *roi
 
         try:
             frames = self.frames
@@ -515,17 +522,17 @@ class PiezoScan(Scan):
 
     #     return frames[roi].sum(0), frames[roi].sum(1)
 
-    def fit_gaussian(self, index, roi=None, **qspace_kwargs):        
+    def fit_gaussian(self, index, roi=None, **qspace_kwargs):
 
         # roi
         if roi is not None:
-            roi = np.s_[roi[2]:roi[3], roi[0]:roi[1]]
+            roi = np.s_[roi[2] : roi[3], roi[0] : roi[1]]
         else:
-            roi = np.s_[:,:]
+            roi = np.s_[:, :]
 
         # qcoords
         try:
-            qy, qz = self.qy, self.qz 
+            qy, qz = self.qy, self.qz
         except AttributeError:
             _, qy, qz = self.calc_qspace_coordinates(**qspace_kwargs)
         qy, qz = qy[roi], qz[roi]
@@ -533,42 +540,43 @@ class PiezoScan(Scan):
         gridder = xu.gridder2d.Gridder2D(*qy.shape)
         gridder(qy, qz, np.empty(qy.shape))
         qyy, qzz = gridder.xaxis, gridder.yaxis
-        
+
         # frames
         try:
             frames = self.frames
         except AttributeError:
             frames = self.get_detector_frames()
 
-        roi = slice(None,None,None), *roi
+        roi = slice(None, None, None), *roi
         py, pz = frames[roi].sum(1)[index], frames[roi].sum(2)[index]
 
-        p = {'qy':None, 'qz':None}
-        for name, ax, proj in zip(['qy', 'qz'], [qyy, qzz], [py, pz]):
-            
+        p = {"qy": None, "qz": None}
+        for name, ax, proj in zip(["qy", "qz"], [qyy, qzz], [py, pz]):
+
             # load profile
-            x, y = ax, proj.astype('float64')
+            x, y = ax, proj.astype("float64")
 
             # estimate and subtract background
             bg = fit.snip1d(y, len(y))
             y -= bg
-            
+
             # guess initial params
             area = y.sum() * (x[-1] - x[0]) / len(x)
             mu = x[y.argmax()]
-            fwhm = 2.3 * area / (y.max() * np.sqrt(2*np.pi))
+            fwhm = 2.3 * area / (y.max() * np.sqrt(2 * np.pi))
 
             # area, centroid, fwhm
-            params, cov, info = fit.leastsq(fit.sum_agauss, 
-                                            x, 
-                                            y, 
-                                            p0=[area, mu, fwhm], 
-        #                                     sigma=np.sqrt(y),
-                                            full_output=True)
+            params, cov, info = fit.leastsq(
+                fit.sum_agauss,
+                x,
+                y,
+                p0=[area, mu, fwhm],
+                #                                     sigma=np.sqrt(y),
+                full_output=True,
+            )
             p[name] = params
-                                            
+
         return p
-            
 
 
 #     def calc_coms(self, roi=None):
@@ -578,7 +586,7 @@ class PiezoScan(Scan):
 
 #         self.roi_idx_com = roi
 #         self.npix = npix
-        
+
 #         os.remove('temp_frames.h5')
 #         try:
 #             self.framesh5 = h5py.File('temp_frames.h5')['frames']
