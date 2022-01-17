@@ -546,7 +546,8 @@ class PiezoScan(Scan):
         roi = slice(None,None,None), *roi
         py, pz = frames[roi].sum(1)[index], frames[roi].sum(2)[index]
 
-        for ax, proj in zip([qyy, qzz], [py, pz]):
+        p = {'qy':None, 'qz':None}
+        for name, ax, proj in zip(['qy', 'qz'], [qyy, qzz], [py, pz]):
             
             # load profile
             x, y = ax, proj.astype('float64')
@@ -567,8 +568,9 @@ class PiezoScan(Scan):
                                             p0=[area, mu, fwhm], 
         #                                     sigma=np.sqrt(y),
                                             full_output=True)
+            p[name] = params
                                             
-        return params
+        return p
             
 
 
