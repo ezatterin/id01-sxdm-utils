@@ -12,6 +12,8 @@ import matplotlib as mpl
 import ipywidgets as ipw
 from matplotlib.widgets import MultiCursor, RectangleSelector
 
+mpl.rcParams["font.family"] = "Liberation Sans, sans-serif"
+
 
 class RoiPlotter(object):
     def __init__(self, fast_spec_file, detector="maxipix"):
@@ -339,7 +341,7 @@ class FramesExplorer(object):
         )
 
         # output
-        self.out = ipw.VBox([self.widgets, self.figout])
+        self.show = ipw.VBox([self.widgets, self.figout])
 
     def line_select_callback(self, eclick, erelease):
         x, y = self.makeroi.corners
@@ -427,8 +429,8 @@ class FramesExplorer(object):
         roinames, _ = load_detector_roilist(self.pscan, self.detector)
         colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
+        texts, patches = [], []
         if change["new"]:
-            texts, patches = [], []
             for i, r in enumerate(roinames):
                 roi = roipos[r]
                 _rect = mpl.patches.Rectangle(
