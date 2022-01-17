@@ -548,7 +548,7 @@ class PiezoScan(Scan):
         for ax, proj in zip([qyy, qzz], [py, pz]):
             
             # load profile
-            x, y = ax, proj
+            x, y = ax, proj.astype('float64')
 
             # estimate and subtract background
             bg = fit.snip1d(y, len(y))
