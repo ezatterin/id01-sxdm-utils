@@ -18,7 +18,7 @@ mpl.rcParams["font.family"] = "Liberation Sans, sans-serif"
 class RoiPlotter(object):
     def __init__(self, fast_spec_file, detector="maxipix"):
 
-        figout = ipw.Output(layout=dict(border="2px solid grey"))
+        self.figout = ipw.Output(layout=dict(border="2px solid grey"))
 
         # init
         self.detector = detector
@@ -32,7 +32,7 @@ class RoiPlotter(object):
         roidata_init = self.pscan.get_roidata(self.roi_init)
 
         # figure
-        with figout:
+        with self.figout:
             self.fig, self.axs = plt.subplots(
                 1, 2, figsize=(6, 2.8), sharex=True, sharey=True
             )
@@ -109,18 +109,23 @@ class RoiPlotter(object):
         view_motorspecs.selected_index = None
         view_motorspecs.layout = {"font-family": "Liberation Sans"}
 
-        selector = ipw.VBox(
+        self.selector = ipw.VBox(
             [self.roiselL, self.roiselR, idxsel, ifs, self.specs, view_motorspecs]
         )
-        selector.layout = {
+        self.selector.layout = {
             "border": "2px solid grey",
             "width": "30%",
             "padding": "2px",
             "align-items": "stretch",
         }
 
-        self.show = ipw.HBox(
-            [selector, figout], layout={"justify-content": "space-between"}
+    def show(self):
+
+        display(
+            ipw.HBox(
+                [self.selector, self.figout],
+                layout={"justify-content": "space-between"},
+            )
         )
 
     def update_specs(self):
@@ -340,8 +345,8 @@ class FramesExplorer(object):
             interactive=True,
         )
 
-        # output
-        self.show = ipw.VBox([self.widgets, self.figout])
+    def show(self):
+        display(ipw.VBox([self.widgets, self.figout]))
 
     def line_select_callback(self, eclick, erelease):
         x, y = self.makeroi.corners
