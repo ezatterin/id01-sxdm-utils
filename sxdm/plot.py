@@ -2,16 +2,15 @@
 Helper functions useful to plot SXDM maps.
 """
 
-import numpy as np
 
+import numpy as np
 import matplotlib.font_manager as fm
 import matplotlib as mpl
-import numpy as np
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable, anchored_artists
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
-from matplotlib.patches import FancyArrowPatch, Rectangle, Circle
+from matplotlib.patches import FancyArrowPatch, Rectangle
 
 
 def make_hsv(tiltmag, azimuth, stretch=False):
