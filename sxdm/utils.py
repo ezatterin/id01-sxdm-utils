@@ -81,7 +81,7 @@ def convert_coms_qspace(coms, qcoords):
     """
 
     cy, cz = coms
-    qy, qz = qcoords
+    qx, qy, qz = qcoords
 
     cy, cz = [np.round(x, 0).astype("int") for x in (cy, cz)]
     cqx, cqy, cqz = qx[cy,cz], qy[cy, cz], qz[cy, cz]
