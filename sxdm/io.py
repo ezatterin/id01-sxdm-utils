@@ -8,13 +8,13 @@ import time
 
 import numpy as np
 import silx.io
-import id01lib.xrd as xrd
 import xrayutilities as xu
 
 from silx.io.specfile import SpecFile, Scan, SfErrColNotFound  # TODO use silx.io
 from tqdm.auto import tqdm
 
 from xsocs.util import project
+from id01lib import xrd
 from silx.math import fit
 
 
@@ -192,7 +192,7 @@ class PiezoScan(Scan):
         self._angles = self.geometry.sample_rot.copy()
         self._angles.update(self.geometry.detector_rot)  # order should be maintained
 
-        self.qconversion_motors_use = ["eta", "phi", "nu", "del"]
+        self.qconversion_motors_use = ["eta", "phi", "nu", "delta"]
         self.qconversion_motors_offsets = {a: 0 for a in self._angles}
 
     def __str__(self):
@@ -401,7 +401,7 @@ class PiezoScan(Scan):
                     cpy += mpxz / 1000.0 / det.pixsize[0]  # row
                     cpx -= mpxy / 1000.0 / det.pixsize[1]  # col
 
-                    _msg = "Correcting mpxy={:.2f}, mpxz={:.2f}".format(mpxy, mpxz)
+                    _msg = "Correcting mpxy={:.2f}, mpxz={:.2f} ==>".format(mpxy, mpxz)
                     _msg += "cen_pix = ({:.1f},{:.1f})".format(cpy, cpx)
                     print(_msg)
                 else:
@@ -436,7 +436,7 @@ class PiezoScan(Scan):
         # subtract offset from used angles
         for a in self._angles:
             if a in self.qconversion_motors_use:
-                pos = self.get_motorpos(a)
+                pos = self.get_motorpos(a if a != 'delta' else 'del')
             else:
                 pos = 0.0
             self._angles[a] = pos - self.qconversion_motors_offsets[a]
