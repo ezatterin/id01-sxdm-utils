@@ -40,3 +40,19 @@ def ni(arr, val):
     diff = np.abs(arr - val)
     idx = np.argsort(diff)[0]
     return idx
+
+
+def convert_coms_qspace(coms, qcoords):
+    """
+    Works only for 2D COMs at the moment.
+    coms : [com_y, com_z]
+    qcoords : [qy, qz]
+    """
+
+    cy, cz = coms
+    qy, qz = qcoords
+
+    cy, cz = [np.round(x, 0).astype("int") for x in (cy, cz)]
+    cqy, cqz = qy[cy, cz], qz[cy, cz]
+
+    return cqy, cqz
