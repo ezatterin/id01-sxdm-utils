@@ -13,7 +13,6 @@ import xrayutilities as xu
 from silx.io.specfile import SpecFile, Scan, SfErrColNotFound  # TODO use silx.io
 from tqdm.auto import tqdm
 
-from xsocs.util import project
 from id01lib import xrd
 from silx.math import fit
 
@@ -174,6 +173,9 @@ class PiezoScan(Scan):
     get_detcalib()
         Returns the output of the SPEC `det_calib` command, i.e. the detector
         distance, central pixel, pixels per degree, and incident beam energy.
+    calc_qspace_coordinates()
+    calc_coms()
+    fit_gaussian()
     """
 
     motordef = dict(pix="adcY", piy="adcX", piz="adcZ")
@@ -355,14 +357,43 @@ class PiezoScan(Scan):
     ):
 
         """
+        ID01-specific function to calculate qspace coordinates of a scan.
 
         Parameters
         ----------
-        cen_pix : list
-            y, x
+        cen_pix : 2-tuple(int)
+            ORDER: (first/slow dimension, second/fast dimension)
+            the result of det_calib: cen_pix_y, cen_pix_x for maxipix
+            Taken from detector calibration if not given
+
         detector_distance : float
+            Sample to detector distance in meters.
+            Taken from detector calibration if not given.
+
         energy : float
-            in keV
+            The beam energy in keV. Taken from the scan header if not given.
+
+        detector : str
+            The detector used during the experiment. At the moment only "maxipix" 
+            (default) and "eiger" are supported.
+
+        ipdir : 3-tuple(float)
+            vector referring to the inplane-direction of the sample
+            (see xrayutilities.experiment)
+
+        ndir : 3-tuple(float)
+            vector parallel to the sample normal
+            (see xrayutilities.experiment)
+
+        ignore_mpx_motors : Bool
+            Wether to correct for mpxy, mpxz (not necessary if loading the detector 
+            calibration)
+
+        Returns
+        -------
+        qx, qy, qz : numpy.ndarray
+            The q-space coordinates in each orthogonal direction. 
+
         """
 
         # init detector
