@@ -19,7 +19,21 @@ mpl.rcParams["font.family"] = "Liberation Sans, sans-serif"
 
 class RoiPlotter(object):
     """
-    TODO!
+    Explore the contents of a _fast_xxxxx.spec file containing one or more SXDM scans
+    collected on id01.
+
+    Parameters
+    ----------
+    fast_spec_file : `sxdm.io.FastSpecFile`
+        Spec file opened via sxdm.io.FastSpecFile(path_to_specfile)
+    detector : str
+        The detector used during the experiment. For the moment only "maxipix" and
+        "eiger" are supported. Defaults to "maxipix".
+
+    Methods
+    -------
+    show : NoneType
+        Returns the widget.
     """
 
     def __init__(self, fast_spec_file, detector="maxipix"):
@@ -43,7 +57,7 @@ class RoiPlotter(object):
                 1, 2, figsize=(6, 2.8), sharex=True, sharey=True
             )
 
-        # roi images 
+        # roi images
         self.imgL, self.imgR = [ax.imshow(roidata_init) for ax in self.axs]
         pm = self.pscan.piezo_motor_names
 
@@ -133,7 +147,7 @@ class RoiPlotter(object):
 
     def show(self):
         """
-        Displays widget. 
+        Displays widget.
         """
 
         display(
@@ -211,7 +225,7 @@ class RoiPlotter(object):
             for img in (self.imgL, self.imgR):
                 img.set_extent([m1min, m1max, m2min, m2max])
 
-    # updates the images 
+    # updates the images
     def _update_pscan(self, change):
         scan_idx = change["new"]
         self.pscan = self.fsf[scan_idx]
@@ -239,7 +253,7 @@ class RoiPlotter(object):
             img.set_clim(roidata.min(), roidata.max())
         except ValueError:
             img.set_clim(0.1, roidata.max())
-    
+
     # updates norm and clims
     def _update_norm(self, change):
         islog = change["new"]
@@ -273,12 +287,16 @@ class RoiPlotter(object):
 
 
 class FramesExplorer(object):
-    def __init__(self, pscan, detector="maxipix", coms=None, qconvert=False):
+    def __init__(self, pscan, detector="maxipix", coms=None):
+
+        """
+        TODO!
+        """
 
         ## init variables
         self.pscan = pscan
         self.detector = detector
-        
+
         try:
             self.frames = pscan.frames
         except AttributeError:
@@ -371,9 +389,9 @@ class FramesExplorer(object):
 
     def show(self):
         """
-        Displays widget. 
+        Displays widget.
         """
-        
+
         display(ipw.VBox([self.widgets, self.figout]))
 
     def _line_select_callback(self, eclick, erelease):
