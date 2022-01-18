@@ -17,7 +17,6 @@ setup(
         "ipywidgets",
         "tqdm",
         "silx",
-        "wheel",
         "pandas",
         "xrayutilities",
         "ipympl==0.7.0" # xsocs, id01lib
