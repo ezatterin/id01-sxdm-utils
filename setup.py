@@ -12,8 +12,8 @@ setup(
          collected on beamline ID01 at ESRF",
     long_description=open("README.md").read(),
     install_requires=[
-        "numpy >= 1.1.1",
-        "matplotlib==3.4.3",
+        "numpy",
+        "matplotlib",
         "ipywidgets",
         "tqdm",
         "silx",
