@@ -54,7 +54,7 @@ class RoiPlotter(object):
         ## figure
         with self.figout:
             self.fig, self.axs = plt.subplots(
-                1, 2, figsize=(6, 2.8), sharex=True, sharey=True
+                1, 2, figsize=(6, 2.8), sharex=True, sharey=True, layout='tight'
             )
 
         # roi images
@@ -66,8 +66,6 @@ class RoiPlotter(object):
         _ = [a.set_xlabel("{} (um)".format(pm[0])) for a in self.axs]
         _ = self.axs[0].set_ylabel("{} (um)".format(pm[1]))
         _ = [a.set_title("mpx4int") for a in self.axs]
-
-        self.fig.tight_layout()
 
         ## widgets
         # layout of individual items - css properties
@@ -237,7 +235,6 @@ class RoiPlotter(object):
 
         self._update_piezo_coordinates()
         self._update_specs()
-        self.fig.tight_layout()
 
     # updates the ROI based on selection
     def _update_roi(self, change):
@@ -312,7 +309,7 @@ class FramesExplorer(object):
         # init figure widget
         self.figout = ipw.Output(layout=dict(border="2px solid grey"))
         with self.figout:
-            self.fig, self.axs = plt.subplots(1, 2, figsize=(8, 2.5))
+            self.fig, self.axs = plt.subplots(1, 2, figsize=(8, 2.5), layout='tight')
 
         # populate axes with images
         self.imgroi = self.axs[0].imshow(pscan.get_roidata(self.roi_init))
