@@ -3,74 +3,93 @@ Various widgets to aid the analysis of SXDM data.
 """
 
 from .utils import load_detector_roilist
+from .plot import add_colorbar
 
-import sxdm
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
 import ipywidgets as ipw
+
 from matplotlib.widgets import MultiCursor, RectangleSelector
+from IPython.display import display
 
 mpl.rcParams["font.family"] = "Liberation Sans, sans-serif"
 
 
 class RoiPlotter(object):
+    """
+    Explore the contents of a _fast_xxxxx.spec file containing one or more SXDM scans
+    collected on id01.
+
+    Parameters
+    ----------
+    fast_spec_file : `sxdm.io.FastSpecFile`
+        Spec file opened via sxdm.io.FastSpecFile(path_to_specfile)
+    detector : str
+        The detector used during the experiment. For the moment only "maxipix" and
+        "eiger" are supported. Defaults to "maxipix".
+
+    Methods
+    -------
+    show : NoneType
+        Returns the widget.
+    """
+
     def __init__(self, fast_spec_file, detector="maxipix"):
 
-        self.figout = ipw.Output(layout=dict(border="2px solid grey"))
-
-        # init
+        # init variables
         self.detector = detector
         self.fsf = fast_spec_file
-
         self.pscan = self.fsf[0]
         self.motors = self.pscan.motor_names
-
         self.rois, self.roi_init = load_detector_roilist(self.pscan, detector)
 
+        # default ROI
         roidata_init = self.pscan.get_roidata(self.roi_init)
 
-        # figure
+        # output widget to be filled with plt.figure
+        self.figout = ipw.Output(layout=dict(border="2px solid grey"))
+
+        ## figure
         with self.figout:
             self.fig, self.axs = plt.subplots(
-                1, 2, figsize=(6, 2.8), sharex=True, sharey=True
+                1, 2, figsize=(6, 2.8), sharex=True, sharey=True, layout='tight'
             )
 
+        # roi images
         self.imgL, self.imgR = [ax.imshow(roidata_init) for ax in self.axs]
-
-        _ = [
-            sxdm.plot.add_colorbar(ax, im)
-            for ax, im in zip(self.axs, [self.imgL, self.imgR])
-        ]
-
         pm = self.pscan.piezo_motor_names
+
+        # labels etc
+        _ = [add_colorbar(ax, im) for ax, im in zip(self.axs, [self.imgL, self.imgR])]
         _ = [a.set_xlabel("{} (um)".format(pm[0])) for a in self.axs]
         _ = self.axs[0].set_ylabel("{} (um)".format(pm[1]))
-
         _ = [a.set_title("mpx4int") for a in self.axs]
 
-        self.fig.tight_layout()
-
-        # widgets
+        ## widgets
+        # layout of individual items - css properties
         items_layout = ipw.Layout(width="auto")
 
+        # menu to select left ROI
         self.roiselL = ipw.Dropdown(
             options=self.rois,
             value=self.roi_init,
             layout=items_layout,
             description="Left ROI",
         )
-        self.roiselL.observe(self.update_roi, names="value")
+        self.roiselL.observe(self._update_roi, names="value")
 
+        # menu to select right ROI
         self.roiselR = ipw.Dropdown(
             options=self.rois,
             value=self.roi_init,
             layout=items_layout,
             description="Right ROI",
         )
-        self.roiselR.observe(self.update_roi, names="value")
+        self.roiselR.observe(self._update_roi, names="value")
 
+        # slider to select scan index
         idxsel = ipw.IntSlider(
             value=0,
             min=0,
@@ -79,18 +98,21 @@ class RoiPlotter(object):
             layout=items_layout,
             description="Scan index",
         )
-        idxsel.observe(self.update_pscan, names="value")
+        idxsel.observe(self._update_pscan, names="value")
 
+        # log scale the images?
         iflog = ipw.Checkbox(
             value=False, description="Log Intensity", layout=items_layout, indent=False
         )
-        iflog.observe(self.update_norm, names="value")
+        iflog.observe(self._update_norm, names="value")
 
+        # show a crosshair at the mouse position?
         ifmulti = ipw.Checkbox(
             value=False, description="Crosshair", layout=items_layout, indent=False
         )
-        ifmulti.observe(self.add_crosshair, names="value")
+        ifmulti.observe(self._add_crosshar, names="value")
 
+        # group checkboxes
         ifs = ipw.HBox(
             [iflog, ifmulti],
             layout={
@@ -100,15 +122,17 @@ class RoiPlotter(object):
             },
         )
 
+        # HTML table with motor specs
         self.specs = ipw.HTML()
         self.motorspecs = ipw.HTML()
-        self.update_specs()
+        self._update_specs()
 
         view_motorspecs = ipw.Accordion([self.motorspecs])
         view_motorspecs.set_title(0, "View motors")
         view_motorspecs.selected_index = None
         view_motorspecs.layout = {"font-family": "Liberation Sans"}
 
+        # group all widgets together
         self.selector = ipw.VBox(
             [self.roiselL, self.roiselR, idxsel, ifs, self.specs, view_motorspecs]
         )
@@ -120,6 +144,9 @@ class RoiPlotter(object):
         }
 
     def show(self):
+        """
+        Displays widget.
+        """
 
         display(
             ipw.HBox(
@@ -128,7 +155,8 @@ class RoiPlotter(object):
             )
         )
 
-    def update_specs(self):
+    # writes the HTML table with scan specs
+    def _update_specs(self):
 
         angles = "eta,del,phi,nu".split(",")
         angles = [self.pscan.get_motorpos(ang) for ang in angles]
@@ -182,7 +210,8 @@ class RoiPlotter(object):
         motorspecs = "\n".join(motorspecs)
         self.motorspecs.value = motorspecs
 
-    def update_piezo_coordinates(self):
+    # updates extents of images based on pi coords
+    def _update_piezo_coordinates(self):
         try:
             m1, m2 = self.pscan.get_piezo_coordinates()
             for img in (self.imgL, self.imgR):
@@ -194,20 +223,21 @@ class RoiPlotter(object):
             for img in (self.imgL, self.imgR):
                 img.set_extent([m1min, m1max, m2min, m2max])
 
-    def update_pscan(self, change):
+    # updates the images
+    def _update_pscan(self, change):
         scan_idx = change["new"]
         self.pscan = self.fsf[scan_idx]
 
         _ = [
-            self.update_roi({"new": x.value, "owner": x})
+            self._update_roi({"new": x.value, "owner": x})
             for x in (self.roiselL, self.roiselR)
         ]
 
-        self.update_piezo_coordinates()
-        self.update_specs()
-        self.fig.tight_layout()
+        self._update_piezo_coordinates()
+        self._update_specs()
 
-    def update_roi(self, change):
+    # updates the ROI based on selection
+    def _update_roi(self, change):
         roi = change["new"]
         roidata = self.pscan.get_roidata(roi)
 
@@ -221,7 +251,8 @@ class RoiPlotter(object):
         except ValueError:
             img.set_clim(0.1, roidata.max())
 
-    def update_norm(self, change):
+    # updates norm and clims
+    def _update_norm(self, change):
         islog = change["new"]
 
         _clims = [
@@ -242,7 +273,7 @@ class RoiPlotter(object):
                 for im, c in zip((self.imgL, self.imgR), _clims)
             ]
 
-    def add_crosshair(self, change):
+    def _add_crosshar(self, change):
         ismulti = change["new"]
         if ismulti:
             self.multi = MultiCursor(
@@ -253,81 +284,89 @@ class RoiPlotter(object):
 
 
 class FramesExplorer(object):
-    def __init__(self, pscan, detector="maxipix", coms=None, qconvert=False):
+    def __init__(self, pscan, detector="maxipix", coms=None):
 
-        # init data
+        """
+        TODO!
+        """
+
+        ## init variables
         self.pscan = pscan
         self.detector = detector
-        #         self.frames = frames.reshape(*pscan.shape, *frames.shape[1:])
+
         try:
             self.frames = pscan.frames
         except AttributeError:
             self.frames = pscan.get_detector_frames()
-        self.frames = self.frames.reshape(*pscan.shape, *self.frames.shape[1:])
 
+        self.frames = self.frames.reshape(*pscan.shape, *self.frames.shape[1:])
         self.rois, self.roi_init = load_detector_roilist(pscan, detector)
         self.m1, self.m2 = pscan.get_piezo_coordinates()
-
         self.row, self.col = 0, 0
-
         self.roi_idxs = np.s_[:, :]
         self.newroi = None
 
         # init figure widget
         self.figout = ipw.Output(layout=dict(border="2px solid grey"))
         with self.figout:
-            self.fig, self.axs = plt.subplots(1, 2, figsize=(8, 2.5))
+            self.fig, self.axs = plt.subplots(1, 2, figsize=(8, 2.5), layout='tight')
 
-        # populate axes
+        # populate axes with images
         self.imgroi = self.axs[0].imshow(pscan.get_roidata(self.roi_init))
         self.imgframe = self.axs[1].imshow(
             self.frames[self.row, self.col, ...], cmap="magma"
         )
 
+        # init cursor pos on imgroi
         _x, _y = self.m1[self.row, self.col], self.m2[self.row, self.col]
         self.curpos = self.axs[0].scatter(_x, _y, marker="x", c="r")
 
+        # cbar and title
         _ = [
-            sxdm.plot.add_colorbar(ax, im)
+            add_colorbar(ax, im)
             for ax, im in zip(self.axs, [self.imgroi, self.imgframe])
         ]
         self.imgroi.axes.set_title("mpx4int")
 
         # connect to mpl event manager
-        self.fig.canvas.mpl_connect("button_press_event", self.on_click)
-        self.fig.canvas.mpl_connect("key_press_event", self.on_key)
+        self.fig.canvas.mpl_connect("button_press_event", self._on_click)
+        self.fig.canvas.mpl_connect("key_press_event", self._on_key)
 
+        # load COMs
         self.coms = coms
         if coms is not None:
             self.cy, self.cz = coms
             self.com = self.axs[1].scatter(self.cz, self.cy, marker="x", c="b")
 
-        # widgets
+        # widget layout - items
         items_layout = ipw.Layout(width="auto", justify_content="space-between")
 
+        ## checkboxes
         self.iflog = ipw.Checkbox(
             value=False, description="Log Intensity", layout=items_layout
         )
-        self.iflog.observe(self.update_norm, names="value")
+        self.iflog.observe(self._update_norm, names="value")
 
         self.ifrois = ipw.Checkbox(
             value=False, description="Show ROIs", layout=items_layout
         )
-        self.ifrois.observe(self.add_rois, names="value")
+        self.ifrois.observe(self._add_rois, names="value")
 
         self.ifmakeroi = ipw.Checkbox(
             value=False, description="Define new ROI", layout=items_layout
         )
-        self.ifmakeroi.observe(self.define_roi, names="value")
+        self.ifmakeroi.observe(self._define_roi, names="value")
 
+        # ROI selection for imgroi
         self.roisel = ipw.Dropdown(
             options=self.rois,
             value=self.roi_init,
             layout=items_layout,
             description="ROI",
         )
-        self.roisel.observe(self.update_roi, names="value")
+        self.roisel.observe(self._update_roi, names="value")
 
+        # group widgets together
         self.widgets = ipw.HBox(
             [self.roisel, self.iflog, self.ifrois, self.ifmakeroi],
             layout=dict(border="2px solid grey"),
@@ -336,7 +375,7 @@ class FramesExplorer(object):
         # ROI selector
         self.makeroi = RectangleSelector(
             self.axs[1],
-            self.line_select_callback,
+            self._line_select_callback,
             useblit=True,
             button=[1, 3],  # disable middle button
             minspanx=5,
@@ -346,9 +385,13 @@ class FramesExplorer(object):
         )
 
     def show(self):
+        """
+        Displays widget.
+        """
+
         display(ipw.VBox([self.widgets, self.figout]))
 
-    def line_select_callback(self, eclick, erelease):
+    def _line_select_callback(self, eclick, erelease):
         x, y = self.makeroi.corners
         x = [int(np.round(m, 0)) for m in x]
         y = [int(np.round(m, 0)) for m in y]
@@ -363,9 +406,9 @@ class FramesExplorer(object):
         )
 
         self.imgroi.set_data(self.roidata_new)
-        self.update_norm({"new": self.iflog.value})
+        self._update_norm({"new": self.iflog.value})
 
-    def define_roi(self, change):
+    def _define_roi(self, change):
         if change["new"]:
             self.makeroi.set_active(True)
             self.makeroi.set_visible(True)
@@ -373,41 +416,41 @@ class FramesExplorer(object):
             self.makeroi.set_active(False)
             self.makeroi.set_visible(False)
 
-    def update_plots(self):
+    def _update_plots(self):
         with self.figout:
             _frame = self.frames[self.row, self.col, ...]
             self.imgframe.set_data(_frame)
-            self.update_norm({"new": self.iflog.value})  # updates also clim
+            self._update_norm({"new": self.iflog.value})  # updates also clim
 
             self.curpos.set_offsets([self.col, self.row])
             if self.coms is not None:
                 _cy, _cz = self.cy[self.row, self.col], self.cz[self.row, self.col]
                 self.com.set_offsets([_cz, _cy])
 
-    def on_click(self, event):
+    def _on_click(self, event):
         if event.inaxes == self.axs[0]:
             self.col, self.row = [
                 int(np.round(x, 0)) for x in (event.xdata, event.ydata)
             ]
-            self.update_plots()
+            self._update_plots()
         else:
             pass
 
-    def on_key(self, event):
+    def _on_key(self, event):
         if event.key == "39":
             self.col += 1
-            self.update_plots()
+            self._update_plots()
         elif event.key == "37":
             self.col -= 1
-            self.update_plots()
+            self._update_plots()
         elif event.key == "40":
             self.row += 1
-            self.update_plots()
+            self._update_plots()
         elif event.key == "38":
             self.row -= 1
-            self.update_plots()
+            self._update_plots()
 
-    def update_norm(self, change):
+    def _update_norm(self, change):
         islog = change["new"]
 
         _clims = [
@@ -427,7 +470,7 @@ class FramesExplorer(object):
                 for im, c in zip((self.imgroi, self.imgframe), _clims)
             ]
 
-    def add_rois(self, change):
+    def _add_rois(self, change):
         global texts, patches
 
         roipos = self.pscan.get_roipos()
@@ -463,7 +506,7 @@ class FramesExplorer(object):
 
             self.fig.canvas.draw_idle()
 
-    def update_roi(self, change):
+    def _update_roi(self, change):
         roi = change["new"]
         roidata = self.pscan.get_roidata(roi)
 

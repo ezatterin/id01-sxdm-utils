@@ -4,15 +4,15 @@ Various functions to aid the analysis of SXDM data.
 
 import pandas as pd
 import os
+import numpy as np
 
 from .io import FastSpecFile
 
 
 def get_filelist(sample_dir):
     data = {"path": [], "filename": [], "nscans": []}
-    flist = []
 
-    for root, dirs, files in os.walk(sample_dir):
+    for root, _, files in os.walk(sample_dir):
         files = [x for x in files if all(s in x for s in "spec,fast".split(","))]
         if len(files) != 0:
             for i, f in enumerate(files):
@@ -58,3 +58,32 @@ def load_detector_roilist(pscan, detector):
         raise ValueError('Only "maxipix" and "eiger" are supported as detectors.')
         
     return rois, roi_init 
+
+def convert_coms_qspace(coms, qcoords):
+    """
+    Converts COMs from detector pixel to q-space coordinates.
+    Works only for 2D COMs at the moment.
+
+    Parameters
+    ----------
+    coms : list
+        Detector y (column) and z (row) coordinates of the COMs, in this order. 
+        The output of`pscan.calc_coms`. Each coordinate is a `np.array` of shape 
+        `pscan.shape`.
+    qcoords : list
+        Q-space (qy and qz) coordinates, in this order. Each coordinate is a `np.array` 
+        of shape `pscan.shape`.
+
+    Returns
+    -------
+    out : list
+        Two-membered list of COMs in q-space coordinates, each of shape `pscan.shape`
+    """
+
+    cy, cz = coms
+    qx, qy, qz = qcoords
+
+    cy, cz = [np.round(x, 0).astype("int") for x in (cy, cz)]
+    cqx, cqy, cqz = qx[cy,cz], qy[cy, cz], qz[cy, cz]
+
+    return cqx, cqy, cqz
