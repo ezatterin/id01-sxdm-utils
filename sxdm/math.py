@@ -56,3 +56,30 @@ def convert_coms_qspace(coms, qcoords):
     cqy, cqz = qy[cy, cz], qz[cy, cz]
 
     return cqy, cqz
+
+def ang_between(v1, v2):
+    """
+    Calculate the angle between vectors contained in two 2D (i,j) arrays.
+
+    Parameters
+    ----------
+    v1 : numpy.ndarray
+        First 2D array of vectors, shape (i, j, 3).
+    v2 : numpy.ndarray
+        Second 2D array of vectors, shape (i, j, 3).
+
+    Returns
+    -------
+    out : numpy.ndarray
+        2D array of angles, shape (i, j).
+    """
+
+    v1a, v2a = [np.linalg.norm(v, axis=2) for v in (v1,v2)]
+
+    out = np.empty(v1.shape[:2])
+    for i in range(v1.shape[0]):
+        for j in range(v1.shape[1]):
+            frac = np.dot(v1[i,j], v2[i,j]) / (v1a[i,j]*v2a[i,j])
+            out[i, j] = np.degrees(np.arccos(frac))
+            
+    return out
