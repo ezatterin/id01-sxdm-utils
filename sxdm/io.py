@@ -170,12 +170,16 @@ class PiezoScan(Scan):
         Returns the full path to the .edf.gz file containing the detector frames
         collected as part of the scan.
     get_detector_frames()
+        TODO
     get_detcalib()
         Returns the output of the SPEC `det_calib` command, i.e. the detector
         distance, central pixel, pixels per degree, and incident beam energy.
     calc_qspace_coordinates()
+        TODO
     calc_coms()
+        TODO
     fit_gaussian()
+        TODO
     """
 
     motordef = dict(pix="adcY", piy="adcX", piz="adcZ")
@@ -357,7 +361,7 @@ class PiezoScan(Scan):
     ):
 
         """
-        ID01-specific function to calculate qspace coordinates of a scan.
+        ID01-specific function to calculate reciprocal space coordinates of a scan.
 
         Parameters
         ----------
@@ -374,7 +378,7 @@ class PiezoScan(Scan):
             The beam energy in keV. Taken from the scan header if not given.
 
         detector : str
-            The detector used during the experiment. At the moment only "maxipix" 
+            The detector used during the experiment. At the moment only "maxipix"
             (default) and "eiger" are supported.
 
         ipdir : 3-tuple(float)
@@ -386,13 +390,13 @@ class PiezoScan(Scan):
             (see xrayutilities.experiment)
 
         ignore_mpx_motors : Bool
-            Wether to correct for mpxy, mpxz (not necessary if loading the detector 
+            Wether to correct for mpxy, mpxz (not necessary if loading the detector
             calibration)
 
         Returns
         -------
         qx, qy, qz : numpy.ndarray
-            The q-space coordinates in each orthogonal direction. 
+            The q-space coordinates in each orthogonal direction.
 
         """
 
@@ -467,7 +471,7 @@ class PiezoScan(Scan):
         # subtract offset from used angles
         for a in self._angles:
             if a in self.qconversion_motors_use:
-                pos = self.get_motorpos(a if a != 'delta' else 'del')
+                pos = self.get_motorpos(a if a != "delta" else "del")
             else:
                 pos = 0.0
             self._angles[a] = pos - self.qconversion_motors_offsets[a]
@@ -501,9 +505,26 @@ class PiezoScan(Scan):
 
         return qx, qy, qz
 
-    def calc_coms(self, roi=None):
+    def calc_coms(self, roi=None, qspace=False):
         """
-        roi : [x0,x1,y0,y1]
+        Calculate the centre of mass (COM) of the intensity in a detector frame for
+        each scan position.
+
+        Parameters
+        ----------
+        roi : list
+            Detector frame region of interest specified as [x_min, x_max, y_min, y_max].
+            Restricts the COM calculation within this region. Default: full detector.
+        qspace : bool
+            Compute the COMs in q-space coordinates. Requires
+            `self.calc_qspace_coordinates` to have been previously run. Default is
+            False, i.e. the calculation is done in detector pixel coordinates.
+
+        Returns
+        -------
+        cx, cy, cz : np.ndarray
+            The COM coordinates at each map position. If `qspace=False` only `cy, cz`
+            are returned (in detector pixel coordinates).
         """
 
         if roi is not None:
@@ -516,23 +537,41 @@ class PiezoScan(Scan):
             frames = self.frames
         except AttributeError:
             frames = self.get_detector_frames()
-        y, z = np.indices(self.frames.shape[1:])[roi]
+        y, z = np.indices(frames.shape[1:])[roi]
         frames = frames[roi]
 
-        coms = np.zeros((frames.shape[0], 2))
-        for index in tqdm(range(frames.shape[0])):
-            cy, cz = [
-                (
-                    np.sum(frames[index] * pos, axis=(0, 1))
-                    / frames[index].sum(axis=(0, 1))
-                )
-                for pos in (y, z)
-            ]
-            coms[index, :] = cy, cz
+        if qspace:
+            try:
+                qx, qy, qz = [q[roi[1:]] for q in (self.qx, self.qy, self.qz)]
 
-        cy, cz = coms.reshape(*self.shape, 2).T
+                coms = np.zeros((frames.shape[0], 3))
+                for index in tqdm(range(frames.shape[0])):
+                    prob = frames[index] / frames[index].sum()
+                    qcoms = [np.sum(prob*q) for q in (qx,qy,qz)]
+                    coms[index, :] = qcoms
 
-        return cy, cz
+                cqx, cqy, cqz = coms.reshape(*self.shape, 3).T
+                return cqx, cqy, cqz
+
+            except AttributeError:
+                emsg = "Q-space coordinates not found. Please run the"
+                emsg += "`calc_qspace_coordinates` method before using"
+                emsg += "`qspace=True` in this function."
+                print(emsg)
+        else:
+            coms = np.zeros((frames.shape[0], 2))
+            for index in tqdm(range(frames.shape[0])):
+                cy, cz = [
+                    (
+                        np.sum(frames[index] * pos, axis=(0, 1))
+                        / frames[index].sum(axis=(0, 1))
+                    )
+                    for pos in (y, z)
+                ]
+                coms[index, :] = cy, cz
+
+            cy, cz = coms.reshape(*self.shape, 2).T
+            return cy, cz
 
     # def _calc_projections(self, roi=None, **qspace_kwargs):
 
