@@ -276,12 +276,12 @@ class PiezoScan(Scan):
     def get_edf_filename(self):
         # regular expression matching the imageFile comment line
         _imgfile_pattern = (
-            "^#C imageFile "
-            "dir\[(?P<dir>[^\]]*)\] "
-            "prefix\[(?P<prefix>[^\]]*)\] "
-            "(idxFmt\[(?P<idxFmt>[^\]]*)\] ){0,1}"
-            "nextNr\[(?P<nextNr>[^\]]*)\] "
-            "suffix\[(?P<suffix>[^\]]*)\]$"
+            r"^#C imageFile "
+            r"dir\[(?P<dir>[^\]]*)\] "
+            r"prefix\[(?P<prefix>[^\]]*)\] "
+            r"(idxFmt\[(?P<idxFmt>[^\]]*)\] ){0,1}"
+            r"nextNr\[(?P<nextNr>[^\]]*)\] "
+            r"suffix\[(?P<suffix>[^\]]*)\]$"
         )
 
         # find the image file line
@@ -452,7 +452,8 @@ class PiezoScan(Scan):
         elif detector_distance is None:
             if not _calib:
                 raise ValueError(
-                    "detector_distance not found in scan header and set to None, please specify"
+                    "detector_distance not found in scan header and set to None,"
+                    "please specify"
                 )
             else:
                 pass
@@ -505,24 +506,23 @@ class PiezoScan(Scan):
 
         return qx, qy, qz
 
-    def calc_coms(self, roi=None, qspace=False,
-                    calc_std=False):
+    def calc_coms(self, roi=None, qspace=False, calc_std=False):
         """
         Calculate the centre of mass (COM) of the intensity in a detector frame for
         each scan position.
 
         Parameters
         ----------
-        roi : list
+        roi : list, optional
             Detector frame region of interest specified as [x_min, x_max, y_min, y_max].
             Restricts the COM calculation within this region. Default: full detector.
-        qspace : bool
+        qspace : bool, optional
             Compute the COMs in q-space coordinates. Requires
             `self.calc_qspace_coordinates` to have been previously run. Default is
             False, i.e. the calculation is done in detector pixel coordinates.
-        calc_std : bool
+        calc_std : bool, optional
             Compute the peak standard deviations (more or less the peak width).
-            if qspace==True, the STDs are calculated in q-space coordinates. 
+            if qspace==True, the STDs are calculated in q-space coordinates.
 
         Returns
         -------
@@ -530,9 +530,10 @@ class PiezoScan(Scan):
             The COM coordinates at each map position. If `qspace=False` only `cy, cz`
             are returned (in detector pixel coordinates).
 
-        cqx, cqy, cqz, stdqx, stdqy, stdqz : np.ndarray
-            If calc_std==True, return the COM and the STD at each map position. If `qspace=False` only `cy, cz, stdy,stdz`
-            are returned (in detector pixel coordinates).
+        cx, cy, cz, stdx, stdy, stdz : np.ndarray
+            If calc_std==True, return the COM and the STD at each map position.
+            If `qspace=False` only `cy, cz, stdy,stdz` are returned (in detector
+            pixel coordinates).
         """
 
         if roi is not None:
@@ -553,21 +554,26 @@ class PiezoScan(Scan):
                 qx, qy, qz = [q[roi[1:]] for q in (self.qx, self.qy, self.qz)]
 
                 coms = np.zeros((frames.shape[0], 3))
-                if calc_std : stds = np.zeros((frames.shape[0], 3))
+                if calc_std:
+                    stds = np.zeros((frames.shape[0], 3))
 
                 for index in tqdm(range(frames.shape[0])):
                     prob = frames[index] / frames[index].sum()
-                    qcoms = [np.sum(prob*q) for q in (qx,qy,qz)]
+                    qcoms = [np.sum(prob * q) for q in (qx, qy, qz)]
                     coms[index, :] = qcoms
 
-                    if calc_std :
-                        qstds = [np.sqrt(np.sum(prob*(q-qcom)**2.)) for q, qcom in zip((qx,qy,qz), qcoms)]
+                    if calc_std:
+                        qstds = [
+                            np.sqrt(np.sum(prob * (q - qcom) ** 2.0))
+                            for q, qcom in zip((qx, qy, qz), qcoms)
+                        ]
                         stds[index, :] = qstds
 
                 cqx, cqy, cqz = coms.reshape(*self.shape, 3).T
-                if calc_std : stdqx, stdqy, stdqz = stds.reshape(*self.shape, 3).T
+                if calc_std:
+                    stdqx, stdqy, stdqz = stds.reshape(*self.shape, 3).T
 
-                if calc_std : 
+                if calc_std:
                     return cqx, cqy, cqz, stdqx, stdqy, stdqz
                 else:
                     return cqx, cqy, cqz
@@ -579,7 +585,8 @@ class PiezoScan(Scan):
                 print(emsg)
         else:
             coms = np.zeros((frames.shape[0], 2))
-            if calc_std : stds = np.zeros((frames.shape[0], 2))
+            if calc_std:
+                stds = np.zeros((frames.shape[0], 2))
 
             for index in tqdm(range(frames.shape[0])):
                 cy, cz = [
@@ -591,16 +598,20 @@ class PiezoScan(Scan):
                 ]
                 coms[index, :] = cy, cz
 
-                if calc_std :
+                if calc_std:
                     prob = frames[index] / frames[index].sum()
-                    std = [np.sqrt(np.sum(prob*(pos-com)**2.)) for pos,com in zip((y, z), (cy,cz))]
+                    std = [
+                        np.sqrt(np.sum(prob * (pos - com) ** 2.0))
+                        for pos, com in zip((y, z), (cy, cz))
+                    ]
                 stds[index, :] = std
 
             cy, cz = coms.reshape(*self.shape, 2).T
-            if calc_std : stdy,stdz = stds.reshape(*self.shape, 2).T
+            if calc_std:
+                stdy, stdz = stds.reshape(*self.shape, 2).T
 
-            if calc_std : 
-                return cy, cz, stdy,stdz
+            if calc_std:
+                return cy, cz, stdy, stdz
             else:
                 return cy, cz
 
@@ -732,72 +743,3 @@ class PiezoScan(Scan):
 #         print(cy)
 
 #         return cy, cz
-
-
-#     def calc_coms(self, roi=None, qspace=False):
-#         """
-#         Calculate the centre of mass (COM) of the intensity in a detector frame for
-#         each scan position.
-
-#         Parameters
-#         ----------
-#         roi : list
-#             Detector frame region of interest specified as [x_min, x_max, y_min, y_max].
-#             Restricts the COM calculation within this region. Default: full detector.
-#         qspace : bool
-#             Compute the COMs in q-space coordinates. Requires
-#             `self.calc_qspace_coordinates` to have been previously run. Default is
-#             False, i.e. the calculation is done in detector pixel coordinates.
-
-#         Returns
-#         -------
-#         cx, cy, cz : np.ndarray
-#             The COM coordinates at each map position. If `qspace=False` only `cy, cz`
-#             are returned (in detector pixel coordinates).
-#         """
-
-#         if roi is not None:
-#             roi = np.s_[roi[2] : roi[3], roi[0] : roi[1]]
-#         else:
-#             roi = np.s_[:, :]
-#         roi = slice(None, None, None), *roi
-
-#         try:
-#             frames = self.frames
-#         except AttributeError:
-#             frames = self.get_detector_frames()
-#         y, z = np.indices(frames.shape[1:])[roi]
-#         frames = frames[roi]
-
-#         if qspace:
-#             try:
-#                 qx, qy, qz = [q[roi[1:]] for q in (self.qx, self.qy, self.qz)]
-
-#                 coms = np.zeros((frames.shape[0], 3))
-#                 for index in tqdm(range(frames.shape[0])):
-#                     prob = frames[index] / frames[index].sum()
-#                     qcoms = [np.sum(prob*q) for q in (qx,qy,qz)]
-#                     coms[index, :] = qcoms
-
-#                 cqx, cqy, cqz = coms.reshape(*self.shape, 3).T
-#                 return cqx, cqy, cqz
-
-#             except AttributeError:
-#                 emsg = "Q-space coordinates not found. Please run the"
-#                 emsg += "`calc_qspace_coordinates` method before using"
-#                 emsg += "`qspace=True` in this function."
-#                 print(emsg)
-#         else:
-#             coms = np.zeros((frames.shape[0], 2))
-#             for index in tqdm(range(frames.shape[0])):
-#                 cy, cz = [
-#                     (
-#                         np.sum(frames[index] * pos, axis=(0, 1))
-#                         / frames[index].sum(axis=(0, 1))
-#                     )
-#                     for pos in (y, z)
-#                 ]
-#                 coms[index, :] = cy, cz
-
-#             cy, cz = coms.reshape(*self.shape, 2).T
-#             return cy, cz
