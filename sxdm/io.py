@@ -604,7 +604,7 @@ class PiezoScan(Scan):
                         np.sqrt(np.sum(prob * (pos - com) ** 2.0))
                         for pos, com in zip((y, z), (cy, cz))
                     ]
-                stds[index, :] = std
+                    stds[index, :] = std
 
             cy, cz = coms.reshape(*self.shape, 2).T
             if calc_std:
