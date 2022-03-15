@@ -164,13 +164,19 @@ with h5py.File(path_dset, "r") as h5f:
                         path_dset,
                         f"{scan_num}/measurement/{c}",
                     )
-
             for p in positioners:
-                xsocsh5f.add_file_link(
-                    f"{_entry_name}/instrument/positioners/{p}",
-                    path_dset,
-                    f"{scan_num}/instrument/positioners/{p}",
-                )
+                if p == "delta":
+                    xsocsh5f.add_file_link(
+                        f"{_entry_name}/instrument/positioners/del",
+                        path_dset,
+                        f"{scan_num}/instrument/positioners/{p}",
+                    )
+                else:
+                    xsocsh5f.add_file_link(
+                        f"{_entry_name}/instrument/positioners/{p}",
+                        path_dset,
+                        f"{scan_num}/instrument/positioners/{p}",
+                    )
 
             for pp in pi_positioners:
                 new_c = pi_motor_names[pp]
