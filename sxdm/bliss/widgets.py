@@ -1,76 +1,20 @@
 # TODO : change widget to read indivudual h5 files avoiding to open the scan file
 
-
-import sxdm
-import numpy as np
+import h5py
+import ipywidgets as ipw
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import ipywidgets as ipw
-
-import h5py
-
-from h5glance import H5Glance as h5p
-from datetime import datetime
-from functools import wraps
+import os
 
 from matplotlib.widgets import Cursor
 from IPython.display import display
 
-
-def ioh5(func):
-    @wraps(func)  # to get docstring of dectorated func
-    def wrapper(filename, *args, **kwargs):
-        with h5py.File(filename, "r") as h5f:
-            return func(h5f, *args, **kwargs)
-
-    return wrapper
-
-
-@ioh5
-def get_roidata(h5f, scan_no, roi_name, return_pi_motors=False):
-    _entry = scan_no
-    _sh = [h5f[_entry][f"technique/{x}"][()] for x in ("dim0", "dim1")]
-    _command = h5f[f"{_entry}/title"][()].decode()
-
-    data = h5f[_entry][f"measurement/{roi_name}"][()]
-
-    if data.size == _sh[0] * _sh[1]:
-        data = data.reshape(*_sh)
-    else:
-        empty = np.zeros(_sh).flatten()
-        empty[: data.size] = data
-        data = empty.reshape(*_sh)
-
-    if return_pi_motors:
-        m1, m2 = [_command.split(" ")[x][:-1] for x in (1, 5)]
-        m1, m2 = [h5f[f"{_entry}/measurement/{m}_position"][()] for m in (m1, m2)]
-        m1, m2 = [m.reshape(*_sh) for m in (m1, m2)]
-
-        return data, m1, m2
-    else:
-        return data
-
-
-@ioh5
-def get_motorpos(h5f, scan_no, motor_name):
-    return h5f[f"/{scan_no}/instrument/positioners/{motor_name}"][()]
-
-
-@ioh5
-def get_datetime(h5f, scan_no):
-    _entry = scan_no
-    _datetime = h5f[f"{_entry}/start_time"][()].decode()
-    _datetime = datetime.fromisoformat(_datetime).strftime("%b %d | %H:%M:%S")
-
-    return _datetime
-
-
-@ioh5
-def get_command(h5f, scan_no):
-    return h5f[f"/{scan_no}/title"][()].decode()
+from ..plot import add_colorbar
+from .io import get_roidata, get_motorpos, get_command, get_datetime
 
 
 class InspectROI(object):
+
     def __init__(self, path_h5, default_roi="mpx4int", detector="mpx1x4", roilist=None):
         self.roiname = f"{detector}_{default_roi}"
         self.path_h5 = path_h5
@@ -109,13 +53,13 @@ class InspectROI(object):
             fig, ax = plt.subplots(1, 1, figsize=(4, 4), layout="tight")
 
         # roi img
-#         _ext = [self.m1.min(), self.m1.max(), self.m2.min(), self.m2.max()]
-        self.img = ax.imshow(self.roidata, origin='lower')
+        #         _ext = [self.m1.min(), self.m1.max(), self.m2.min(), self.m2.max()]
+        self.img = ax.imshow(self.roidata, origin="lower")
         self._get_motor_names()
         self._update_piezo_coordinates()
 
         # labels etc
-        _ = sxdm.plot.add_colorbar(ax, self.img)
+        _ = add_colorbar(ax, self.img)
         _ = ax.set_xlabel(f"{self.m1name} (um)")
         _ = ax.set_ylabel(f"{self.m2name} (um)")
         _ = ax.set_title(f"#{self.scan_no} - {default_roi}")
@@ -199,7 +143,7 @@ class InspectROI(object):
             if event.inaxes == self.ax:
                 x, y = event.xdata, event.ydata
                 m1n, m2n = self.m1name, self.m2name
-                
+
                 msg = f"You clicked: {m1n},{x:.4f}, {m2n},{y:.4f}"
                 print(msg)
             else:
@@ -216,9 +160,10 @@ class InspectROI(object):
         roi = change["new"]
         img = self.img
         roidata = get_roidata(self.path_h5, self.scan_no, roi)
+        dsetname = os.path.basename(self.path_h5)
 
         img.set_data(roidata)
-        img.axes.set_title(f"#{self.scan_no} - {roi}")
+        img.axes.set_title(f"{dsetname}\n#{self.scan_no} - {roi}")
         try:
             img.set_clim(roidata.min(), roidata.max())
         except ValueError:
