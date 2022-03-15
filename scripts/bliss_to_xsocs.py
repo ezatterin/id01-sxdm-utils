@@ -1,18 +1,17 @@
 """
 Run this script to generate a set of HDF5 files compatible with XSOCS, from
 data generated via BLISS. Essentially a quick workaround to continue to use
-XSOCS. 
-
+XSOCS.
 IMPORTANT: the script generates files with *links* to the original data, it
 does not copy it (very fast). DO NOT delete the original data! If you move it,
 you will have to re-run this script.
 """
 
 import os
-import sxdm
 import numpy as np
 import h5py
 import xrayutilities as xu
+import re
 
 from xsocs.io import XsocsH5
 
@@ -40,6 +39,37 @@ path_out = f"{path_exp}/data_analysis/xsocs_merge/"
 ##########
 ## CODE ##
 ##########
+
+# this exists in sxdm.bliss.utils, explicitly defining it here
+# in order to avoid the script being dependent on the
+# id01-sxdm-utils package (this package!)
+def _parse_scan_command(command):
+    """
+    Accepts a BLISS SXDM command and parses it according to the XSOCS
+    file structure.
+    """
+
+    _COMMAND_LINE_PATTERN = (
+        "^(?P<command>[^ ]*)\( "
+        "(?P<motor_0>[^ ]*), "
+        "(?P<motor_0_start>[^ ]*), "
+        "(?P<motor_0_end>[^ ]*), "
+        "(?P<motor_0_steps>[^ ]*), "
+        "(?P<motor_1>[^ ]*), "
+        "(?P<motor_1_start>[^ ]*), "
+        "(?P<motor_1_end>[^ ]*), "
+        "(?P<motor_1_steps>[^ ]*), "
+        "(?P<delay>[^ ]*)\s*"
+        ".*"
+        "$"
+    )
+    cmd_rgx = re.compile(_COMMAND_LINE_PATTERN)
+    cmd_match = cmd_rgx.match(command)
+    if cmd_match is None:
+        raise ValueError('Failed to parse command line : "{0}".' "".format(command))
+    cmd_dict = cmd_match.groupdict()
+    cmd_dict.update(full=command)
+    return cmd_dict
 
 path_dset = f"{path_exp}/{name_sample}/{name_dset}/{name_dset}.h5"
 pi_motor_names = {"raw_pix_adc": "adcY", "raw_piy_adc": "adcX", "raw_piz_adc": "adcZ"}
@@ -84,10 +114,8 @@ with h5py.File(path_dset, "r") as h5f:
         )
 
         # the bliss scan folder
-        _entry_name = os.path.abspath(_bliss_file).split("/")[
-            -2
-        ]  
-        _command_params = sxdm.bliss.utils.parse_scan_command(command)
+        _entry_name = os.path.abspath(_bliss_file).split("/")[-2]
+        _command_params = _parse_scan_command(command)
 
         # write links to individual XSOCS-compatible files
         out_h5f = f"{path_out}/{name_dset}_{scan_num}.h5"
