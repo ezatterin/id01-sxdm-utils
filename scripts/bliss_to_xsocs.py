@@ -71,8 +71,13 @@ def _parse_scan_command(command):
     cmd_dict.update(full=command)
     return cmd_dict
 
+
 path_dset = f"{path_exp}/{name_sample}/{name_dset}/{name_dset}.h5"
-pi_motor_names = {"raw_pix_adc": "adcY", "raw_piy_adc": "adcX", "raw_piz_adc": "adcZ"}
+pi_motor_names = {
+    "pix_position": "adcY",
+    "piy_position": "adcX",
+    "piz_position": "adcZ",
+}
 
 with h5py.File(path_dset, "r") as h5f:
 
@@ -99,6 +104,10 @@ with h5py.File(path_dset, "r") as h5f:
             x for x in _instr if _instr[x].attrs.get("NX_class") == "NXdetector"
         ]
         counters.remove(f"{detector}_beam")
+
+        pi_positioners = [
+            x for x in _instr if _instr[x].attrs.get("NX_class") == "NXpositioner"
+        ]
         positioners = [x for x in _instr["positioners"]]
 
         direct_beam = [_instr[f"{detector}/beam_center_{x}"] for x in ("y", "x")]
@@ -149,13 +158,6 @@ with h5py.File(path_dset, "r") as h5f:
                         path_dset,
                         f"{scan_num}/measurement/{c}",
                     )
-                elif c in pi_motor_names.keys():
-                    new_c = pi_motor_names[c]
-                    xsocsh5f.add_file_link(
-                        f"{_entry_name}/measurement/{new_c}",
-                        path_dset,
-                        f"{scan_num}/measurement/{c}",
-                    )
                 else:
                     xsocsh5f.add_file_link(
                         f"{_entry_name}/measurement/{c}",
@@ -168,6 +170,14 @@ with h5py.File(path_dset, "r") as h5f:
                     f"{_entry_name}/instrument/positioners/{p}",
                     path_dset,
                     f"{scan_num}/instrument/positioners/{p}",
+                )
+
+            for pp in pi_positioners:
+                new_c = pi_motor_names[pp]
+                xsocsh5f.add_file_link(
+                    f"{_entry_name}/measurement/{new_c}",
+                    path_dset,
+                    f"{scan_num}/instrument/{pp}/value",
                 )
 
         # write links to XSOCS master file
