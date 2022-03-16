@@ -148,8 +148,8 @@ with h5py.File(path_dset, "r") as h5f:
             XsocsH5Base methods
             --> make links to data and counters
             """
-            xsocsh5f._set_scalar_data("title", command)
-            xsocsh5f._set_scalar_data("start_time", start_time)
+            xsocsh5f._set_scalar_data(f'{_entry_name}/title', command)
+            xsocsh5f._set_scalar_data(f'{_entry_name}/start_time', start_time)
 
             for c in counters:
                 if c == detector:
