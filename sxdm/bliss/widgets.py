@@ -205,7 +205,7 @@ class InspectROI(object):
 
             m1n, m2n = self.m1name, self.m2name
             m1, m2 = [
-                h5f[f"{self.scan_no}/measurement/{m}_position"][()] for m in (m1n, m2n)
+                h5f[f"{self.scan_no}/instrument/positioners/{m}_position"][()] for m in (m1n, m2n)
             ]
 
             # surely this can be done in a more interlligent way
