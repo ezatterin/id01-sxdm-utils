@@ -40,9 +40,8 @@ path_out = f"{path_exp}/data_analysis/xsocs_merge/"
 ## CODE ##
 ##########
 
-# this exists in sxdm.bliss.utils, explicitly defining it here
-# in order to avoid the script being dependent on the
-# id01-sxdm-utils package (this package!)
+# this exists in sxdm.bliss.utils, explicitly defining it here in order to avoid
+#  the script being dependent on the id01-sxdm-utils package (this package!)
 def _parse_scan_command(command):
     """
     Accepts a BLISS SXDM command and parses it according to the XSOCS
@@ -118,12 +117,13 @@ with h5py.File(path_dset, "r") as h5f:
 
         energy = xu.lam2en(_instr["monochromator/WaveLength"][()] * 1e10)
 
-        _bliss_file = (
-            f"{path_exp}/{name_sample}/{name_dset}/scan{idx:04d}/{detector}_0000.h5"
-        )
-
         # the bliss scan folder
-        _entry_name = os.path.abspath(_bliss_file).split("/")[-2]
+        # _bliss_file = (
+        # f"{path_exp}/{name_sample}/{name_dset}/scan{idx:04d}/{detector}_0000.h5"
+        # )
+        # _entry_name = os.path.abspath(_bliss_file).split("/")[-2]
+
+        _entry_name = scan_no  # isn't this much better for consistency?
         _command_params = _parse_scan_command(command)
 
         # write links to individual XSOCS-compatible files
@@ -148,8 +148,8 @@ with h5py.File(path_dset, "r") as h5f:
             XsocsH5Base methods
             --> make links to data and counters
             """
-            xsocsh5f._set_scalar_data(f'{_entry_name}/title', command)
-            xsocsh5f._set_scalar_data(f'{_entry_name}/start_time', start_time)
+            xsocsh5f._set_scalar_data(f"{_entry_name}/title", command)
+            xsocsh5f._set_scalar_data(f"{_entry_name}/start_time", start_time)
 
             for c in counters:
                 if c == detector:
@@ -185,6 +185,13 @@ with h5py.File(path_dset, "r") as h5f:
                     path_dset,
                     f"{scan_num}/instrument/{pp}/value",
                 )
+
+            _imgnr = np.arange(_entry[f"measurement/{detector}"].shape[0])
+            xsocsh5f._set_array_data(f"{_entry_name}/measurement/imgnr", _imgnr)
+
+            xsocsh5f.add_file_link(
+                f"{_entry_name}/technique", path_dset, f"{scan_num}/technique"
+            )
 
         # write links to XSOCS master file
         with XsocsH5.XsocsH5MasterWriter(out_h5f_master, "a") as master:
