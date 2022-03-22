@@ -35,7 +35,6 @@ detector = "mpx1x4"
 # path of the output files to be read by XSOCS
 path_out = f"{path_exp}/data_analysis/xsocs_merge/"
 
-
 ##########
 ## CODE ##
 ##########
@@ -123,7 +122,7 @@ with h5py.File(path_dset, "r") as h5f:
         # )
         # _entry_name = os.path.abspath(_bliss_file).split("/")[-2]
 
-        _entry_name = scan_no  # isn't this much better for consistency?
+        _entry_name = scan_num  # isn't this much better for consistency?
         _command_params = _parse_scan_command(command)
 
         # write links to individual XSOCS-compatible files
