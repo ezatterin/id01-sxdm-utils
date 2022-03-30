@@ -15,7 +15,6 @@ import re
 
 from xsocs.io import XsocsH5
 
-
 ###########
 ## INPUT ##
 ###########
@@ -35,11 +34,15 @@ detector = "mpx1x4"
 # path of the output files to be read by XSOCS
 path_out = f"{path_exp}/data_analysis/xsocs_merge/"
 
-##########
-## CODE ##
-##########
+# set to None for all scans, otherwise specify numbers
+# the first number is always 1, not 0!
+scan_nums = None
 
-# this exists in sxdm.bliss.utils, explicitly defining it here in order to avoid
+###############
+## FUNCTIONS ##
+###############
+
+#  this exists in sxdm.bliss.utils, explicitly defining it here in order to avoid
 #  the script being dependent on the id01-sxdm-utils package (this package!)
 def _parse_scan_command(command):
     """
@@ -63,135 +66,164 @@ def _parse_scan_command(command):
     )
     cmd_rgx = re.compile(_COMMAND_LINE_PATTERN)
     cmd_match = cmd_rgx.match(command)
+    
     if cmd_match is None:
         raise ValueError('Failed to parse command line : "{0}".' "".format(command))
+    
     cmd_dict = cmd_match.groupdict()
     cmd_dict.update(full=command)
+    
     return cmd_dict
 
+# this will eventually end up in sxdm.bliss.utils too
+def make_links(path_dset, path_out, scan_nums, detector, name_outh5=None):
+    
+    # open the dataset file
+    with h5py.File(path_dset, "r") as h5f:
+
+        # get some parameters
+        _nscans = len(list(h5f.keys()))
+        _scan_idxs = range(1, _nscans + 1)
+        _commands = [h5f[f"{s}.1/title"][()].decode() for s in _scan_idxs]
+        _name_dset = os.path.basename(path_dset)
+        
+        # using all scan numbers in file?
+        if scan_nums is None:
+            print(f'> Using all scan numbers in {_name_dset}')
+            _scan_nums = [f"{s}.1" for s, c in zip(_scan_idxs, _commands) if "sxdm" in c]
+        else:
+            print(f'> Selecting scans {scan_nums[0]} --> {scan_nums[-1]} in {_name_dset}')
+            _scan_nums = [f'{x}.1' for x in scan_nums]
+
+        # load counters, positioners, and other params for each scan
+        for idx, scan_num, command in zip(_scan_idxs, _scan_nums, _commands):
+
+            _entry = h5f[scan_num]
+            _instr = _entry["instrument/"]
+
+            # get some metadata
+            start_time = _entry["start_time"][()].decode()
+            direct_beam = [_instr[f"{detector}/beam_center_{x}"] for x in ("y", "x")]
+            det_distance = _instr[f"{detector}/distance"]
+
+            _pixsizes = [_instr[f"{detector}/{m}_pixel_size"][()] for m in ("y", "x")]
+            chan_per_deg = [np.tan(np.radians(1)) * det_distance / pxs for pxs in _pixsizes]
+            energy = xu.lam2en(_instr["monochromator/WaveLength"][()] * 1e10)
+            
+            # get counters
+            counters = [
+                x for x in _instr if _instr[x].attrs.get("NX_class") == "NXdetector"
+            ]
+            counters.remove(f"{detector}_beam")
+
+            # get piezo coordinates
+            pi_positioners = [
+                x for x in _instr if _instr[x].attrs.get("NX_class") == "NXpositioner"
+            ]
+            positioners = [x for x in _instr["positioners"]]
+
+            # more parameters
+            _entry_name = scan_num # <-- ends up in output h5 fname
+            _command_params = _parse_scan_command(command)
+        
+            # name the output files
+            if name_outh5 is None:
+                name_outh5 = _name_dset
+            out_h5f = f"{path_out}/{name_outh5}_{_entry_name}.h5"
+            
+            # write links to individual XSOCS-compatible files
+            with XsocsH5.XsocsH5Writer(out_h5f, "w") as xsocsh5f:  # overwrite
+
+                """
+                XsocsH5Writer methods
+                --> make links to scan parameters
+                """
+                xsocsh5f.create_entry(_entry_name)  # creates NX skeleton
+                xsocsh5f.set_scan_params(
+                    _entry_name, **_command_params
+                )  # "scan" folder contents
+
+                xsocsh5f.set_beam_energy(energy, _entry_name)
+                xsocsh5f.set_chan_per_deg(chan_per_deg, _entry_name)
+                xsocsh5f.set_direct_beam(direct_beam, _entry_name)
+                xsocsh5f.set_image_roi_offset([0, 0], _entry_name)  # hardcoded for now
+
+                """
+                XsocsH5Base methods
+                --> make links to data and counters
+                """
+                xsocsh5f._set_scalar_data(f"{_entry_name}/title", command)
+                xsocsh5f._set_scalar_data(f"{_entry_name}/start_time", start_time)
+
+                for c in counters:
+                    if c == detector:
+                        xsocsh5f.add_file_link(
+                            f"{_entry_name}/measurement/image/data",
+                            path_dset,
+                            f"{scan_num}/measurement/{c}",
+                        )
+                    else:
+                        xsocsh5f.add_file_link(
+                            f"{_entry_name}/measurement/{c}",
+                            path_dset,
+                            f"{scan_num}/measurement/{c}",
+                        )
+                for p in positioners:
+                    if p == "delta":
+                        xsocsh5f.add_file_link(
+                            f"{_entry_name}/instrument/positioners/del",
+                            path_dset,
+                            f"{scan_num}/instrument/positioners/{p}",
+                        )
+                    else:
+                        xsocsh5f.add_file_link(
+                            f"{_entry_name}/instrument/positioners/{p}",
+                            path_dset,
+                            f"{scan_num}/instrument/positioners/{p}",
+                        )
+
+                for pp in pi_positioners:
+                    new_c = pi_motor_names[pp]
+                    xsocsh5f.add_file_link(
+                        f"{_entry_name}/measurement/{new_c}",
+                        path_dset,
+                        f"{scan_num}/instrument/{pp}/value",
+                    )
+
+                _imgnr = np.arange(_entry[f"measurement/{detector}"].shape[0])
+                xsocsh5f._set_array_data(f"{_entry_name}/measurement/imgnr", _imgnr)
+
+                xsocsh5f.add_file_link(
+                    f"{_entry_name}/technique", path_dset, f"{scan_num}/technique"
+                )
+
+            # print
+            print(f'\r> Linking # {scan_num}/{len(_scan_nums)}.1', flush=True, end=' ')
+            
+        # generate output master file
+        out_h5f_master = f"{path_out}/{name_outh5}_master.h5"
+        with XsocsH5.XsocsH5MasterWriter(out_h5f_master, "w") as master:
+            pass  # overwrite master file
+            
+        # write links to XSOCS master file
+        with XsocsH5.XsocsH5MasterWriter(out_h5f_master, "a") as master:
+            master.add_entry_file(_entry_name, out_h5f)
+
+        print('\n> Done!')
+
+##########
+## CODE ##
+##########
+
+if not os.path.isdir(path_out):
+    os.mkdir(path_out)
 
 path_dset = f"{path_exp}/{name_sample}/{name_dset}/{name_dset}.h5"
+
 pi_motor_names = {
     "pix_position": "adcY",
     "piy_position": "adcX",
     "piz_position": "adcZ",
 }
 
-with h5py.File(path_dset, "r") as h5f:
-
-    _nscans = len(list(h5f.keys()))
-    _scan_idxs = range(1, _nscans + 1)
-
-    _commands = [h5f[f"{s}.1/title"][()].decode() for s in _scan_idxs]
-    _scan_nums = [f"{s}.1" for s, c in zip(_scan_idxs, _commands) if "sxdm" in c]
-
-    # generate the output file
-    out_h5f_master = f"{path_out}/{name_dset}.h5"
-    with XsocsH5.XsocsH5MasterWriter(out_h5f_master, "w") as master:
-        pass  # overwrite master file
-
-    # load counters, positioners, and other params for each scan
-    for idx, scan_num, command in zip(_scan_idxs, _scan_nums, _commands):
-
-        _entry = h5f[scan_num]
-        _instr = _entry["instrument/"]
-
-        start_time = _entry["start_time"][()].decode()
-
-        counters = [
-            x for x in _instr if _instr[x].attrs.get("NX_class") == "NXdetector"
-        ]
-        counters.remove(f"{detector}_beam")
-
-        pi_positioners = [
-            x for x in _instr if _instr[x].attrs.get("NX_class") == "NXpositioner"
-        ]
-        positioners = [x for x in _instr["positioners"]]
-
-        direct_beam = [_instr[f"{detector}/beam_center_{x}"] for x in ("y", "x")]
-        det_distance = _instr[f"{detector}/distance"]
-
-        _pixsizes = [_instr[f"{detector}/{m}_pixel_size"][()] for m in ("y", "x")]
-        chan_per_deg = [np.tan(np.radians(1)) * det_distance / pxs for pxs in _pixsizes]
-
-        energy = xu.lam2en(_instr["monochromator/WaveLength"][()] * 1e10)
-
-        # the bliss scan folder
-        # _bliss_file = (
-        # f"{path_exp}/{name_sample}/{name_dset}/scan{idx:04d}/{detector}_0000.h5"
-        # )
-        # _entry_name = os.path.abspath(_bliss_file).split("/")[-2]
-
-        _entry_name = scan_num  # isn't this much better for consistency?
-        _command_params = _parse_scan_command(command)
-
-        # write links to individual XSOCS-compatible files
-        out_h5f = f"{path_out}/{name_dset}_{scan_num}.h5"
-        with XsocsH5.XsocsH5Writer(out_h5f, "w") as xsocsh5f:  # overwrite
-
-            """
-            XsocsH5Writer methods
-            --> make links to scan parameters
-            """
-            xsocsh5f.create_entry(_entry_name)  # creates NX skeleton
-            xsocsh5f.set_scan_params(
-                _entry_name, **_command_params
-            )  # "scan" folder contents
-
-            xsocsh5f.set_beam_energy(energy, _entry_name)
-            xsocsh5f.set_chan_per_deg(chan_per_deg, _entry_name)
-            xsocsh5f.set_direct_beam(direct_beam, _entry_name)
-            xsocsh5f.set_image_roi_offset([0, 0], _entry_name)  # hardcoded for now
-
-            """
-            XsocsH5Base methods
-            --> make links to data and counters
-            """
-            xsocsh5f._set_scalar_data(f"{_entry_name}/title", command)
-            xsocsh5f._set_scalar_data(f"{_entry_name}/start_time", start_time)
-
-            for c in counters:
-                if c == detector:
-                    xsocsh5f.add_file_link(
-                        f"{_entry_name}/measurement/image/data",
-                        path_dset,
-                        f"{scan_num}/measurement/{c}",
-                    )
-                else:
-                    xsocsh5f.add_file_link(
-                        f"{_entry_name}/measurement/{c}",
-                        path_dset,
-                        f"{scan_num}/measurement/{c}",
-                    )
-            for p in positioners:
-                if p == "delta":
-                    xsocsh5f.add_file_link(
-                        f"{_entry_name}/instrument/positioners/del",
-                        path_dset,
-                        f"{scan_num}/instrument/positioners/{p}",
-                    )
-                else:
-                    xsocsh5f.add_file_link(
-                        f"{_entry_name}/instrument/positioners/{p}",
-                        path_dset,
-                        f"{scan_num}/instrument/positioners/{p}",
-                    )
-
-            for pp in pi_positioners:
-                new_c = pi_motor_names[pp]
-                xsocsh5f.add_file_link(
-                    f"{_entry_name}/measurement/{new_c}",
-                    path_dset,
-                    f"{scan_num}/instrument/{pp}/value",
-                )
-
-            _imgnr = np.arange(_entry[f"measurement/{detector}"].shape[0])
-            xsocsh5f._set_array_data(f"{_entry_name}/measurement/imgnr", _imgnr)
-
-            xsocsh5f.add_file_link(
-                f"{_entry_name}/technique", path_dset, f"{scan_num}/technique"
-            )
-
-        # write links to XSOCS master file
-        with XsocsH5.XsocsH5MasterWriter(out_h5f_master, "a") as master:
-            master.add_entry_file(_entry_name, out_h5f)
+make_links(path_dset, path_out, scan_nums, detector, name_outh5='test')
