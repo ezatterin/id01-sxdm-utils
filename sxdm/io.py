@@ -8,7 +8,8 @@ import time
 
 import numpy as np
 import silx.io
-import xrayutilities as xu
+
+from xrayutilities import HXRD, gridder2d
 
 from silx.io.specfile import SpecFile, Scan, SfErrColNotFound  # TODO use silx.io
 from tqdm.auto import tqdm
@@ -478,7 +479,7 @@ class PiezoScan(Scan):
             self._angles[a] = pos - self.qconversion_motors_offsets[a]
 
         # Init the experiment class feeding it the geometry
-        hxrd = xu.HXRD(ipdir, ndir, en=nrj, qconv=self.geometry.getQconversion())
+        hxrd = HXRD(ipdir, ndir, en=nrj, qconv=self.geometry.getQconversion())
 
         # init XU detector class
         hxrd.Ang2Q.init_area(
@@ -649,7 +650,7 @@ class PiezoScan(Scan):
             _, qy, qz = self.calc_qspace_coordinates(**qspace_kwargs)
         qy, qz = qy[roi], qz[roi]
 
-        gridder = xu.gridder2d.Gridder2D(*qy.shape)
+        gridder = gridder2d.Gridder2D(*qy.shape)
         gridder(qy, qz, np.empty(qy.shape))
         qyy, qzz = gridder.xaxis, gridder.yaxis
 
