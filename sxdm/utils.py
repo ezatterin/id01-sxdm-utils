@@ -2,6 +2,7 @@
 Various functions to aid the analysis of SXDM data.
 """
 
+import pandas as pd
 import os
 import numpy as np
 
