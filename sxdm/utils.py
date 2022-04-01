@@ -7,6 +7,7 @@ import os
 import numpy as np
 
 from .io import FastSpecFile
+from pandas import DataFrame
 
 
 def get_filelist(sample_dir):
@@ -24,7 +25,7 @@ def get_filelist(sample_dir):
                 data["filename"].append(f)
                 data["nscans"].append(len(fsf.keys()))
 
-    data = pd.DataFrame(data, columns=["path", "filename", "nscans"])
+    data = DataFrame(data, columns=["path", "filename", "nscans"])
     data = data.sort_values("filename").reset_index(drop=True)
 
     return data
