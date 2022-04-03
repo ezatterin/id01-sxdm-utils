@@ -6,6 +6,7 @@ import re
 
 from xsocs.io import XsocsH5
 
+
 def parse_scan_command(command):
     """
     Accepts a BLISS SXDM command and parses it according to the XSOCS
@@ -42,6 +43,12 @@ def make_xsocs_links(
     Generates a set of .h5 files to be fed to XSOCS. The files contain *links* to
     the original data.
     """
+
+    pi_motor_names = {
+        "pix_position": "adcY",
+        "piy_position": "adcX",
+        "piz_position": "adcZ",
+    }
 
     # open the dataset file
     with h5py.File(path_dset, "r") as h5f:
@@ -99,8 +106,12 @@ def make_xsocs_links(
 
             # name the output files
             if name_outh5 is None:
-                name_outh5 = _name_dset
+                name_outh5 = _name_dset.split(".")[0]
             out_h5f = f"{path_out}/{name_outh5}_{_entry_name}.h5"
+
+            # create dir if not there
+            if not os.path.isdir(path_out):
+                os.mkdir(path_out)
 
             # write links to individual XSOCS-compatible files
             with XsocsH5.XsocsH5Writer(out_h5f, "w") as xsocsh5f:  # overwrite
