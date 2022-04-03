@@ -1,5 +1,10 @@
+import os
+import numpy as np
+import h5py
+import xrayutilities as xu
 import re
 
+from xsocs.io import XsocsH5
 
 def parse_scan_command(command):
     """
@@ -90,7 +95,7 @@ def make_xsocs_links(
 
             # more parameters
             _entry_name = scan_num  # <-- ends up in output h5 fname
-            _command_params = _parse_scan_command(command)
+            _command_params = parse_scan_command(command)
 
             # name the output files
             if name_outh5 is None:
