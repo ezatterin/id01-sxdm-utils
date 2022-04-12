@@ -101,7 +101,7 @@ def make_links(path_dset, path_out, scan_nums, detector, name_outh5=None):
 
         # name the output files
         if name_outh5 is None:
-            name_outh5 = _name_dset
+            name_outh5 = _name_dset.split('.')[0]
 
         # generate output master file
         out_h5f_master = f"{path_out}/{name_outh5}_master.h5"
@@ -129,7 +129,10 @@ def make_links(path_dset, path_out, scan_nums, detector, name_outh5=None):
             counters = [
                 x for x in _instr if _instr[x].attrs.get("NX_class") == "NXdetector"
             ]
-            counters.remove(f"{detector}_beam")
+            try:
+                counters.remove(f"{detector}_beam")
+            except ValueError:
+                pass
 
             # get piezo coordinates
             pi_positioners = [
