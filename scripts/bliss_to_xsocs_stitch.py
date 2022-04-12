@@ -124,7 +124,10 @@ def make_links(path_dset, path_out, scan_nums, detector, name_outh5=None):
             counters = [
                 x for x in _instr if _instr[x].attrs.get("NX_class") == "NXdetector"
             ]
-            counters.remove(f"{detector}_beam")
+            try:
+                counters.remove(f"{detector}_beam")
+            except ValueError:
+                pass
 
             # get piezo coordinates
             pi_positioners = [
