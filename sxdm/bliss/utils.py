@@ -52,16 +52,13 @@ def make_xsocs_links(
 
     # open the dataset file
     with h5py.File(path_dset, "r") as h5f:
-
-        # get some parameters
-        _nscans = len(list(h5f.keys()))
-        _scan_idxs = range(1, _nscans + 1)
-        _commands = [h5f[f"{s}.1/title"][()].decode() for s in _scan_idxs]
-        _name_dset = os.path.basename(path_dset)
+        _name_dset = os.path.basename(path_dset).split('.')[0]
 
         # using all scan numbers in file?
         if scan_nums is None:
             print(f"> Using all scan numbers in {_name_dset}")
+            _scan_idxs = range(1, len(list(h5f.keys())) + 1)
+            _commands = [h5f[f"{s}.1/title"][()].decode() for s in _scan_idxs]
             _scan_nums = [
                 f"{s}.1" for s, c in zip(_scan_idxs, _commands) if "sxdm" in c
             ]
@@ -70,9 +67,19 @@ def make_xsocs_links(
                 f"> Selecting scans {scan_nums[0]} --> {scan_nums[-1]} in {_name_dset}"
             )
             _scan_nums = [f"{x}.1" for x in scan_nums]
+            _commands = [h5f[f"{s}/title"][()].decode() for s in _scan_nums]
+
+        # name the output files
+        if name_outh5 is None:
+            name_outh5 = _name_dset
+
+        # generate output master file
+        out_h5f_master = f"{path_out}/{name_outh5}_master.h5"
+        with XsocsH5.XsocsH5MasterWriter(out_h5f_master, "w") as master:
+            pass  # overwrite master file
 
         # load counters, positioners, and other params for each scan
-        for idx, scan_num, command in zip(_scan_idxs, _scan_nums, _commands):
+        for scan_num, command in zip(_scan_nums, _commands):
 
             _entry = h5f[scan_num]
             _instr = _entry["instrument/"]
@@ -104,14 +111,7 @@ def make_xsocs_links(
             _entry_name = scan_num  # <-- ends up in output h5 fname
             _command_params = parse_scan_command(command)
 
-            # name the output files
-            if name_outh5 is None:
-                name_outh5 = _name_dset.split(".")[0]
             out_h5f = f"{path_out}/{name_outh5}_{_entry_name}.h5"
-
-            # create dir if not there
-            if not os.path.isdir(path_out):
-                os.mkdir(path_out)
 
             # write links to individual XSOCS-compatible files
             with XsocsH5.XsocsH5Writer(out_h5f, "w") as xsocsh5f:  # overwrite
@@ -179,16 +179,11 @@ def make_xsocs_links(
                     f"{_entry_name}/technique", path_dset, f"{scan_num}/technique"
                 )
 
+            # write links to XSOCS master file
+            with XsocsH5.XsocsH5MasterWriter(out_h5f_master, "a") as master:
+                master.add_entry_file(_entry_name, out_h5f)
+
             # print
-            print(f"\r> Linking # {scan_num}/{len(_scan_nums)}.1", flush=True, end=" ")
-
-        # generate output master file
-        out_h5f_master = f"{path_out}/{name_outh5}_master.h5"
-        with XsocsH5.XsocsH5MasterWriter(out_h5f_master, "w") as master:
-            pass  # overwrite master file
-
-        # write links to XSOCS master file
-        with XsocsH5.XsocsH5MasterWriter(out_h5f_master, "a") as master:
-            master.add_entry_file(_entry_name, out_h5f)
+            print(f"\r> Linking # {scan_num}/{_scan_nums[-1]}", flush=True, end=" ")
 
         print("\n> Done!")
