@@ -111,8 +111,13 @@ def make_links(path_dset, path_out, scan_nums, detector, name_outh5=None):
 
             # get some metadata
             start_time = _entry["start_time"][()].decode()
-            direct_beam = [_instr[f"{detector}/beam_center_{x}"] for x in ("y", "x")]
-            det_distance = _instr[f"{detector}/distance"]
+            direct_beam = [
+                _instr[f"{detector}/beam_center_{x}"][()] for x in ("y", "x")
+            ]
+            direct_beam = [x if x != 0 else 258 for x in direct_beam]
+
+            det_distance = _instr[f"{detector}/distance"][()]
+            det_distance = det_distance if det_distance != 0 else 0.5
 
             _pixsizes = [_instr[f"{detector}/{m}_pixel_size"][()] for m in ("y", "x")]
             chan_per_deg = [
