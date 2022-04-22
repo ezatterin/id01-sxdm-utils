@@ -7,7 +7,11 @@ import os
 import numpy as np
 
 from .io import FastSpecFile
+from .bliss.io import ioh5
 
+@ioh5
+def get_qspace_coords(h5f):
+    return [h5f[f'Data/{x}'][...] for x in 'qx,qy,qz'.split(',')]
 
 def get_filelist(sample_dir):
     data = {"path": [], "filename": [], "nscans": []}
