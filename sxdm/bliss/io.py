@@ -61,6 +61,9 @@ def get_datetime(h5f, scan_no):
 def get_command(h5f, scan_no):
     return h5f[f"/{scan_no}/title"][()].decode()
 
+################################
+## read XSOCS generated files ##
+################################
 
 def _get_qspace_avg_chunk(path_qspace, rang):
     """
@@ -110,3 +113,22 @@ def get_qspace_avg(path_qspace, n_threads=None):
     qspace_avg = np.stack(qspace_avg_list).sum(0)
 
     return qspace_avg
+
+@ioh5
+def get_piezo_motorpos(h5f):
+    """
+    h5f is xsocs master file
+    """
+
+    _entry0 = list(h5f.keys())[0]
+
+    m0name, m1name = [h5f[f"{_entry0}/scan/motor_{x}"][()].decode() for x in (0, 1)]
+    shape_kmap = [h5f[f"{_entry0}/technique/dim{x}"][()] for x in (0, 1)]
+    print(f'Returning {m0name},{m1name} of shape {shape_kmap}')
+
+    m0, m1 = [
+        h5f[f"{_entry0}/instrument/positioners/{n}_position"][()].reshape(shape_kmap)
+        for n in (m0name, m1name)
+    ]
+
+    return m0, m1
