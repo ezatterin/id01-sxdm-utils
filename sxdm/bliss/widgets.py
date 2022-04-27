@@ -8,13 +8,13 @@ import os
 
 from matplotlib.widgets import Cursor
 from IPython.display import display
+from silx.io.h5py_utils import retry
 
 from ..plot import add_colorbar
 from .io import get_roidata, get_motorpos, get_command, get_datetime
 
 
 class InspectROI(object):
-
     def __init__(self, path_h5, default_roi="mpx4int", detector="mpx1x4", roilist=None):
         self.roiname = f"{detector}_{default_roi}"
         self.path_h5 = path_h5
@@ -137,7 +137,6 @@ class InspectROI(object):
             "align-items": "stretch",
         }
 
-    # TODO this does not work somehow!
     def _on_click(self, event):
         with self.figout:
             if event.inaxes == self.ax:
@@ -156,6 +155,7 @@ class InspectROI(object):
         else:
             del self.multi
 
+    @retry()
     def _update_roi(self, change):
         roi = change["new"]
         img = self.img
@@ -188,16 +188,19 @@ class InspectROI(object):
         else:
             _ = im.set_norm(mpl.colors.Normalize(*_clims))
 
+    @retry()
     def _get_command(self):
         command = get_command(self.path_h5, self.scan_no)
         self.command = command
 
+    @retry()
     def _get_motor_names(self):
         command = self.command
         m1name, m2name = [command.split(" ")[x][:-1] for x in (1, 5)]
 
         self.m1name, self.m2name = m1name, m2name
 
+    @retry()
     def _update_piezo_coordinates(self):
         command = self.command
         with h5py.File(self.path_h5, "r") as h5f:
@@ -205,7 +208,8 @@ class InspectROI(object):
 
             m1n, m2n = self.m1name, self.m2name
             m1, m2 = [
-                h5f[f"{self.scan_no}/instrument/positioners/{m}_position"][()] for m in (m1n, m2n)
+                h5f[f"{self.scan_no}/instrument/positioners/{m}_position"][()]
+                for m in (m1n, m2n)
             ]
 
             # surely this can be done in a more interlligent way
@@ -217,6 +221,7 @@ class InspectROI(object):
             else:
                 self.img.set_extent([m1.min(), m1.max(), m2.min(), m2.max()])
 
+    @retry()
     def _update_specs(self):
 
         specs = [
@@ -273,6 +278,7 @@ class InspectROI(object):
         motorspecs = "\n".join(motorspecs)
         self.motorspecs.value = motorspecs
 
+    @retry()
     def _update_scan(self, change):
         scan_idx = change["new"]
         self.scan_no = self.scan_nos[scan_idx]
