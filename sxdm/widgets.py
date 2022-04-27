@@ -526,6 +526,7 @@ class Inspect5DQspace(object):
         init_idx=[10, 10],
         init_map_name="roi_intensity",
         qspace_roi=np.s_[:, :, :],
+        relim_int=False
     ):
         """
         maps_dict must contain items of shape equivalent to that of the sxdm scan.
@@ -538,6 +539,7 @@ class Inspect5DQspace(object):
         self.maps_dict = maps_dict
         self.qx, self.qy, self.qz = get_qspace_coords(path_qspace)
         self.roi = qspace_roi
+        self.relim_int = relim_int
 
         with self._figout:
             self.fig, self.ax = plt.subplots(
@@ -648,8 +650,12 @@ class Inspect5DQspace(object):
 
         rsm = self._get_rsm()
         for i, a in enumerate(self.ax.flatten()[1:]):
+            topl = rsm.sum(i).T
             proj = a.get_images()[0]
-            proj.set_array(rsm.sum(i).T)
+            proj.set_array(topl)
+
+            if self.relim_int == True:
+                proj.set_clim(topl.min(), topl.max())
 
     def show(self):
         selector = ipw.HBox([self._select_plot, self._iflog])
