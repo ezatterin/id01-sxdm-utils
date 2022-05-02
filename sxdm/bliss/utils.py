@@ -181,7 +181,7 @@ def make_xsocs_links(
 
             # write links to XSOCS master file
             with XsocsH5.XsocsH5MasterWriter(out_h5f_master, "a") as master:
-                master.add_entry_file(_entry_name, out_h5f)
+                master.add_entry_file(_entry_name, os.path.basename(out_h5f))
 
             # print
             print(f"\r> Linking # {scan_num}/{_scan_nums[-1]}", flush=True, end=" ")
