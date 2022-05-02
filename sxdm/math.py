@@ -1,4 +1,10 @@
 import numpy as np
+import h5py
+import multiprocessing as mp
+import os
+import functools
+
+from tqdm.auto import tqdm
 
 
 def com2d(row, col, arr, N=100):
@@ -11,27 +17,6 @@ def com2d(row, col, arr, N=100):
     ]
 
     return comx, comy
-
-
-def com3d(x, y, z, arr, N=None):
-    """x,y,z,arr all have the same shape."""
-
-    # indexes of N most intense pixels of array
-    if N is not None:
-        idxs = arr.ravel().argsort()[::-1][:N]
-    else:
-        idxs = arr.ravel().argsort()[::-1]
-
-    # intensity of such pixels
-    idxs_int = arr.ravel()[idxs]
-
-    # calculate com
-    cx, cy, cz = [
-        (arr.ravel()[idxs] * idxs_int).sum() / idxs_int.sum() for arr in (x, y, z)
-    ]
-
-    return cx, cy, cz
-
 
 def ni(arr, val):
     """
@@ -57,6 +42,7 @@ def convert_coms_qspace(coms, qcoords):
 
     return cqy, cqz
 
+
 def ang_between(v1, v2):
     """
     Calculate the angle between vectors contained in two 2D (i,j) arrays.
@@ -74,12 +60,117 @@ def ang_between(v1, v2):
         2D array of angles, shape (i, j).
     """
 
-    v1a, v2a = [np.linalg.norm(v, axis=2) for v in (v1,v2)]
+    v1a, v2a = [np.linalg.norm(v, axis=2) for v in (v1, v2)]
 
     out = np.empty(v1.shape[:2])
     for i in range(v1.shape[0]):
         for j in range(v1.shape[1]):
-            frac = np.dot(v1[i,j], v2[i,j]) / (v1a[i,j]*v2a[i,j])
+            frac = np.dot(v1[i, j], v2[i, j]) / (v1a[i, j] * v2a[i, j])
             out[i, j] = np.degrees(np.arccos(frac))
-            
+
     return out
+
+def _calc_com_3d(x, y, z, arr, n_pix=None):
+    """x,y,z,arr all have the same shape."""
+    arr = arr.ravel()
+
+    # indexes of n_pix most intense pixels of array
+    if n_pix is not None:
+        idxs = arr.argsort()[::-1][:n_pix]
+    else:
+        idxs = arr.argsort()[::-1]
+
+    # intensity of such pixels
+    arr_idxs = arr[idxs]
+
+    # com
+    prob = arr_idxs / arr_idxs.sum()
+    cx, cy, cz = [np.sum(prob * q.ravel()[idxs]) for q in (x,y,z)]
+
+    return cx, cy, cz
+
+def _calc_com_qspace3d(path_qspace, idx, mask=None, n_pix=None):
+    with h5py.File(path_qspace, "r") as h5f:
+
+        qspace_sh = h5f['Data/qspace'].shape[1:]
+        if mask is None:
+            mask = np.ones(qspace_sh).astype('bool')
+
+        # TODO It should be possible to do it like:
+        # row, col, depth = np.where(mask)    
+        # r0, r1 = row.min(), row.max()
+        # c0, c1 = col.min(), col.max()
+        # d0, d1 = depth.min(), depth.max()
+        # arr = h5f['Data/qspace'][i,  r0:r1, np.unique(col), d0:d1].ravel()
+        # but it only works for simple masks right?
+        arr = h5f["Data/qspace"][idx][mask]  
+
+        # coordinates
+        qx, qy, qz = [h5f[f"Data/{x}"][...] for x in "qx,qy,qz".split(",")]
+        qxm, qym, qzm = [q[mask] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
+
+        # com
+        qcom = _calc_com_3d(qxm, qym, qzm, arr, n_pix=n_pix)
+
+        return qcom
+
+
+def calc_coms_qspace3d(path_qspace, n_pix=None, mask=None):
+    with h5py.File(path_qspace, "r") as h5f:
+        map_shape_flat = h5f["Data/qspace"].shape[0]
+
+    coms = []
+    with mp.Pool(processes=os.cpu_count()) as p:
+        _partial_fun = functools.partial(
+            _calc_com_qspace3d, path_qspace, mask=mask, n_pix=n_pix
+        )
+        for res in tqdm(
+            p.imap(_partial_fun, range(map_shape_flat)), total=map_shape_flat
+        ):
+            coms.append(res)
+
+    return np.array(coms).reshape(map_shape_flat, 3).T
+
+def _calc_roi_sum(path_qspace, idxs_range, mask=None):
+    i0, i1 = idxs_range
+    if i0 != 0:
+        i0 -= 1
+    
+    range_sh = i1-i0
+    with h5py.File(path_qspace, 'r') as h5f:
+        qspace_sh = h5f['Data/qspace'].shape[1:]
+        if mask is None:
+            mask = np.ones(qspace_sh).astype('bool')
+        # sl0, sl1, sl2 = roi_slice
+        # chunk = h5f['Data/qspace'][i0:i1, sl0, sl1, sl2]
+        mask = (mask[None,...] * np.ones((range_sh,1,1,1))).astype('bool')
+        chunk = h5f['Data/qspace'][i0:i1][mask]
+        chunk = chunk.reshape(range_sh, chunk.shape[0] // range_sh).sum(1)
+        
+    return chunk
+
+def calc_roi_sum(path_qspace, mask=None):
+
+    with h5py.File(path_qspace, "r") as h5f:
+        map_shape_flat = h5f["Data/qspace"].shape[0]
+
+    ncpu = os.cpu_count()
+    chunk_size = map_shape_flat // ncpu
+    last_chunk = chunk_size + map_shape_flat % chunk_size
+
+    c0 = [x + 1 for x in range(0, map_shape_flat - chunk_size, chunk_size)]
+    c1 = [x for x in range(chunk_size, map_shape_flat - chunk_size, chunk_size)]
+
+    c0[0] = 0
+    c0.append(c1[-1] + 1)
+    c1.append(c1[-1] + last_chunk)
+
+    ranges = list(zip(c0, c1))
+
+    roi_sum_list = []
+    with mp.Pool(processes=ncpu) as p:
+        pfun = functools.partial(_calc_roi_sum, path_qspace, mask=mask)
+        for res in tqdm(p.imap(pfun, ranges), total=len(ranges)):
+            roi_sum_list.append(res)
+            
+    return np.concatenate(roi_sum_list)

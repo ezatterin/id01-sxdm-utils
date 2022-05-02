@@ -13,7 +13,7 @@ from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 from matplotlib.patches import FancyArrowPatch, Rectangle
 
 
-def make_hsv(tiltmag, azimuth, stretch=False):
+def make_hsv(tiltmag, azimuth, stretch=False, v2s=False):
 
     # hue is the azimuth - normalised [0,1] - needed for HSV
     h = (azimuth % 360) / (360)
@@ -28,7 +28,10 @@ def make_hsv(tiltmag, azimuth, stretch=False):
     v = np.ones_like(h)
 
     # stack the array
-    im = np.dstack((h, v, s))
+    if v2s:
+        im = np.dstack((h, v, s))
+    else:
+        im = np.dstack((h, s, v))
     im = mpl.colors.hsv_to_rgb(im)
 
     return im
