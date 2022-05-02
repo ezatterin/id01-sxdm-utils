@@ -600,7 +600,7 @@ class Inspect5DQspace(object):
             self.qx[self.roi[0]], self.qy[self.roi[1]], self.qz[self.roi[2]]
         )
         for i, a in enumerate(self.ax.flatten()[1:]):
-            a.imshow(rsm.sum(i).T, extent=qext[i])
+            a.imshow(rsm.sum(i).T, extent=qext[i], origin='lower')
 
         for a in self.ax.flatten():
             cbar = add_colorbar(a, a.get_images()[0])
