@@ -1,5 +1,3 @@
-# TODO : change widget to read indivudual h5 files avoiding to open the scan file
-
 import h5py
 import ipywidgets as ipw
 import matplotlib.pyplot as plt
