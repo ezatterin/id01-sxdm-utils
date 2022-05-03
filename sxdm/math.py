@@ -6,6 +6,8 @@ import functools
 
 from tqdm.auto import tqdm
 
+from .bliss.io import _get_chunk_indexes
+
 
 def com2d(row, col, arr, N=100):
 
@@ -17,6 +19,7 @@ def com2d(row, col, arr, N=100):
     ]
 
     return comx, comy
+
 
 def ni(arr, val):
     """
@@ -70,6 +73,7 @@ def ang_between(v1, v2):
 
     return out
 
+
 def _calc_com_3d(x, y, z, arr, n_pix=None):
     """x,y,z,arr all have the same shape."""
     arr = arr.ravel()
@@ -85,25 +89,29 @@ def _calc_com_3d(x, y, z, arr, n_pix=None):
 
     # com
     prob = arr_idxs / arr_idxs.sum()
-    cx, cy, cz = [np.sum(prob * q.ravel()[idxs]) for q in (x,y,z)]
+    cx, cy, cz = [np.sum(prob * q.ravel()[idxs]) for q in (x, y, z)]
 
     return cx, cy, cz
 
+
 def _calc_com_qspace3d(path_qspace, idx, mask=None, n_pix=None):
+    """
+    TODO
+    """
     with h5py.File(path_qspace, "r") as h5f:
 
-        qspace_sh = h5f['Data/qspace'].shape[1:]
+        qspace_sh = h5f["Data/qspace"].shape[1:]
         if mask is None:
-            mask = np.ones(qspace_sh).astype('bool')
+            mask = np.ones(qspace_sh).astype("bool")
 
         # TODO It should be possible to do it like:
-        # row, col, depth = np.where(mask)    
+        # row, col, depth = np.where(mask)
         # r0, r1 = row.min(), row.max()
         # c0, c1 = col.min(), col.max()
         # d0, d1 = depth.min(), depth.max()
         # arr = h5f['Data/qspace'][i,  r0:r1, np.unique(col), d0:d1].ravel()
         # but it only works for simple masks right?
-        arr = h5f["Data/qspace"][idx][mask]  
+        arr = h5f["Data/qspace"][idx][mask]
 
         # coordinates
         qx, qy, qz = [h5f[f"Data/{x}"][...] for x in "qx,qy,qz".split(",")]
@@ -116,6 +124,9 @@ def _calc_com_qspace3d(path_qspace, idx, mask=None, n_pix=None):
 
 
 def calc_coms_qspace3d(path_qspace, n_pix=None, mask=None):
+    """
+    TODO
+    """
     with h5py.File(path_qspace, "r") as h5f:
         map_shape_flat = h5f["Data/qspace"].shape[0]
 
@@ -131,46 +142,45 @@ def calc_coms_qspace3d(path_qspace, n_pix=None, mask=None):
 
     return np.array(coms).reshape(map_shape_flat, 3).T
 
-def _calc_roi_sum(path_qspace, idxs_range, mask=None):
-    i0, i1 = idxs_range
-    if i0 != 0:
-        i0 -= 1
-    
-    range_sh = i1-i0
-    with h5py.File(path_qspace, 'r') as h5f:
-        qspace_sh = h5f['Data/qspace'].shape[1:]
-        if mask is None:
-            mask = np.ones(qspace_sh).astype('bool')
-        # sl0, sl1, sl2 = roi_slice
-        # chunk = h5f['Data/qspace'][i0:i1, sl0, sl1, sl2]
-        mask = (mask[None,...] * np.ones((range_sh,1,1,1))).astype('bool')
-        chunk = h5f['Data/qspace'][i0:i1][mask]
-        chunk = chunk.reshape(range_sh, chunk.shape[0] // range_sh).sum(1)
-        
-    return chunk
 
-def calc_roi_sum(path_qspace, mask=None):
+def _calc_roi_sum_chunk(path_qspace, indexes, mask=None):
+    """
+    TODO.
+    """
+
+    i0, i1 = indexes
+    range_sh = i1 - i0
 
     with h5py.File(path_qspace, "r") as h5f:
-        map_shape_flat = h5f["Data/qspace"].shape[0]
+        qspace_sh = h5f["Data/qspace"].shape[1:]
 
-    ncpu = os.cpu_count()
-    chunk_size = map_shape_flat // ncpu
-    last_chunk = chunk_size + map_shape_flat % chunk_size
+        if mask is None:
+            mask = np.ones(qspace_sh).astype("bool")
+        mask = (mask[None, ...] * np.ones((range_sh, 1, 1, 1))).astype("bool")
 
-    c0 = [x + 1 for x in range(0, map_shape_flat - chunk_size, chunk_size)]
-    c1 = [x for x in range(chunk_size, map_shape_flat - chunk_size, chunk_size)]
+        chunk = h5f["Data/qspace"][i0:i1][mask]
+        chunk = chunk.reshape(range_sh, chunk.shape[0] // range_sh).sum(1)
 
-    c0[0] = 0
-    c0.append(c1[-1] + 1)
-    c1.append(c1[-1] + last_chunk)
+    return chunk
 
-    ranges = list(zip(c0, c1))
 
+def calc_roi_sum(path_qspace, mask=None, n_threads=None):
+    """ "
+    Return the sum of local q-space intensity falling within `mask` from
+    a 3D-SXDM dataset.
+    """
+
+    if n_threads is None:
+        ncpu = os.cpu_count()
+    else:
+        ncpu = n_threads
+
+    idxs = _get_chunk_indexes(path_qspace, ncpu)
     roi_sum_list = []
+
     with mp.Pool(processes=ncpu) as p:
-        pfun = functools.partial(_calc_roi_sum, path_qspace, mask=mask)
-        for res in tqdm(p.imap(pfun, ranges), total=len(ranges)):
+        pfun = functools.partial(_calc_roi_sum_chunk, path_qspace, mask=mask)
+        for res in tqdm(p.imap(pfun, idxs), total=len(idxs)):
             roi_sum_list.append(res)
-            
+
     return np.concatenate(roi_sum_list)
