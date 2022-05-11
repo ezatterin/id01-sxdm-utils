@@ -524,13 +524,14 @@ class Inspect5DQspace(object):
         maps_dict,
         path_qspace,
         init_idx=[10, 10],
-        init_map_name="roi_intensity",
         qspace_roi=np.s_[:, :, :],
-        relim_int=False
+        relim_int=False,
     ):
         """
         maps_dict must contain items of shape equivalent to that of the sxdm scan.
         """
+
+        init_map_name = list(maps_dict.keys())[0]
 
         self._figout = ipw.Output()
         self._init_darr = maps_dict[init_map_name]
@@ -583,12 +584,18 @@ class Inspect5DQspace(object):
         row, col = self.row, self.col
 
         with h5py.File(self._h5f, "r") as h5f:
-            idx = row * self._init_darr.shape[0] + col
-            idx_allowed = np.where(~self._init_darr.mask.ravel())[0]
+            idx = row * self._init_darr.shape[1] + col
+            if np.ma.isMaskedArray(self._init_darr):
+                idx_allowed = np.where(~self._init_darr.mask.ravel())[0]
+            else:
+                idx_allowed = np.arange(self._init_darr.size)
 
             rsm = h5f["/Data/qspace"][idx][self.roi]
             if idx not in idx_allowed:
                 rsm = np.ones_like(rsm)
+        self.selected_idx = idx
+        with self._figout:
+            print(f"\r{(row, col)} --> {idx}", flush=True, end=" ")
 
         return rsm
 
@@ -607,8 +614,8 @@ class Inspect5DQspace(object):
         for a in self.ax.flatten():
             cbar = add_colorbar(a, a.get_images()[0])
 
-        self.ax[0, 0].set_xlabel("pix (pixels)")
-        self.ax[0, 0].set_ylabel("piy (pixels)")
+        self.ax[0, 0].set_xlabel("motor0 (pixels)")
+        self.ax[0, 0].set_ylabel("motor1 (pixels)")
 
         self.ax.ravel()[1].set_xlabel(r"$Q_y~(\AA^{-1})$")
         self.ax.ravel()[3].set_ylabel(r"$Q_y~(\AA^{-1})$")
