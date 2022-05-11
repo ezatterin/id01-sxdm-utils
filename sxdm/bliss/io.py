@@ -61,17 +61,42 @@ def get_datetime(h5f, scan_no):
 def get_command(h5f, scan_no):
     return h5f[f"/{scan_no}/title"][()].decode()
 
+
 ################################
 ## read XSOCS generated files ##
 ################################
 
-def _get_qspace_avg_chunk(path_qspace, rang):
+
+def _get_chunk_indexes(path_qspace, n_threads):
     """
-    Returns the q-space intensity array summed over the (flattened) sample positons
-    given by `rang`.
+    Return a list of indexes. Each range is a range of integer indexes
+    corresponding to a portion of the first dimension of `Data/qspace`
+    in `path_qspace`. Such portion computed based on `n_threads` for
+    efficient parallel computation.
     """
 
-    i0, i1 = rang
+    with h5py.File(path_qspace, "r") as h5f:
+        map_shape_flat = h5f["Data/qspace"].shape[0]
+
+    chunk_size = map_shape_flat // n_threads
+    last_chunk = chunk_size + map_shape_flat % chunk_size
+
+    c0 = [x for x in range(0, map_shape_flat - chunk_size + 1, chunk_size)]
+    c1 = [x for x in c0.copy()[1:]]
+    c1.append(c1[-1] + last_chunk)
+
+    indexes = list(zip(c0, c1))
+
+    return indexes
+
+
+def _get_qspace_avg_chunk(path_qspace, indexes):
+    """
+    Return the q-space intensity array summed over the (flattened) sample positons
+    given by `indexes`, which is a list of tuples.
+    """
+
+    i0, i1 = indexes
     with h5py.File(path_qspace, "r") as h5f:
         chunk = h5f["Data/qspace"][i0:i1, ...].sum(0)
 
@@ -80,7 +105,7 @@ def _get_qspace_avg_chunk(path_qspace, rang):
 
 def get_qspace_avg(path_qspace, n_threads=None):
     """
-    Returns the average q-space intensity from a 3D-SXDM measurement.
+    Return the average q-space intensity from a 3D-SXDM measurement.
     The data file `path_qspace` is a q-space file produced by XSOCS.
     """
 
@@ -89,30 +114,18 @@ def get_qspace_avg(path_qspace, n_threads=None):
     else:
         ncpu = n_threads
 
-    with h5py.File(path_qspace, "r") as h5f:
-        map_shape_flat = h5f["Data/qspace"].shape[0]
-
-    chunk_size = map_shape_flat // ncpu
-    last_chunk = chunk_size + map_shape_flat % chunk_size
-
-    c0 = [x + 1 for x in range(0, map_shape_flat - chunk_size, chunk_size)]
-    c1 = [x for x in range(chunk_size, map_shape_flat - chunk_size, chunk_size)]
-
-    c0[0] = 0
-    c0.append(c1[-1] + 1)
-    c1.append(c1[-1] + last_chunk)
-
-    ranges = list(zip(c0, c1))
+    indexes = _get_chunk_indexes(path_qspace, ncpu)
     qspace_avg_list = []
 
     with mp.Pool(processes=ncpu) as p:
         pfun = partial(_get_qspace_avg_chunk, path_qspace)
-        for res in tqdm(p.imap(pfun, ranges), total=len(ranges)):
+        for res in tqdm(p.imap(pfun, indexes), total=len(indexes)):
             qspace_avg_list.append(res)
 
     qspace_avg = np.stack(qspace_avg_list).sum(0)
 
     return qspace_avg
+
 
 @ioh5
 def get_piezo_motorpos(h5f):
@@ -124,7 +137,7 @@ def get_piezo_motorpos(h5f):
 
     m0name, m1name = [h5f[f"{_entry0}/scan/motor_{x}"][()].decode() for x in (0, 1)]
     shape_kmap = [h5f[f"{_entry0}/technique/dim{x}"][()] for x in (0, 1)]
-    print(f'Returning {m0name},{m1name} of shape {shape_kmap}')
+    print(f"Returning {m0name},{m1name} of shape {shape_kmap}")
 
     m0, m1 = [
         h5f[f"{_entry0}/instrument/positioners/{n}_position"][()].reshape(shape_kmap)
