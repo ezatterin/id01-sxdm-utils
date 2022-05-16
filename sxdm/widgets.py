@@ -563,7 +563,8 @@ class Inspect5DQspace(object):
 
         for a in self.ax.flatten()[1:]:
             im = a.get_images()[0]
-            clim = im.get_array().min(), im.get_array().max()
+            arr = im.get_array()
+            clim = arr[arr.nonzero()].min(), arr[arr.nonzero()].max()
 
             if not islog:
                 im.set_norm(mpl.colors.Normalize(*clim))
@@ -575,7 +576,7 @@ class Inspect5DQspace(object):
                 except ValueError as err:
                     im.set_norm(mpl.colors.LogNorm(0.1, clim[1]))
                     print(
-                        "\r{}, setting lower bound to 0.1".format(err),
+                        f"\r{err}, setting lower bound to 0.1",
                         end="",
                         flush=True,
                     )
@@ -595,13 +596,13 @@ class Inspect5DQspace(object):
                 rsm = np.ones_like(rsm)
         self.selected_idx = idx
         with self._figout:
-            print(f"\r{(row, col)} --> {idx}", flush=True, end=" ")
+            print(f"\r{(row, col)} --> {idx}", end="", flush=True)
 
         return rsm
 
     def _init_fig(self):
         a0 = self.ax[0, 0]
-        self._dmap = a0.imshow(self._init_darr)
+        self._dmap = a0.imshow(self._init_darr, origin="lower")
         self._curpos = a0.scatter(self.row, self.col, marker="x", c="w")
 
         rsm = self._get_rsm()
@@ -609,7 +610,7 @@ class Inspect5DQspace(object):
             self.qx[self.roi[0]], self.qy[self.roi[1]], self.qz[self.roi[2]]
         )
         for i, a in enumerate(self.ax.flatten()[1:]):
-            a.imshow(rsm.sum(i).T, extent=qext[i], origin='lower')
+            a.imshow(rsm.sum(i).T, extent=qext[i], origin="lower")
 
         for a in self.ax.flatten():
             cbar = add_colorbar(a, a.get_images()[0])
@@ -639,16 +640,16 @@ class Inspect5DQspace(object):
             pass
 
     def _onkey(self, event):
-        if event.key == "39":
+        if event.key in ["39", "right"]:
             self.col += 1
             self._update()
-        elif event.key == "37":
+        elif event.key in ["37", "left"]:
             self.col -= 1
             self._update()
-        elif event.key == "40":
+        elif event.key in ["40", "down"]:
             self.row -= 1
             self._update()
-        elif event.key == "38":
+        elif event.key in ["38", "up"]:
             self.row += 1
             self._update()
 
@@ -661,8 +662,8 @@ class Inspect5DQspace(object):
             proj = a.get_images()[0]
             proj.set_array(topl)
 
-            if self.relim_int == True:
-                proj.set_clim(topl.min(), topl.max())
+            if self.relim_int is True:
+                self._update_norm({'new':self._iflog.value})
 
     def show(self):
         selector = ipw.HBox([self._select_plot, self._iflog])
