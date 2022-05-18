@@ -9,41 +9,13 @@ from tqdm.auto import tqdm
 from .bliss.io import _get_chunk_indexes
 
 
-def com2d(row, col, arr, N=100):
-
-    idxs = arr.ravel().argsort()[::-1][:N]
-    idxs_int = arr.ravel()[idxs]
-
-    comx, comy = [
-        (pos.ravel()[idxs] * idxs_int).sum() / idxs_int.sum() for pos in (row, col)
-    ]
-
-    return comx, comy
-
-
-def ni(arr, val):
+def get_nearest_index(arr, val):
     """
-    Find the index such that arr[index] is closest to val.
+    Find the `index` such that `arr[index]` is closest to `val`.
     """
     diff = np.abs(arr - val)
     idx = np.argsort(diff)[0]
     return idx
-
-
-def convert_coms_qspace(coms, qcoords):
-    """
-    Works only for 2D COMs at the moment.
-    coms : [com_y, com_z]
-    qcoords : [qy, qz]
-    """
-
-    cy, cz = coms
-    qy, qz = qcoords
-
-    cy, cz = [np.round(x, 0).astype("int") for x in (cy, cz)]
-    cqy, cqz = qy[cy, cz], qz[cy, cz]
-
-    return cqy, cqz
 
 
 def ang_between(v1, v2):
@@ -74,8 +46,23 @@ def ang_between(v1, v2):
     return out
 
 
-def _calc_com_3d(x, y, z, arr, n_pix=None):
-    """x,y,z,arr all have the same shape."""
+def _calc_com_3d(arr, x, y, z, n_pix=None):
+    """
+    Compute the centre of mass (COM) of an indexed 3D array.
+
+    Parameters
+    ----------
+    arr : numpy.ndarray
+        3D array of intensity values.
+    x, y, z : numpy.ndarray
+        3D arrays whose entries correspond to the coordinates of `arr` along each
+        axis.
+
+    Returns
+    -------
+    out : tuple
+        Coordinates of the COM of `arr` expressed within `x`, `y`, `z` coordinates.
+    """
     arr = arr.ravel()
 
     # indexes of n_pix most intense pixels of array
@@ -96,7 +83,27 @@ def _calc_com_3d(x, y, z, arr, n_pix=None):
 
 def _calc_com_qspace3d(path_qspace, idx, mask=None, n_pix=None):
     """
-    TODO
+    Compute the center of mass (COM) of an XSOCS 4D q-space array in q-space
+    coordinates at position `idx`.
+
+    Parameters
+    ----------
+    path_qspace : str
+        Path to the XSOCS q-space file.
+    idx : int
+        Index of the first dimension of the 4D q-space array, i.e. the index of
+        the sample position at which the 3D q-space volume was measured.
+    mask : numpy.ndarray, optional
+        3D boolean array restricting the COM computation to the q-space portion for
+        which `mask` is equal to True.
+    n_pix : int, optional
+        Restrict the computation of the COM for the `n_pix` strongest pixels in the
+        3D q-space array.
+
+    Returns
+    -------
+    out : tuple
+        Coordinates of the q-space COM at position `idx`.
     """
     with h5py.File(path_qspace, "r") as h5f:
 
@@ -118,14 +125,31 @@ def _calc_com_qspace3d(path_qspace, idx, mask=None, n_pix=None):
         qxm, qym, qzm = [q[mask] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
 
         # com
-        qcom = _calc_com_3d(qxm, qym, qzm, arr, n_pix=n_pix)
+        cx, cy, cz = _calc_com_3d(arr, qxm, qym, qzm, n_pix=n_pix)
 
-        return qcom
+        return cx, cy, cz
 
 
-def calc_coms_qspace3d(path_qspace, n_pix=None, mask=None):
+def calc_coms_qspace3d(path_qspace, mask=None, n_pix=None):
     """
-    TODO
+    Compute the center of mass (COM) of an XSOCS 4D array for each direct space
+    position. The 4D array is Intensity(direct_space_position, qx, qy, qz).
+
+    Parameters
+    ----------
+    path_qspace : str
+        Path to the XSOCS q-space file.
+    mask : numpy.ndarray, optional
+        3D boolean array restricting the COM computation to the q-space portion for
+        which `mask` is equal to True.
+    n_pix : int, optional
+        Restrict the computation of the COM for the `n_pix` strongest pixels in the
+        3D q-space array.
+
+    Returns
+    -------
+    cx, cy, cz : numpy.ndarray
+        Coordinates of the q-space COM for each direct space position.
     """
     with h5py.File(path_qspace, "r") as h5f:
         map_shape_flat = h5f["Data/qspace"].shape[0]
@@ -140,12 +164,14 @@ def calc_coms_qspace3d(path_qspace, n_pix=None, mask=None):
         ):
             coms.append(res)
 
-    return np.array(coms).reshape(map_shape_flat, 3).T
+    cx, cy, cz = np.array(coms).reshape(map_shape_flat, 3).T
 
+    return cx, cy, cz
+    
 
 def _calc_roi_sum_chunk(path_qspace, indexes, mask=None):
     """
-    TODO.
+    TODO
     """
 
     i0, i1 = indexes
@@ -165,7 +191,8 @@ def _calc_roi_sum_chunk(path_qspace, indexes, mask=None):
 
 
 def calc_roi_sum(path_qspace, mask=None, n_threads=None):
-    """ "
+    """
+    TODO
     Return the sum of local q-space intensity falling within `mask` from
     a 3D-SXDM dataset.
     """
