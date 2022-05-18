@@ -536,12 +536,14 @@ class PiezoScan(Scan):
             pixel coordinates).
         """
 
+        # Init ROI
         if roi is not None:
             roi = np.s_[roi[2] : roi[3], roi[0] : roi[1]]
         else:
             roi = np.s_[:, :]
         roi = slice(None, None, None), *roi
 
+        # Get frames - shape = (n_points, detX, detY)
         try:
             frames = self.frames
         except AttributeError:
@@ -579,7 +581,7 @@ class PiezoScan(Scan):
                     return cqx, cqy, cqz
 
             except AttributeError:
-                emsg = "Q-space coordinates not found. Please run the"
+                emsg  = "Q-space coordinates not found. Please run the"
                 emsg += "`calc_qspace_coordinates` method before using"
                 emsg += "`qspace=True` in this function."
                 print(emsg)
