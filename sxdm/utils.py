@@ -5,6 +5,7 @@ Various functions to aid the analysis of SXDM data.
 import pandas as pd
 import os
 import numpy as np
+import functools
 
 from .io import FastSpecFile
 from .bliss.io import ioh5

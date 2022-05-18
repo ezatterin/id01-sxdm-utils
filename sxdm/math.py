@@ -46,17 +46,17 @@ def ang_between(v1, v2):
     return out
 
 
-def _calc_com_3d(arr, x, y, z, n_pix=None):
+def _calc_com(arr, x, y, z, n_pix=None):
     """
-    Compute the centre of mass (COM) of an indexed 3D array.
+    Compute the centre of mass (COM) of an array with `x`,`y`,`z` coordinates. 
 
     Parameters
     ----------
     arr : numpy.ndarray
-        3D array of intensity values.
+        array of intensity values.
     x, y, z : numpy.ndarray
-        3D arrays whose entries correspond to the coordinates of `arr` along each
-        axis.
+        arrays whose entries correspond to the coordinates of `arr` along each
+        axis. Must have the same shape as `arr`.
 
     Returns
     -------
@@ -125,7 +125,7 @@ def _calc_com_qspace3d(path_qspace, idx, mask=None, n_pix=None):
         qxm, qym, qzm = [q[mask] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
 
         # com
-        cx, cy, cz = _calc_com_3d(arr, qxm, qym, qzm, n_pix=n_pix)
+        cx, cy, cz = _calc_com(arr, qxm, qym, qzm, n_pix=n_pix)
 
         return cx, cy, cz
 
@@ -167,7 +167,7 @@ def calc_coms_qspace3d(path_qspace, mask=None, n_pix=None):
     cx, cy, cz = np.array(coms).reshape(map_shape_flat, 3).T
 
     return cx, cy, cz
-    
+
 
 def _calc_roi_sum_chunk(path_qspace, indexes, mask=None):
     """

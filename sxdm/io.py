@@ -5,6 +5,8 @@ Read SXDM data, i.e. the output of pscan commands on ID01.
 import re
 import os
 import time
+import multiprocessing as mp
+import functools
 
 import numpy as np
 import silx.io
@@ -16,6 +18,27 @@ from tqdm.auto import tqdm
 from id01lib import xrd
 from silx.math import fit
 
+from .math import _calc_com
+
+def _calc_com_idx(frames, qx, qy, qz, idx, n_pix=None):
+    return _calc_com(frames[idx], qx, qy, qz, n_pix=None)
+
+def _calc_coms(frames, qx, qy, qz, n_proc, n_pix=None):
+    
+    pfun = functools.partial(_calc_com_idx, frames, qx, qy, qz, n_pix=n_pix)
+    coms = []
+    idxs = range(frames.shape[0])
+    
+    # with mp.Pool(processes=n_proc) as pool:
+    #     for com in tqdm(pool.imap(pfun, idxs), total=idxs.stop):
+    #         coms.append(com)
+
+    for i in tqdm(idxs):
+        coms.append(pfun(i))
+
+    cx, cy, cz = np.array(coms).reshape(len(idxs), 3).T
+
+    return cx, cy, cz
 
 class FastSpecFile(SpecFile):
     """
@@ -506,7 +529,7 @@ class PiezoScan(Scan):
 
         return qx, qy, qz
 
-    def calc_coms(self, roi=None, qspace=False, calc_std=False):
+    def calc_coms(self, roi=None, qspace=False, calc_std=False, n_proc=None, n_pix=None):
         """
         Calculate the centre of mass (COM) of the intensity in a detector frame for
         each scan position.
@@ -536,6 +559,7 @@ class PiezoScan(Scan):
             pixel coordinates).
         """
 
+
         # Init ROI
         if roi is not None:
             roi = np.s_[roi[2] : roi[3], roi[0] : roi[1]]
@@ -543,7 +567,7 @@ class PiezoScan(Scan):
             roi = np.s_[:, :]
         roi = slice(None, None, None), *roi
 
-        # Get frames - shape = (n_points, detX, detY)
+        # Get frames, shape = (n_points, detX, detY)
         try:
             frames = self.frames
         except AttributeError:
@@ -551,71 +575,84 @@ class PiezoScan(Scan):
         y, z = np.indices(frames.shape[1:])[roi]
         frames = frames[roi]
 
-        if qspace:
-            try:
-                qx, qy, qz = [q[roi[1:]] for q in (self.qx, self.qy, self.qz)]
+        # each array is shape = (detX, detY)
+        qx, qy, qz = [q[roi[1:]] for q in (self.qx, self.qy, self.qz)]
 
-                coms = np.zeros((frames.shape[0], 3))
-                if calc_std:
-                    stds = np.zeros((frames.shape[0], 3))
+        n_proc = n_proc if n_proc is not None else os.cpu_count()
+        
+        cx, cy, cz = _calc_coms(frames, qx, qy, qz, n_proc, n_pix=n_pix)
 
-                for index in tqdm(range(frames.shape[0])):
-                    prob = frames[index] / frames[index].sum()
-                    qcoms = [np.sum(prob * q) for q in (qx, qy, qz)]
-                    coms[index, :] = qcoms
+        return cx, cy, cz
 
-                    if calc_std:
-                        qstds = [
-                            np.sqrt(np.sum(prob * (q - qcom) ** 2.0))
-                            for q, qcom in zip((qx, qy, qz), qcoms)
-                        ]
-                        stds[index, :] = qstds
 
-                cqx, cqy, cqz = coms.reshape(*self.shape, 3).T
-                if calc_std:
-                    stdqx, stdqy, stdqz = stds.reshape(*self.shape, 3).T
+            # pfun = functools.partial(_calc_com, )
+            # cx, cy, cz = _calc_com(frames[idx], qx, qy, qz)
 
-                if calc_std:
-                    return cqx, cqy, cqz, stdqx, stdqy, stdqz
-                else:
-                    return cqx, cqy, cqz
+        # if qspace:
+        #     try:
+        #         qx, qy, qz = [q[roi[1:]] for q in (self.qx, self.qy, self.qz)]
 
-            except AttributeError:
-                emsg  = "Q-space coordinates not found. Please run the"
-                emsg += "`calc_qspace_coordinates` method before using"
-                emsg += "`qspace=True` in this function."
-                print(emsg)
-        else:
-            coms = np.zeros((frames.shape[0], 2))
-            if calc_std:
-                stds = np.zeros((frames.shape[0], 2))
+        #         coms = np.zeros((frames.shape[0], 3))
+        #         if calc_std:
+        #             stds = np.zeros((frames.shape[0], 3))
 
-            for index in tqdm(range(frames.shape[0])):
-                cy, cz = [
-                    (
-                        np.sum(frames[index] * pos, axis=(0, 1))
-                        / frames[index].sum(axis=(0, 1))
-                    )
-                    for pos in (y, z)
-                ]
-                coms[index, :] = cy, cz
+        #         for index in tqdm(range(frames.shape[0])):
+        #             prob = frames[index] / frames[index].sum()
+        #             qcoms = [np.sum(prob * q) for q in (qx, qy, qz)]
+        #             coms[index, :] = qcoms
 
-                if calc_std:
-                    prob = frames[index] / frames[index].sum()
-                    std = [
-                        np.sqrt(np.sum(prob * (pos - com) ** 2.0))
-                        for pos, com in zip((y, z), (cy, cz))
-                    ]
-                    stds[index, :] = std
+        #             if calc_std:
+        #                 qstds = [
+        #                     np.sqrt(np.sum(prob * (q - qcom) ** 2.0))
+        #                     for q, qcom in zip((qx, qy, qz), qcoms)
+        #                 ]
+        #                 stds[index, :] = qstds
 
-            cy, cz = coms.reshape(*self.shape, 2).T
-            if calc_std:
-                stdy, stdz = stds.reshape(*self.shape, 2).T
+        #         cqx, cqy, cqz = coms.reshape(*self.shape, 3).T
+        #         if calc_std:
+        #             stdqx, stdqy, stdqz = stds.reshape(*self.shape, 3).T
 
-            if calc_std:
-                return cy, cz, stdy, stdz
-            else:
-                return cy, cz
+        #         if calc_std:
+        #             return cqx, cqy, cqz, stdqx, stdqy, stdqz
+        #         else:
+        #             return cqx, cqy, cqz
+
+        #     except AttributeError:
+        #         emsg  = "Q-space coordinates not found. Please run the"
+        #         emsg += "`calc_qspace_coordinates` method before using"
+        #         emsg += "`qspace=True` in this function."
+        #         print(emsg)
+        # else:
+        #     coms = np.zeros((frames.shape[0], 2))
+        #     if calc_std:
+        #         stds = np.zeros((frames.shape[0], 2))
+
+        #     for index in tqdm(range(frames.shape[0])):
+        #         cy, cz = [
+        #             (
+        #                 np.sum(frames[index] * pos, axis=(0, 1))
+        #                 / frames[index].sum(axis=(0, 1))
+        #             )
+        #             for pos in (y, z)
+        #         ]
+        #         coms[index, :] = cy, cz
+
+        #         if calc_std:
+        #             prob = frames[index] / frames[index].sum()
+        #             std = [
+        #                 np.sqrt(np.sum(prob * (pos - com) ** 2.0))
+        #                 for pos, com in zip((y, z), (cy, cz))
+        #             ]
+        #             stds[index, :] = std
+
+        #     cy, cz = coms.reshape(*self.shape, 2).T
+        #     if calc_std:
+        #         stdy, stdz = stds.reshape(*self.shape, 2).T
+
+        #     if calc_std:
+        #         return cy, cz, stdy, stdz
+        #     else:
+        #         return cy, cz
 
     # def _calc_projections(self, roi=None, **qspace_kwargs):
 
