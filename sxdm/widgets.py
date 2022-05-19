@@ -437,16 +437,16 @@ class FramesExplorer(object):
             pass
 
     def _on_key(self, event):
-        if event.key == "39":
+        if event.key in ["39", "right"]:
             self.col += 1
             self._update_plots()
-        elif event.key == "37":
+        elif event.key in ["37", "left"]:
             self.col -= 1
             self._update_plots()
-        elif event.key == "40":
+        elif event.key in ["40", "down"]:
             self.row += 1
             self._update_plots()
-        elif event.key == "38":
+        elif event.key in ["38", "up"]:
             self.row -= 1
             self._update_plots()
 
