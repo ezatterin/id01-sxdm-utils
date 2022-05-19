@@ -312,7 +312,10 @@ class PiezoScan(Scan):
         t0 = time.time()
         print("Uncompressing data...", end=" ")
         edf_h5 = silx.io.open(edf_filename)
-        self.frames = edf_h5[f"{entry_name}/image/data"][...]
+        try:
+            self.frames = edf_h5['entry_0000/measurement/data'][...]
+        except KeyError:
+            self.frames = edf_h5[f"scan_0/image/data"][...]
         print("Done in {:.2f}s".format(time.time() - t0))
 
         # write to hdf5
