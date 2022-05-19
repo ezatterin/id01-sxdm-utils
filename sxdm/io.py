@@ -305,14 +305,14 @@ class PiezoScan(Scan):
         )
         return edf_path
 
-    def get_detector_frames(self):
+    def get_detector_frames(self, entry_name="scan_0"):
         edf_filename = self.get_edf_filename()
 
         # decompress edf file and load to memory
         t0 = time.time()
         print("Uncompressing data...", end=" ")
         edf_h5 = silx.io.open(edf_filename)
-        self.frames = edf_h5["scan_0/image/data"][...]
+        self.frames = edf_h5[f"{entry_name}/image/data"][...]
         print("Done in {:.2f}s".format(time.time() - t0))
 
         # write to hdf5
@@ -489,7 +489,7 @@ class PiezoScan(Scan):
             Nch2=det.pixnum[1],
             pwidth1=det.pixsize[0],
             pwidth2=det.pixsize[1],
-            distance=detdist
+            distance=detdist,
         )
 
         # Calculate q space values
@@ -581,7 +581,7 @@ class PiezoScan(Scan):
                     return cqx, cqy, cqz
 
             except AttributeError:
-                emsg  = "Q-space coordinates not found. Please run the"
+                emsg = "Q-space coordinates not found. Please run the"
                 emsg += "`calc_qspace_coordinates` method before using"
                 emsg += "`qspace=True` in this function."
                 print(emsg)
