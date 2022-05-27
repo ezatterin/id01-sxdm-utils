@@ -143,7 +143,7 @@ def calc_coms_qspace3d(path_qspace, n_pix=None, mask=None):
     return np.array(coms).reshape(map_shape_flat, 3).T
 
 
-def _calc_roi_sum_chunk(path_qspace, indexes, mask=None):
+def _calc_roi_sum_chunk(path_qspace, all_masked_indexes, indexes, mask=None):
     """
     TODO.
     """
@@ -158,13 +158,13 @@ def _calc_roi_sum_chunk(path_qspace, indexes, mask=None):
             mask = np.ones(qspace_sh).astype("bool")
         mask = (mask[None, ...] * np.ones((range_sh, 1, 1, 1))).astype("bool")
 
-        chunk = h5f["Data/qspace"][i0:i1][mask]
+        chunk = h5f["Data/qspace"][all_masked_indexes[i0:i1]][mask]
         chunk = chunk.reshape(range_sh, chunk.shape[0] // range_sh).sum(1)
 
     return chunk
 
 
-def calc_roi_sum(path_qspace, mask=None, n_threads=None):
+def calc_roi_sum(path_qspace, mask=None, n_threads=None, real_space_mask=None):
     """ "
     Return the sum of local q-space intensity falling within `mask` from
     a 3D-SXDM dataset.
@@ -175,11 +175,13 @@ def calc_roi_sum(path_qspace, mask=None, n_threads=None):
     else:
         ncpu = n_threads
 
-    idxs = _get_chunk_indexes(path_qspace, ncpu)
+    idxs = _get_chunk_indexes(path_qspace, ncpu, real_space_mask)[0]
+    all_masked_indexes = _get_chunk_indexes(path_qspace, ncpu, real_space_mask)[1]
+    
     roi_sum_list = []
 
     with mp.Pool(processes=ncpu) as p:
-        pfun = functools.partial(_calc_roi_sum_chunk, path_qspace, mask=mask)
+        pfun = functools.partial(_calc_roi_sum_chunk, path_qspace, all_masked_indexes, mask=mask)
         for res in tqdm(p.imap(pfun, idxs), total=len(idxs)):
             roi_sum_list.append(res)
 

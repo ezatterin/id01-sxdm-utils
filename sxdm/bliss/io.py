@@ -67,7 +67,7 @@ def get_command(h5f, scan_no):
 ################################
 
 
-def _get_chunk_indexes(path_qspace, n_threads):
+def _get_chunk_indexes(path_qspace, n_threads, real_space_mask=None):
     """
     Return a list of indexes. Each range is a range of integer indexes
     corresponding to a portion of the first dimension of `Data/qspace`
@@ -78,6 +78,12 @@ def _get_chunk_indexes(path_qspace, n_threads):
     with h5py.File(path_qspace, "r") as h5f:
         map_shape_flat = h5f["Data/qspace"].shape[0]
 
+    if real_space_mask is not None:
+        all_masked_indexes=np.arange(0,map_shape_flat)[np.invert(np.array(real_space_mask).flatten())]
+        map_shape_flat = map_shape_flat - np.sum(real_space_mask)
+    else:
+        all_masked_indexes=np.arange(0,map_shape_flat)
+
     chunk_size = map_shape_flat // n_threads
     last_chunk = chunk_size + map_shape_flat % chunk_size
 
@@ -86,11 +92,11 @@ def _get_chunk_indexes(path_qspace, n_threads):
     c1.append(c1[-1] + last_chunk)
 
     indexes = list(zip(c0, c1))
+    print(indexes, all_masked_indexes)
+    return(indexes, all_masked_indexes)
 
-    return indexes
 
-
-def _get_qspace_avg_chunk(path_qspace, indexes):
+def _get_qspace_avg_chunk(path_qspace, all_masked_indexes, indexes):
     """
     Return the q-space intensity array summed over the (flattened) sample positons
     given by `indexes`, which is a list of tuples.
@@ -98,12 +104,13 @@ def _get_qspace_avg_chunk(path_qspace, indexes):
 
     i0, i1 = indexes
     with h5py.File(path_qspace, "r") as h5f:
-        chunk = h5f["Data/qspace"][i0:i1, ...].sum(0)
+        #chunk = h5f["Data/qspace"][i0:i1, ...].sum(0)
+        chunk = h5f["Data/qspace"][all_masked_indexes[i0:i1], ...].sum(0)
 
     return chunk
 
 
-def get_qspace_avg(path_qspace, n_threads=None):
+def get_qspace_avg(path_qspace, n_threads=None, real_space_mask=None):
     """
     Return the average q-space intensity from a 3D-SXDM measurement.
     The data file `path_qspace` is a q-space file produced by XSOCS.
@@ -114,11 +121,13 @@ def get_qspace_avg(path_qspace, n_threads=None):
     else:
         ncpu = n_threads
 
-    indexes = _get_chunk_indexes(path_qspace, ncpu)
+    indexes = _get_chunk_indexes(path_qspace, ncpu, real_space_mask)[0]
+    all_masked_indexes = _get_chunk_indexes(path_qspace, ncpu, real_space_mask)[1]
+
     qspace_avg_list = []
 
     with mp.Pool(processes=ncpu) as p:
-        pfun = partial(_get_qspace_avg_chunk, path_qspace)
+        pfun = partial(_get_qspace_avg_chunk, path_qspace, all_masked_indexes)
         for res in tqdm(p.imap(pfun, indexes), total=len(indexes)):
             qspace_avg_list.append(res)
 
