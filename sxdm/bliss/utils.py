@@ -44,6 +44,9 @@ def make_xsocs_links(
     the original data.
     """
 
+    if not os.path.isdir(path_out):
+        os.mkdir(path_out)
+
     pi_motor_names = {
         "pix_position": "adcY",
         "piy_position": "adcX",
