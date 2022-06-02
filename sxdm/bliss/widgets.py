@@ -17,7 +17,6 @@ class InspectROI(object):
         self,
         path_h5,
         default_roi="mpx1x4_mpx4int",
-        detector="mpx1x4",
         roilist=None,
         init_scan_no=None,
     ):
@@ -40,11 +39,7 @@ class InspectROI(object):
             self.command = self._commands[self.scan_no]
 
             counters = list(h5f[f"{self.scan_no}/measurement"].keys())
-
-            if roilist is None:
-                self.roilist = [x for x in counters if f"{detector}_" in x]
-            else:
-                self.roilist = roilist
+            self.roilist = counters if roilist is None else roilist
 
         # default roi data and motors
         self.roidata = get_roidata(
