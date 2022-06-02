@@ -13,45 +13,55 @@ from .io import get_roidata, get_motorpos, get_command, get_datetime
 
 
 class InspectROI(object):
-    def __init__(self, path_h5, default_roi="mpx4int", detector="mpx1x4", roilist=None):
-        self.roiname = f"{detector}_{default_roi}"
+    def __init__(
+        self,
+        path_h5,
+        default_roi="mpx1x4_mpx4int",
+        detector="mpx1x4",
+        roilist=None,
+        init_scan_no=None,
+    ):
+        self.roiname = default_roi
         self.path_h5 = path_h5
 
-        # get list of rois + otehr stuff
+        # get list of rois + other stuff
         with h5py.File(path_h5, "r") as h5f:
 
-            _nscans = len(list(h5f.keys()))
-            _scan_idxs = range(1, _nscans + 1)
-            _commands = [h5f[f"{s}.1/title"][()].decode() for s in _scan_idxs]
+            nscans = len(list(h5f.keys()))
+            scan_idxs = range(1, nscans + 1)
+            commands = [h5f[f"{s}.1/title"][()].decode() for s in scan_idxs]
 
-            self.scan_nos = [
-                f"{s}.1" for s, c in zip(_scan_idxs, _commands) if "sxdm" in c
+            self._scan_nos = [
+                f"{s}.1" for s, c in zip(scan_idxs, commands) if "sxdm" in c
             ]
-            self.scan_no = self.scan_nos[0]
-            self._get_command()
+            self._commands = {s: h5f[f"{s}/title"][()].decode() for s in self._scan_nos}
 
-            _counters = list(h5f[f"{self.scan_no}/measurement"].keys())
+            self.scan_no = self._scan_nos[0] if init_scan_no is None else init_scan_no
+            self.command = self._commands[self.scan_no]
+
+            counters = list(h5f[f"{self.scan_no}/measurement"].keys())
 
             if roilist is None:
-                self.roilist = [x for x in _counters if f"{detector}_" in x]
+                self.roilist = [x for x in counters if f"{detector}_" in x]
             else:
                 self.roilist = roilist
 
         # default roi data and motors
-        _tmp = get_roidata(
-            path_h5, self.scan_nos[0], self.roiname, return_pi_motors=False
+        self.roidata = get_roidata(
+            path_h5, self._scan_nos[0], self.roiname, return_pi_motors=False
         )
-        self.roidata = _tmp
 
         # output widget to be filled with plt.figure
         self.figout = ipw.Output(layout=dict(border="2px solid grey"))
 
-        ### figure ###
+        self._init_fig()
+        self._init_widgets()
+
+    def _init_fig(self):
+
         with self.figout:
             fig, ax = plt.subplots(1, 1, figsize=(4, 4), layout="tight")
 
-        # roi img
-        #         _ext = [self.m1.min(), self.m1.max(), self.m2.min(), self.m2.max()]
         self.img = ax.imshow(self.roidata, origin="lower")
         self._get_motor_names()
         self._update_piezo_coordinates()
@@ -60,15 +70,15 @@ class InspectROI(object):
         _ = add_colorbar(ax, self.img)
         _ = ax.set_xlabel(f"{self.m1name} (um)")
         _ = ax.set_ylabel(f"{self.m2name} (um)")
-        _ = ax.set_title(f"#{self.scan_no} - {default_roi}")
+        _ = ax.set_title(f"#{self.scan_no} - {self.roiname}")
 
         self.fig, self.ax = fig, ax
 
         # connect to mpl event manager
         self.fig.canvas.mpl_connect("button_press_event", self._on_click)
-        # self.fig.canvas.mpl_connect("key_press_event", self._on_key)
 
-        ### widgets ###
+    def _init_widgets(self):
+
         # layout of individual items - css properties
         items_layout = ipw.Layout(width="auto")
 
@@ -85,7 +95,7 @@ class InspectROI(object):
         idxsel = ipw.IntSlider(
             value=0,
             min=0,
-            max=(len(self.scan_nos) - 1),
+            max=(len(self._scan_nos) - 1),
             step=1,
             layout=items_layout,
             description="Scan index",
@@ -187,11 +197,6 @@ class InspectROI(object):
             _ = im.set_norm(mpl.colors.Normalize(*_clims))
 
     @retry()
-    def _get_command(self):
-        command = get_command(self.path_h5, self.scan_no)
-        self.command = command
-
-    @retry()
     def _get_motor_names(self):
         command = self.command
         m1name, m2name = [command.split(" ")[x][:-1] for x in (1, 5)]
@@ -279,9 +284,9 @@ class InspectROI(object):
     @retry()
     def _update_scan(self, change):
         scan_idx = change["new"]
-        self.scan_no = self.scan_nos[scan_idx]
+        self.scan_no = self._scan_nos[scan_idx]
+        self.command = self._commands[self.scan_no]
 
-        self._get_command()
         self._update_roi({"new": self.roisel.value})
         self._get_motor_names()
         self._update_piezo_coordinates()
