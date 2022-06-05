@@ -1,3 +1,4 @@
+import collections
 import os
 import numpy as np
 import h5py
@@ -5,6 +6,95 @@ import xrayutilities as xu
 import re
 
 from xsocs.io import XsocsH5
+
+ScanRange = collections.namedtuple("ScanRange", ["name", "start", "stop", "numpoints"])
+
+
+def get_SXDM_info(path_dset, scan_range=(1, None)):
+    """
+    Return scan parameters from one SXDM scan, or from several SXDM scans
+    composing a 3D-SXDM dataset.
+
+    Parameters
+    ----------
+    path_dset : str
+        Path to the .h5 dataset file, with links to individual scan .h5 files.
+    scan_range : tuple
+        Range of scan numbers to process. Default: all available scans in the file.
+
+    Returns
+    -------
+    info : dict
+        Dictionary of parameters and their values.
+    """
+    
+    info = None
+    motor_stop = False
+    positions = collections.defaultdict(list)
+
+    with h5py.File(path_dset, "r") as h5f:
+        first_scan = scan_range[0] if scan_range[0] is not None else 1
+        last_scan = scan_range[-1] if scan_range[-1] is not None else len(h5f) - 1
+
+        for scanno in range(first_scan, last_scan):
+            scan = h5f[f"{scanno}.1"]
+            instrument = scan["instrument"]
+            positioners = instrument["positioners"]
+
+            command = scan["title"][()].decode()
+
+            try:
+                info_tmp = parse_scan_command(command)
+
+            except ValueError as err:
+                print(f"Scan {scanno}: {err} Skipping...")
+                break
+
+            if "sxdm" not in info_tmp["command"]:
+                print(f"Scan {scanno} is not an sxdm command, skipping...")
+                break
+
+            if info is None:  # first iter
+                info = info_tmp.copy()
+                info["cen_pix_0"] = instrument["mpx1x4/beam_center_y"][()]
+                info["cen_pix_1"] = instrument["mpx1x4/beam_center_x"][()]
+                info["detdistance"] = instrument["mpx1x4/distance"][()]
+                info["wavelength"] = instrument["monochromator/WaveLength"][()]
+                info["beamenergy"] = 12.398e-10 / info["wavelength"]
+            else:
+                for key in ["motor_0", "motor_0_steps", "motor_1", "motor_1_steps"]:
+                    motor_stop += info[key] != info_tmp[key]
+
+            if motor_stop:
+                break
+
+            for motor_name in positioners:
+                if not positioners[motor_name].shape:
+                    positions[motor_name].append(positioners[motor_name][()])
+
+    for i in (0, 1):
+        info[f"motor_{i}"] = ScanRange(
+            info[f"motor_{i}"],
+            float(info.pop(f"motor_{i}_start")),
+            float(info.pop(f"motor_{i}_end")),
+            int(info.pop(f"motor_{i}_steps")),
+        )
+
+    slo_mot_sh = len(positions[motor_name])
+    slowest_motors = []
+    for motor_name in positions:
+        if motor_name == info["motor_0"].name or motor_name == info["motor_1"].name:
+            continue
+        pos = positions[motor_name]
+        if len(np.unique(pos)) == slo_mot_sh:
+            slowest_motors.append(
+                ScanRange(motor_name, float(pos[0]), float(pos[-1]), int(slo_mot_sh))
+            )
+
+    info["motor_2"] = slowest_motors
+    info["shape"] = slo_mot_sh, info["motor_1"].numpoints, info["motor_0"].numpoints
+
+    return info
 
 
 def parse_scan_command(command):
@@ -29,10 +119,13 @@ def parse_scan_command(command):
     )
     cmd_rgx = re.compile(_COMMAND_LINE_PATTERN)
     cmd_match = cmd_rgx.match(command)
+
     if cmd_match is None:
         raise ValueError('Failed to parse command line : "{0}".' "".format(command))
+
     cmd_dict = cmd_match.groupdict()
     cmd_dict.update(full=command)
+
     return cmd_dict
 
 
@@ -55,7 +148,7 @@ def make_xsocs_links(
 
     # open the dataset file
     with h5py.File(path_dset, "r") as h5f:
-        _name_dset = os.path.basename(path_dset).split('.')[0]
+        _name_dset = os.path.basename(path_dset).split(".")[0]
 
         # using all scan numbers in file?
         if scan_nums is None:
