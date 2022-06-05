@@ -52,7 +52,7 @@ class InspectROI(object):
         self._init_fig()
         self._init_widgets()
 
-    def _init_fig(self):
+    def _init_fig(self): # mpl
 
         with self.figout:
             fig, ax = plt.subplots(1, 1, figsize=(4, 4), layout="tight")
@@ -140,7 +140,7 @@ class InspectROI(object):
             "align-items": "stretch",
         }
 
-    def _on_click(self, event):
+    def _on_click(self, event): # mpl
         with self.figout:
             if event.inaxes == self.ax:
                 x, y = event.xdata, event.ydata
@@ -151,7 +151,7 @@ class InspectROI(object):
             else:
                 pass
 
-    def _add_crosshar(self, change):
+    def _add_crosshar(self, change): # mpl
         ismulti = change["new"]
         if ismulti:
             self.multi = Cursor(self.ax, color="r", lw=0.7, useblit=True)
@@ -159,7 +159,7 @@ class InspectROI(object):
             del self.multi
 
     @retry()
-    def _update_roi(self, change):
+    def _update_roi(self, change): # mpl
         roi = change["new"]
         img = self.img
         roidata = get_roidata(self.path_h5, self.scan_no, roi)
@@ -174,7 +174,7 @@ class InspectROI(object):
 
         self.roidata = roidata
 
-    def _update_norm(self, change):
+    def _update_norm(self, change): # mpl
         islog = change["new"]
         im = self.img
         roidata = im.get_array()
@@ -199,7 +199,7 @@ class InspectROI(object):
         self.m1name, self.m2name = m1name, m2name
 
     @retry()
-    def _update_piezo_coordinates(self):
+    def _update_piezo_coordinates(self): # mpl
         command = self.command
         with h5py.File(self.path_h5, "r") as h5f:
             sh = [h5f[self.scan_no][f"technique/{x}"][()] for x in ("dim0", "dim1")]
