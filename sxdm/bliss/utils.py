@@ -102,7 +102,14 @@ def make_xsocs_links(
             counters = [
                 x for x in _instr if _instr[x].attrs.get("NX_class") == "NXdetector"
             ]
-            counters.remove(f"{detector}_beam")
+
+            # Why am I removing this? I forgot.
+            # In the new bliss files it does not seem to be there,
+            # hence the try / except
+            try:
+                counters.remove(f"{detector}_beam")
+            except ValueError:
+                pass
 
             # get piezo coordinates
             pi_positioners = [
@@ -168,12 +175,15 @@ def make_xsocs_links(
                         )
 
                 for pp in pi_positioners:
-                    new_c = pi_motor_names[pp]
-                    xsocsh5f.add_file_link(
-                        f"{_entry_name}/measurement/{new_c}",
-                        path_dset,
-                        f"{scan_num}/instrument/{pp}/value",
-                    )
+                    try:
+                        new_c = pi_motor_names[pp]
+                        xsocsh5f.add_file_link(
+                            f"{_entry_name}/measurement/{new_c}",
+                            path_dset,
+                            f"{scan_num}/instrument/{pp}/value",
+                        )
+                    except KeyError:
+                        pass
 
                 _imgnr = np.arange(_entry[f"measurement/{detector}"].shape[0])
                 xsocsh5f._set_array_data(f"{_entry_name}/measurement/imgnr", _imgnr)
