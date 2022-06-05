@@ -9,7 +9,7 @@ from IPython.display import display
 from silx.io.h5py_utils import retry
 
 from ..plot import add_colorbar
-from .io import get_roidata, get_motorpos, get_command, get_datetime
+from ..io.bliss import get_roidata, get_motorpos, get_command, get_datetime
 
 
 class InspectROI(object):
@@ -203,14 +203,17 @@ class InspectROI(object):
         command = self.command
         with h5py.File(self.path_h5, "r") as h5f:
             sh = [h5f[self.scan_no][f"technique/{x}"][()] for x in ("dim0", "dim1")]
-
             m1n, m2n = self.m1name, self.m2name
+
+            self.ax.set_xlabel(f"{m1n} (um)")
+            self.ax.set_ylabel(f"{m2n} (um)")
+            
             m1, m2 = [
                 h5f[f"{self.scan_no}/instrument/positioners/{m}_position"][()]
                 for m in (m1n, m2n)
             ]
 
-            # surely this can be done in a more interlligent way
+            # surely this can be done in a more intelligent way
             if m1.size != sh[0] * sh[1]:
                 m1m, m1M, m2m, m2M = [
                     float(command.split(" ")[x][:-1]) for x in (2, 3, 6, 7)

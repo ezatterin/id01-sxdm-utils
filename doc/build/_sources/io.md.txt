@@ -1,6 +1,4 @@
-# Docs on IO
-
-Hello!
+# I/O
 
 ```{eval-rst}
 .. automodule:: sxdm.io

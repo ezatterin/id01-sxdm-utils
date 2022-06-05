@@ -6,7 +6,7 @@ import functools
 
 from tqdm.auto import tqdm
 
-from .bliss.io import _get_chunk_indexes
+from .io.bliss import _get_chunk_indexes
 
 
 def get_nearest_index(arr, val):

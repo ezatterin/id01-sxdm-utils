@@ -2,9 +2,6 @@
 Various widgets to aid the analysis of SXDM data.
 """
 
-from .utils import load_detector_roilist, get_qspace_coords, get_q_extents
-from .plot import add_colorbar
-
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -13,6 +10,9 @@ import ipywidgets as ipw
 
 from matplotlib.widgets import MultiCursor, RectangleSelector
 from IPython.display import display
+
+from ..utils.spec import load_detector_roilist, get_qspace_coords, get_q_extents
+from ..plot import add_colorbar
 
 mpl.rcParams["font.family"] = "Liberation Sans, sans-serif"
 

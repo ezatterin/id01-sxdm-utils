@@ -6,8 +6,8 @@ import pandas as pd
 import os
 import numpy as np
 
-from .io import FastSpecFile
-from .bliss.io import ioh5
+from ..io.spec import FastSpecFile
+from ..io.bliss import ioh5
 
 @ioh5
 def get_qspace_coords(h5f):
