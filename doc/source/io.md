@@ -1,6 +1,5 @@
 # I/O
 
-```{eval-rst}
-.. automodule:: sxdm.io
-    :members:
-```
+
+* [SPEC](io.spec.md)
+* [BLISS](io.bliss.md)

@@ -19,7 +19,7 @@ setup(
         "matplotlib",
         "ipywidgets",
         "tqdm",
-        "silx",
+        "silx>=1.0.0",
         "pandas",
         "xrayutilities",
         "ipympl==0.7.0" # xsocs, id01lib

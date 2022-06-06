@@ -7,8 +7,12 @@ import re
 
 from xsocs.io import XsocsH5
 
-ScanRange = collections.namedtuple("ScanRange", ["name", "start", "stop", "numpoints"])
 
+__all__ = ["get_SXDM_info", 
+           "parse_scan_commands", 
+           "make_xsocs_links"]
+
+ScanRange = collections.namedtuple("ScanRange", ["name", "start", "stop", "numpoints"])
 
 def get_SXDM_info(path_dset, scan_range=(1, None)):
     """
@@ -27,7 +31,7 @@ def get_SXDM_info(path_dset, scan_range=(1, None)):
     info : dict
         Dictionary of parameters and their values.
     """
-    
+
     info = None
     motor_stop = False
     positions = collections.defaultdict(list)
@@ -133,8 +137,27 @@ def make_xsocs_links(
     path_dset, path_out, scan_nums, detector="mpx1x4", name_outh5=None
 ):
     """
-    Generates a set of .h5 files to be fed to XSOCS. The files contain *links* to
-    the original data.
+    Generates a set of .h5 files to be fed to XSOCS from a 3D-SXDM dataset. 
+    The files contain *links* to the original data, not the data itself.
+
+    Parameters
+    ----------
+    path_dset : str
+        Path to the .h5 dataset file, with links to individual scan .h5 files.
+    path_out:
+        Path to the folder where the XSOCS-compatible .h5 files will be saved.
+    scan_nums : list, tuple or range of int
+        Scan numbers to be processed.
+    detector : str, default "mpx1x4"
+        The name of the detector used to collect the data.
+    name_outh5 : str, default `None`
+        Prefix of the XSOCS-compatible .h5 files generated. Defaults to the suffix of
+        `path_dset`.
+
+    Returns
+    -------
+        Nothing.
+
     """
 
     if not os.path.isdir(path_out):

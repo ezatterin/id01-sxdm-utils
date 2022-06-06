@@ -5,7 +5,7 @@ Contents:
 <!-- Need to use a directive that evals rst code due to autodoc -->
 ```{eval-rst}
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    io.md
    utils.md

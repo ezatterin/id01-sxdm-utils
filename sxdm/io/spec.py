@@ -315,7 +315,7 @@ class PiezoScan(Scan):
         try:
             self.frames = edf_h5['entry_0000/measurement/data'][...]
         except KeyError:
-            self.frames = edf_h5[f"scan_0/image/data"][...]
+            self.frames = edf_h5[f"{entry_name}/image/data"][...]
         print("Done in {:.2f}s".format(time.time() - t0))
 
         # write to hdf5
@@ -358,8 +358,8 @@ class PiezoScan(Scan):
         detector_distance=None,
         energy=None,
         detector="maxipix",
-        ipdir=[1, 0, 0],
-        ndir=[0, 0, 1],
+        ipdir=(1, 0, 0),
+        ndir=(0, 0, 1),
         ignore_mpx_motors=True,
     ):
 
