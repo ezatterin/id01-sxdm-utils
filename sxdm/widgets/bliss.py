@@ -56,7 +56,8 @@ class InspectROI(object):
 
         with self.figout:
             fig, ax = plt.subplots(1, 1, figsize=(4, 4), layout="tight")
-
+        
+        self.fig, self.ax = fig, ax
         self.img = ax.imshow(self.roidata, origin="lower")
         self._get_motor_names()
         self._update_piezo_coordinates()
@@ -66,8 +67,6 @@ class InspectROI(object):
         _ = ax.set_xlabel(f"{self.m1name} (um)")
         _ = ax.set_ylabel(f"{self.m2name} (um)")
         _ = ax.set_title(f"#{self.scan_no} - {self.roiname}")
-
-        self.fig, self.ax = fig, ax
 
         # connect to mpl event manager
         self.fig.canvas.mpl_connect("button_press_event", self._on_click)
