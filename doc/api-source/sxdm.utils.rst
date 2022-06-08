@@ -8,22 +8,23 @@ sxdm.utils.bliss module
 -----------------------
 
 .. automodule:: sxdm.utils.bliss
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
-sxdm.utils.spec module
-----------------------
+sxdm.utils.general module
+-------------------------
 
-.. automodule:: sxdm.utils.spec
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. automodule:: sxdm.utils.general
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------
 
 .. automodule:: sxdm.utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    :members:
+    :undoc-members:
+    :show-inheritance:

@@ -11,7 +11,7 @@ import ipywidgets as ipw
 from matplotlib.widgets import MultiCursor, RectangleSelector
 from IPython.display import display
 
-from ..utils.spec import load_detector_roilist, get_qspace_coords, get_q_extents
+from ..utils import get_detector_roilist, get_qspace_coords, get_q_extents
 from ..plot import add_colorbar
 
 mpl.rcParams["font.family"] = "Liberation Sans, sans-serif"
@@ -43,7 +43,7 @@ class RoiPlotter(object):
         self.fsf = fast_spec_file
         self.pscan = self.fsf[0]
         self.motors = self.pscan.motor_names
-        self.rois, self.roi_init = load_detector_roilist(self.pscan, detector)
+        self.rois, self.roi_init = get_detector_roilist(self.pscan, detector)
 
         # default ROI
         roidata_init = self.pscan.get_roidata(self.roi_init)
@@ -300,7 +300,7 @@ class FramesExplorer(object):
             self.frames = pscan.get_detector_frames()
 
         self.frames = self.frames.reshape(*pscan.shape, *self.frames.shape[1:])
-        self.rois, self.roi_init = load_detector_roilist(pscan, detector)
+        self.rois, self.roi_init = get_detector_roilist(pscan, detector)
         self.m1, self.m2 = pscan.get_piezo_coordinates()
         self.row, self.col = 0, 0
         self.roi_idxs = np.s_[:, :]
@@ -462,7 +462,7 @@ class FramesExplorer(object):
             for im, c in zip((self.imgroi, self.imgframe), _clims):
                 try:
                     _ = im.set_norm(mpl.colors.LogNorm(*c))
-                except ValueError as err:
+                except ValueError:
                     _ = im.set_norm(mpl.colors.LogNorm(0.1, c[1]))
         else:
             _ = [
@@ -474,7 +474,7 @@ class FramesExplorer(object):
         global texts, patches
 
         roipos = self.pscan.get_roipos()
-        roinames, _ = load_detector_roilist(self.pscan, self.detector)
+        roinames, _ = get_detector_roilist(self.pscan, self.detector)
         colors = plt.rcParams["axes.prop_cycle"].by_key()["color"] * 2
 
         if change["new"]:
@@ -613,7 +613,7 @@ class Inspect5DQspace(object):
             a.imshow(rsm.sum(i).T, extent=qext[i], origin="lower")
 
         for a in self.ax.flatten():
-            cbar = add_colorbar(a, a.get_images()[0])
+            _ = add_colorbar(a, a.get_images()[0])
 
         self.ax[0, 0].set_xlabel("motor0 (pixels)")
         self.ax[0, 0].set_ylabel("motor1 (pixels)")
@@ -663,7 +663,7 @@ class Inspect5DQspace(object):
             proj.set_array(topl)
 
             if self.relim_int is True:
-                self._update_norm({'new':self._iflog.value})
+                self._update_norm({'new': self._iflog.value})
 
     def show(self):
         selector = ipw.HBox([self._select_plot, self._iflog])
