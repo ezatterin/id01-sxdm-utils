@@ -5,7 +5,6 @@ Various widgets to aid the analysis of SXDM data.
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import h5py
 import ipywidgets as ipw
 
 from matplotlib.widgets import MultiCursor, RectangleSelector
