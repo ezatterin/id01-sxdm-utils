@@ -2,7 +2,6 @@ import h5py
 import ipywidgets as ipw
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import numpy as np
 import os
 
 from matplotlib.widgets import Cursor
@@ -301,6 +300,3 @@ class InspectROI(object):
                 layout={"justify-content": "space-between"},
             )
         )
-
-
-
