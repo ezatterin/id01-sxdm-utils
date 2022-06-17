@@ -9,6 +9,7 @@ from IPython.display import display
 from ..plot import add_colorbar
 from ..utils import get_qspace_coords, get_q_extents
 
+
 class Inspect5DQspace(object):
     def __init__(
         self,
@@ -22,10 +23,10 @@ class Inspect5DQspace(object):
         maps_dict must contain items of shape equivalent to that of the sxdm scan.
         """
 
-        init_map_name = list(maps_dict.keys())[0]
+        self.init_map_name = list(maps_dict.keys())[0]
 
-        self._figout = ipw.Output()
-        self._init_darr = maps_dict[init_map_name]
+        self._figout = ipw.Output(layout=dict(border="1px solid grey"))
+        self._init_darr = maps_dict[self.init_map_name]
         self.row, self.col = init_idx
         self._h5f = path_qspace
         self.maps_dict = maps_dict
@@ -33,16 +34,13 @@ class Inspect5DQspace(object):
         self.roi = qspace_roi
         self.relim_int = relim_int
 
-        with self._figout:
-            self.fig, self.ax = plt.subplots(
-                2, 2, figsize=(4.5, 4), dpi=160, layout="tight"
-            )
-
         self._init_fig()
-        self.fig.canvas.mpl_connect("button_press_event", self._onclick)
-        self.fig.canvas.mpl_connect("key_press_event", self._onkey)
+        self._init_widgets()
 
-        self._select_plot = ipw.Select(options=maps_dict.keys(), value=init_map_name)
+    def _init_widgets(self):
+        self._select_plot = ipw.Select(
+            options=self.maps_dict.keys(), value=self.init_map_name
+        )
         self._select_plot.observe(self._change_plot, names="value")
         self._select_plot.layout = ipw.Layout(width="30%")
 
@@ -92,6 +90,14 @@ class Inspect5DQspace(object):
         return rsm
 
     def _init_fig(self):
+
+        with plt.ioff():
+            self.fig, self.ax = plt.subplots(
+                2, 2, figsize=(4.5, 4), dpi=160, layout="tight"
+            )
+        with self._figout:
+            display(self.fig.canvas)
+
         a0 = self.ax[0, 0]
         self._dmap = a0.imshow(self._init_darr, origin="lower")
         self._curpos = a0.scatter(self.row, self.col, marker="x", c="w")
@@ -114,6 +120,9 @@ class Inspect5DQspace(object):
 
         _ = [self.ax.ravel()[i].set_xlabel(r"$Q_x~(\AA^{-1})$") for i in (2, 3)]
         _ = [self.ax.ravel()[i].set_ylabel(r"$Q_z~(\AA^{-1})$") for i in (1, 2)]
+
+        self.fig.canvas.mpl_connect("button_press_event", self._onclick)
+        self.fig.canvas.mpl_connect("key_press_event", self._onkey)
 
     def _change_plot(self, change):
         darr = self.maps_dict[change["new"]]
@@ -157,6 +166,8 @@ class Inspect5DQspace(object):
                 self._update_norm({"new": self._iflog.value})
 
     def show(self):
-        selector = ipw.HBox([self._select_plot, self._iflog])
+        selector = ipw.HBox(
+            [self._select_plot, self._iflog], layout=dict(border="1px solid grey")
+        )
         gui = ipw.VBox([selector, self._figout])
         display(gui)

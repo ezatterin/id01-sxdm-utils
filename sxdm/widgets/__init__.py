@@ -1,1 +1,1 @@
-from . import (bliss, spec)
+from . import (bliss, spec, xsocs)
