@@ -25,18 +25,21 @@ class InspectROI(object):
 
         # get list of rois + other stuff
         with h5py.File(path_h5, "r") as h5f:
-
-            nscans = len(list(h5f.keys()))
-            scan_idxs = range(1, nscans + 1)
-            commands = [h5f[f"{s}.1/title"][()].decode() for s in scan_idxs]
+            
+            scan_nos = list(h5f.keys())
+            nscans = len(scan_nos)
+            commands = [h5f[f"{s}/title"][()].decode() for s in scan_nos]
 
             self._scan_nos = [
-                f"{s}.1" for s, c in zip(scan_idxs, commands) if "sxdm" in c
+                s for s, c in zip(scan_nos, commands) if "sxdm" in c
             ]
             self._commands = {s: h5f[f"{s}/title"][()].decode() for s in self._scan_nos}
-
             self.scan_no = self._scan_nos[0] if init_scan_no is None else init_scan_no
-            self.command = self._commands[self.scan_no]
+            
+            try:
+                self.command = self._commands[self.scan_no]
+            except KeyError:
+                raise KeyError(f'Scan {self.scan_no} is not an SXDM scan!')
 
             counters = list(h5f[f"{self.scan_no}/measurement"].keys())
             self.roilist = counters if roilist is None else roilist
@@ -54,8 +57,10 @@ class InspectROI(object):
 
     def _init_fig(self):  # mpl
 
-        with self.figout:
+        with plt.ioff():
             fig, ax = plt.subplots(1, 1, figsize=(4, 4), layout="tight")
+        with self.figout:
+            display(fig.canvas)
 
         self.fig, self.ax = fig, ax
         self.img = ax.imshow(self.roidata, origin="lower")
