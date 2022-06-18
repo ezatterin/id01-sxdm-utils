@@ -30,9 +30,10 @@ class InspectROI(object):
             nscans = len(scan_nos)
             commands = [h5f[f"{s}/title"][()].decode() for s in scan_nos]
 
-            self._scan_nos = [
-                s for s, c in zip(scan_nos, commands) if "sxdm" in c
-            ]
+            scan_nos = [s for s, c in zip(scan_nos, commands) if "sxdm" in c]
+            scan_nos_int = sorted([int(s.split('.')[0]) for s in scan_nos])
+            
+            self._scan_nos = [f'{s}.1' for s in scan_nos_int]
             self._commands = {s: h5f[f"{s}/title"][()].decode() for s in self._scan_nos}
             self.scan_no = self._scan_nos[0] if init_scan_no is None else init_scan_no
             
