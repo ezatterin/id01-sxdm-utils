@@ -44,7 +44,7 @@ scan_nums = None
 
 #  this exists in sxdm.bliss.utils, explicitly defining it here in order to avoid
 #  the script being dependent on the id01-sxdm-utils package (this package!)
-def _parse_scan_command(command):
+def parse_scan_command(command):
 
     """
     Accepts a BLISS SXDM command and parses it according to the XSOCS
@@ -78,11 +78,45 @@ def _parse_scan_command(command):
 
 
 # this will eventually end up in sxdm.bliss.utils too
-def make_links(path_dset, path_out, scan_nums, detector, name_outh5=None):
+def make_xsocs_links(
+    path_dset, path_out, scan_nums, detector="mpx1x4", name_outh5=None
+):
+    """
+    Generates a set of .h5 files to be fed to XSOCS from a 3D-SXDM dataset.
+    The files contain *links* to the original data, not the data itself.
+
+    Parameters
+    ----------
+    path_dset : str
+        Path to the .h5 dataset file, with links to individual scan .h5 files.
+    path_out:
+        Path to the folder where the XSOCS-compatible .h5 files will be saved.
+    scan_nums : list, tuple or range of int
+        Scan numbers to be processed.
+    detector : str, default "mpx1x4"
+        The name of the detector used to collect the data.
+    name_outh5 : str, default `None`
+        Prefix of the XSOCS-compatible .h5 files generated. Defaults to the suffix of
+        `path_dset`.
+
+    Returns
+    -------
+        Nothing.
+
+    """
+
+    if not os.path.isdir(path_out):
+        os.mkdir(path_out)
+
+    pi_motor_names = {
+        "pix_position": "adcY",
+        "piy_position": "adcX",
+        "piz_position": "adcZ",
+    }
 
     # open the dataset file
     with h5py.File(path_dset, "r") as h5f:
-        _name_dset = os.path.basename(path_dset)
+        _name_dset = os.path.basename(path_dset).split(".")[0]
 
         # using all scan numbers in file?
         if scan_nums is None:
@@ -101,7 +135,7 @@ def make_links(path_dset, path_out, scan_nums, detector, name_outh5=None):
 
         # name the output files
         if name_outh5 is None:
-            name_outh5 = _name_dset.split(".")[0]
+            name_outh5 = _name_dset
 
         # generate output master file
         out_h5f_master = f"{path_out}/{name_outh5}_master.h5"
@@ -116,13 +150,8 @@ def make_links(path_dset, path_out, scan_nums, detector, name_outh5=None):
 
             # get some metadata
             start_time = _entry["start_time"][()].decode()
-            direct_beam = [
-                _instr[f"{detector}/beam_center_{x}"][()] for x in ("y", "x")
-            ]
-            direct_beam = [x if x != 0 else 258 for x in direct_beam]
-
-            det_distance = _instr[f"{detector}/distance"][()]
-            det_distance = det_distance if det_distance != 0 else 0.5
+            direct_beam = [_instr[f"{detector}/beam_center_{x}"] for x in ("y", "x")]
+            det_distance = _instr[f"{detector}/distance"]
 
             _pixsizes = [_instr[f"{detector}/{m}_pixel_size"][()] for m in ("y", "x")]
             chan_per_deg = [
@@ -134,6 +163,10 @@ def make_links(path_dset, path_out, scan_nums, detector, name_outh5=None):
             counters = [
                 x for x in _instr if _instr[x].attrs.get("NX_class") == "NXdetector"
             ]
+
+            # Why am I removing this? I forgot.
+            # In the new bliss files it does not seem to be there,
+            # hence the try / except
             try:
                 counters.remove(f"{detector}_beam")
             except ValueError:
@@ -147,7 +180,7 @@ def make_links(path_dset, path_out, scan_nums, detector, name_outh5=None):
 
             # more parameters
             _entry_name = scan_num  # <-- ends up in output h5 fname
-            _command_params = _parse_scan_command(command)
+            _command_params = parse_scan_command(command)
 
             out_h5f = f"{path_out}/{name_outh5}_{_entry_name}.h5"
 
@@ -203,12 +236,15 @@ def make_links(path_dset, path_out, scan_nums, detector, name_outh5=None):
                         )
 
                 for pp in pi_positioners:
-                    new_c = pi_motor_names[pp]
-                    xsocsh5f.add_file_link(
-                        f"{_entry_name}/measurement/{new_c}",
-                        path_dset,
-                        f"{scan_num}/instrument/{pp}/value",
-                    )
+                    try:
+                        new_c = pi_motor_names[pp]
+                        xsocsh5f.add_file_link(
+                            f"{_entry_name}/measurement/{new_c}",
+                            path_dset,
+                            f"{scan_num}/instrument/{pp}/value",
+                        )
+                    except KeyError:
+                        pass
 
                 _imgnr = np.arange(_entry[f"measurement/{detector}"].shape[0])
                 xsocsh5f._set_array_data(f"{_entry_name}/measurement/imgnr", _imgnr)
@@ -219,7 +255,7 @@ def make_links(path_dset, path_out, scan_nums, detector, name_outh5=None):
 
             # write links to XSOCS master file
             with XsocsH5.XsocsH5MasterWriter(out_h5f_master, "a") as master:
-                master.add_entry_file(_entry_name, out_h5f)
+                master.add_entry_file(_entry_name, os.path.basename(out_h5f))
 
             # print
             print(f"\r> Linking # {scan_num}/{_scan_nums[-1]}", flush=True, end=" ")
@@ -242,4 +278,4 @@ pi_motor_names = {
     "piz_position": "adcZ",
 }
 
-make_links(path_dset, path_out, scan_nums, detector)
+make_xsocs_links(path_dset, path_out, scan_nums, detector)
