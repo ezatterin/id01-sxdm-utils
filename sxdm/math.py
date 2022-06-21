@@ -166,8 +166,7 @@ def calc_coms_qspace3d(path_qspace, mask=None, n_pix=None):
 
     cx, cy, cz = np.array(coms).reshape(map_shape_flat, 3).T
 
-    return cx, cy, cz
-    
+    return cx, cy, cz    
 
 def _calc_roi_sum_chunk(path_qspace, indexes, mask=None):
     """

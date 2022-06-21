@@ -127,8 +127,8 @@ def get_shift(
         List of *raw* SXDM maps of the specified ROI sorted according to the scan list 
         provided as input.
     shifted_maps : list of np.ndarray
-        List of *shifted* SXDM maps of the specified ROI sorted according to the scan list 
-        provided as input.
+        List of *shifted* SXDM maps of the specified ROI sorted according to the scan 
+        list provided as input.
 
     Example
     -------

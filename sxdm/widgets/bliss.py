@@ -7,10 +7,13 @@ import os
 from matplotlib.widgets import Cursor
 from IPython.display import display
 from silx.io.h5py_utils import retry
+# from IPython import get_ipython
 
 from ..plot import add_colorbar
 from ..io.bliss import get_roidata, get_motorpos, get_command, get_datetime
 
+# ipython = get_ipython()
+# ipython.magic("matplotlib widget") 
 
 class InspectROI(object):
     def __init__(
