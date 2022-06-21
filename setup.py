@@ -22,7 +22,7 @@ setup(
         "silx>=1.0.0",
         "pandas",
         "xrayutilities",
-        "ipympl==0.7.0" # xsocs, id01lib
+        "ipympl" # xsocs, id01lib
     ],
 )
 
