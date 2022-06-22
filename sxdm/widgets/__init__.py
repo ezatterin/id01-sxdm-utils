@@ -1,6 +1,9 @@
 import matplotlib as mpl
 
-mpl.rcParams['keymap.back'].remove('left')
-mpl.rcParams['keymap.forward'].remove('right')
+try:
+    mpl.rcParams['keymap.back'].remove('left')
+    mpl.rcParams['keymap.forward'].remove('right')
+except ValueError:
+    pass
 
 from . import (bliss, spec, xsocs)
