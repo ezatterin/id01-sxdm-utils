@@ -21,6 +21,10 @@ class Inspect5DQspace(object):
     ):
         """
         maps_dict must contain items of shape equivalent to that of the sxdm scan.
+        Parameters
+        ----------
+        maps_dict : dict
+
         """
 
         self.init_map_name = list(maps_dict.keys())[0]
@@ -156,9 +160,9 @@ class Inspect5DQspace(object):
     def _update(self):
         self._curpos.set_offsets([self.col, self.row])
 
-        rsm = self._get_rsm()
+        self.rsm = self._get_rsm()
         for i, a in enumerate(self.ax.flatten()[1:]):
-            topl = rsm.sum(i).T
+            topl = self.rsm.sum(i).T
             proj = a.get_images()[0]
             proj.set_array(topl)
 
@@ -166,8 +170,51 @@ class Inspect5DQspace(object):
                 self._update_norm({"new": self._iflog.value})
 
     def show(self):
+        """
+        Display the interactive plot.
+        """
         selector = ipw.HBox(
             [self._select_plot, self._iflog], layout=dict(border="1px solid grey")
         )
         gui = ipw.VBox([selector, self._figout])
         display(gui)
+
+    def save_rsm_hdf5(self, path_out, entry_name):
+        """
+        Save a local RSM to an hdf5 file.
+
+        Parameters
+        ----------
+        path_out : str
+            Path to the output hdf5 file.
+        entry_name : str
+            Name of the hdf5 group within the file `path_out` where the data will be
+            saved.
+        """
+        try:
+            rsm = self.rsm 
+        except AttributeError:
+            rsm = self._get_rsm()
+        qx, qy, qz = self.qx, self.qy, self.qz
+
+        with h5py.File(path_out, "a") as h5f:
+            try:
+                entry = h5f.create_group(entry_name)
+                for name, arr in zip("qx,qy,qz,int".split(","), [qx, qy, qz, rsm]):
+                    entry.create_dataset(
+                        name,
+                        data=arr,
+                        chunks=True,
+                        shuffle=True,
+                        compression="gzip",
+                        compression_opts=6)
+
+            except ValueError:
+                with self._figout:
+                    print(f"{entry_name} exists, overwriting!")
+                for name, arr in zip("qx,qy,qz,int".split(","), [qx, qy, qz, rsm]):
+                    entry[name] = arr
+        
+        with self._figout:
+            print(f'\n{entry_name} written to {path_out}')
+
