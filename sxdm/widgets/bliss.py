@@ -3,17 +3,19 @@ import ipywidgets as ipw
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import os
+import numpy as np
 
 from matplotlib.widgets import Cursor
 from IPython.display import display
 from silx.io.h5py_utils import retry
-# from IPython import get_ipython
+from IPython import get_ipython
 
 from ..plot import add_colorbar
 from ..io.bliss import get_roidata, get_motorpos, get_command, get_datetime
 
-# ipython = get_ipython()
-# ipython.magic("matplotlib widget") 
+ipython = get_ipython()
+ipython.magic("matplotlib widget")
+
 
 class InspectROI(object):
     def __init__(
@@ -22,42 +24,64 @@ class InspectROI(object):
         default_roi="mpx1x4_mpx4int",
         roilist=None,
         init_scan_no=None,
-        coms=None
+        fixed_clims=None,
     ):
+        """
+        Plot ROI data acquired during a BLISS experiment.
+
+        Parameters
+        ----------
+        path_h5 : str
+            Path to the .h5 file containing the dataset.
+        default_roi : str, default "mpx1x4_mpx4int"
+            Name of the ROI to be displayed by default.
+        roilist : list of str, optional
+            List of ROI names to display. Defaults to all of the available BLISS counters.
+        init_scan_no : str, optional
+            First scan to display. Defaults to the lowest-index SXDM scan in the
+            dataset.
+        fixed_clims : list, optional
+            List of [lower, upper] intensity colour limits. Defaults to [max, min] of
+            the displayed data.
+        """
+
         self.roiname = default_roi
         self.path_h5 = path_h5
+        self.fixed_clims = fixed_clims
 
         # get list of rois + other stuff
         with h5py.File(path_h5, "r") as h5f:
-            
+
             scan_nos = list(h5f.keys())
             nscans = len(scan_nos)
             commands = [h5f[f"{s}/title"][()].decode() for s in scan_nos]
 
             scan_nos = [s for s, c in zip(scan_nos, commands) if "sxdm" in c]
-            scan_nos_int = sorted([int(s.split('.')[0]) for s in scan_nos])
-            
-            self._scan_nos = [f'{s}.1' for s in scan_nos_int]
+            scan_nos_int = sorted([int(s.split(".")[0]) for s in scan_nos])
+
+            self._scan_nos = [f"{s}.1" for s in scan_nos_int]
             self._commands = {s: h5f[f"{s}/title"][()].decode() for s in self._scan_nos}
             self.scan_no = self._scan_nos[0] if init_scan_no is None else init_scan_no
-            
+
             try:
                 self.command = self._commands[self.scan_no]
             except KeyError:
-                raise KeyError(f'Scan {self.scan_no} is not an SXDM scan!')
+                raise KeyError(f"Scan {self.scan_no} is not an SXDM scan!")
 
             counters = list(h5f[f"{self.scan_no}/measurement"].keys())
             self.roilist = counters if roilist is None else roilist
 
         # default roi data and motors
         self.roidata = get_roidata(
-            path_h5, self._scan_nos[0], self.roiname, return_pi_motors=False
+            path_h5, self.scan_no, self.roiname, return_pi_motors=False
         )
 
         # output widget to be filled with plt.figure
         self.figout = ipw.Output(layout=dict(border="2px solid grey"))
 
+        self._print_sharpness = False
         self._init_fig()
+        self._update_norm({"new": False})
         self._init_widgets()
 
     def _init_fig(self):  # mpl
@@ -97,7 +121,7 @@ class InspectROI(object):
 
         # slider to select scan index
         idxsel = ipw.IntSlider(
-            value=0,
+            value=self._scan_nos.index(self.scan_no),
             min=0,
             max=(len(self._scan_nos) - 1),
             step=1,
@@ -188,7 +212,10 @@ class InspectROI(object):
         im = self.img
         roidata = im.get_array()
 
-        _clims = [roidata.min(), roidata.max()]
+        if self.fixed_clims is None:
+            _clims = [roidata.min(), roidata.max()]
+        else:
+            _clims = self.fixed_clims
         self.clims = _clims
 
         if islog:
@@ -288,6 +315,14 @@ class InspectROI(object):
         motorspecs = "\n".join(motorspecs)
         self.motorspecs.value = motorspecs
 
+    def _get_sharpness(self):
+        gy, gx = np.gradient(self.roidata)
+        gnorm = np.sqrt(gx**2 + gy**2)
+        self.sharpness = np.average(gnorm)
+
+        with self.figout:
+            print(f"Image sharpness: {self.sharpness}")
+
     @retry()
     def _update_scan(self, change):
         scan_idx = change["new"]
@@ -295,9 +330,13 @@ class InspectROI(object):
         self.command = self._commands[self.scan_no]
 
         self._update_roi({"new": self.roisel.value})
+        self._update_norm({"new": False})
         self._get_motor_names()
         self._update_piezo_coordinates()
         self._update_specs()
+
+        if self._print_sharpness == True:
+            self._get_sharpness()
 
     def show(self):
         """
