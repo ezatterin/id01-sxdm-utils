@@ -22,6 +22,7 @@ class InspectROI(object):
         default_roi="mpx1x4_mpx4int",
         roilist=None,
         init_scan_no=None,
+        coms=None
     ):
         self.roiname = default_roi
         self.path_h5 = path_h5

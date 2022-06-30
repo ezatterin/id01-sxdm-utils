@@ -140,12 +140,7 @@ def get_shift(
     """
 
     # raw ROIs
-    sxdm_raw = []
-    for i in scan_nums:
-        sxdm = get_roidata(path_dset, i, roi)
-        if med_filt is not None:
-            sxdm = median_filter(sxdm, med_filt)
-        sxdm_raw.append(sxdm)
+    sxdm_raw = [get_roidata(path_dset, i, roi) for i in scan_nums]
 
     # shifts
     shifts = []

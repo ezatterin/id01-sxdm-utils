@@ -18,13 +18,26 @@ class Inspect5DQspace(object):
         init_idx=[10, 10],
         qspace_roi=np.s_[:, :, :],
         relim_int=False,
+        coms=None
     ):
         """
-        maps_dict must contain items of shape equivalent to that of the sxdm scan.
+        Inspect intensity(x, y, q_x, q_y, q_z) data output by XSOCS.
+
         Parameters
         ----------
         maps_dict : dict
-
+            Items here have the same shape as that of the SXDM scan.
+        path_qspace : str
+            Path to the qspace hdf5 file output by XSOCS.
+        init_idx : list of int, default [10,10]
+            Indexes of the first (x,y) coordinate to load.
+        qspace_roi : tuple of slice, default np.s_[:,:,:]
+            Slices of the 3D q-space array representing a q-space ROI. Use the numpy
+            shorthand syntax: np.s_[].
+        relim_int : bool, default False
+            If True, re-compute intensity color limits at each new (x,y) position.
+        coms : list of numpy.ndarray, optional
+            List of x,y,z COM coordinates, each of the same shape as the SXDM map.
         """
 
         self.init_map_name = list(maps_dict.keys())[0]
@@ -37,6 +50,7 @@ class Inspect5DQspace(object):
         self.qx, self.qy, self.qz = get_qspace_coords(path_qspace)
         self.roi = qspace_roi
         self.relim_int = relim_int
+        self.coms = coms
 
         self._init_fig()
         self._init_widgets()
@@ -112,7 +126,15 @@ class Inspect5DQspace(object):
         )
         for i, a in enumerate(self.ax.flatten()[1:]):
             a.imshow(rsm.sum(i).T, extent=qext[i], origin="lower")
-
+        
+        if self.coms is not None:
+            cx, cy, cz = self.coms
+            self.coms_scatt = []
+            for a, (c0, c1) in zip(self.ax.flatten()[1:], [(cy, cz), (cx, cz), (cx, cy)]):
+                c0_local, c1_local = [c[self.row, self.col] for c in (c0,c1)] 
+                scatt = a.scatter(c0_local, c1_local, color='b', marker='x')
+                self.coms_scatt.append(scatt)
+        
         for a in self.ax.flatten():
             _ = add_colorbar(a, a.get_images()[0])
 
@@ -168,6 +190,12 @@ class Inspect5DQspace(object):
 
             if self.relim_int is True:
                 self._update_norm({"new": self._iflog.value})
+            
+            if self.coms is not None:
+                cx, cy, cz = self.coms
+                for scatt, (c0,c1) in zip(self.coms_scatt, [(cy, cz), (cx, cz), (cx, cy)]):
+                    c0_local, c1_local = [c[self.row, self.col] for c in (c0,c1)] 
+                    scatt.set_offsets([c0_local, c1_local])
 
     def show(self):
         """
