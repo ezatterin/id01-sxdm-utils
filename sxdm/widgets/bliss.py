@@ -133,7 +133,7 @@ class InspectROI(object):
         self.bk_fig = bk_fig
         self.bk_img = bk_img
         self.figout = pn.pane.Bokeh(
-            bk_fig, align=("end", "center"), sizing_mode="scale_both"
+            bk_fig, align=("end", "center"), sizing_mode="scale_both", margin=(5,5,5,5)
         )
 
     def _init_fig(self):  # mpl
