@@ -2,7 +2,7 @@ import h5py
 import ipywidgets as ipw
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import bokeh as bk
+import panel as pn
 import os
 import numpy as np
 
@@ -11,11 +11,24 @@ from IPython.display import display
 from silx.io.h5py_utils import retry
 from IPython import get_ipython
 
+from bokeh import models as bk_models
+from bokeh import plotting as bk_plotting
+
 from ..plot import add_colorbar
 from ..io.bliss import get_roidata, get_motorpos, get_command, get_datetime
 
 ipython = get_ipython()
 ipython.magic("matplotlib widget")
+
+
+css = """
+.bk.app_layout {
+    border-radius: 5px;
+    border: 1px black solid;
+    }
+"""
+
+pn.extension("ipywidgets", raw_css=[css])
 
 
 class InspectROI(object):
@@ -26,8 +39,8 @@ class InspectROI(object):
         roilist=None,
         init_scan_no=None,
         fixed_clims=None,
-        backend='mpl',
-        bk_opts={'width'=300, 'height'=300}
+        backend="mpl",
+        bk_opts=dict(width=300, height=300),
     ):
         """
         Plot ROI data acquired during a BLISS experiment.
@@ -39,7 +52,8 @@ class InspectROI(object):
         default_roi : str, default "mpx1x4_mpx4int"
             Name of the ROI to be displayed by default.
         roilist : list of str, optional
-            List of ROI names to display. Defaults to all of the available BLISS counters.
+            List of ROI names to display. Defaults to all of the available BLISS
+            counters.
         init_scan_no : str, optional
             First scan to display. Defaults to the lowest-index SXDM scan in the
             dataset.
@@ -52,6 +66,7 @@ class InspectROI(object):
         self.path_h5 = path_h5
         self.fixed_clims = fixed_clims
         self.bk_opts = bk_opts
+        self.backend = backend
 
         # get list of rois + other stuff
         with h5py.File(path_h5, "r") as h5f:
@@ -80,32 +95,46 @@ class InspectROI(object):
         )
 
         # output widget to be filled with plt.figure
-        self.figout = ipw.Output(layout=dict(border="2px solid grey"))
 
-        if backend == 'mpl':
+        if backend == "mpl":
+            self.figout = ipw.Output(layout=dict(border="2px solid grey"))
             self._init_fig()
             self._update_norm({"new": False})
-        elif backend == 'bokeh':
-            pass
+        elif backend == "bokeh":
+            self._init_bk_data_source()
+            self._init_bk_figs()
 
         self._init_widgets()
         self._print_sharpness = False
 
     def _init_bk_data_source(self):
-        self.bk_roidatasource = bk.models.ColumnDataSource(data=dict(roidata=[self.roidata]))
+        self._get_piezo_coordinates()
+        m1, m2 = self._m1, self._m2
+        self.bk_roidatasource = bk_models.ColumnDataSource(
+            data=dict(
+                image=[self.roidata],
+                x=[m1.min()],
+                y=[m2.min()],
+                dw=[m1.max()],
+                dh=[m2.max()],
+            )
+        )
 
-    def _init_bk_roi_source():
+    def _init_bk_uroi_source(self):
         pass
 
-    def _init_bk_figs():
-        bk_fig = bk.plotting.figure(tools='pan,reset', **self.bk_opts)
-        bk_img = bk_fig.image(image='roidata', source=self.bk_roidatasource, x=0, y=0)
-
-        with self.figout:
-            display(bk_fig)
+    def _init_bk_figs(self):
+        bk_fig = bk_plotting.figure(tools="pan,reset", **self.bk_opts)
+        bk_img = bk_fig.image(
+            source=self.bk_roidatasource,
+            palette="Viridis256",
+        )
 
         self.bk_fig = bk_fig
-        self.img = bk_img
+        self.bk_img = bk_img
+        self.figout = pn.pane.Bokeh(
+            bk_fig, align=("end", "center"), sizing_mode="scale_both"
+        )
 
     def _init_fig(self):  # mpl
 
@@ -116,8 +145,8 @@ class InspectROI(object):
 
         self.fig, self.ax = fig, ax
         self.img = ax.imshow(self.roidata, origin="lower")
-        self._get_motor_names()
-        self._update_piezo_coordinates()
+        self._get_piezo_motor_names()
+        self._update_img_extent()
 
         # labels etc
         _ = add_colorbar(ax, self.img)
@@ -185,9 +214,14 @@ class InspectROI(object):
         view_motorspecs.selected_index = None
         view_motorspecs.layout = {"font-family": "Liberation Sans"}
 
+        # TODO!
+        self.debug = ipw.Text(
+            value="All good", placeholder="Type something", description="Debug:"
+        )
+
         # group all widgets together
         self.selector = ipw.VBox(
-            [self.roisel, idxsel, ifs, self.specs, view_motorspecs]
+            [self.debug, self.roisel, idxsel, ifs, self.specs, view_motorspecs]
         )
         self.selector.layout = {
             "border": "2px solid grey",
@@ -217,12 +251,12 @@ class InspectROI(object):
     @retry()
     def _update_roi(self, change):  # mpl, bk
         roi = change["new"]
-        img = self.img
 
         roidata = get_roidata(self.path_h5, self.scan_no, roi)
         dsetname = os.path.basename(self.path_h5)
 
-        if backend == 'mpl':
+        if self.backend == "mpl":
+            img = self.img
             img.set_data(roidata)
             img.axes.set_title(f"{dsetname}\n#{self.scan_no} - {roi}")
             try:
@@ -232,8 +266,10 @@ class InspectROI(object):
 
             self.roidata = roidata
             self._update_norm({"new": False})
-        elif backend == 'bokeh':
-            self.bk_roidatasource.data['roidata'] = roidata
+
+        elif self.backend == "bokeh":
+            self.bk_roidatasource.data["image"] = [roidata]
+            pn.io.push_notebook(self.figout)
 
     def _update_norm(self, change):  # mpl
         islog = change["new"]
@@ -256,35 +292,41 @@ class InspectROI(object):
             _ = im.set_norm(mpl.colors.Normalize(*_clims))
 
     @retry()
-    def _get_motor_names(self):
-        command = self.command
-        m1name, m2name = [command.split(" ")[x][:-1] for x in (1, 5)]
-
+    def _get_piezo_motor_names(self):
+        m1name, m2name = [self.command.split(" ")[x][:-1] for x in (1, 5)]
         self.m1name, self.m2name = m1name, m2name
 
-    @retry()
-    def _update_piezo_coordinates(self):  # mpl
-        command = self.command
+    def _get_piezo_coordinates(self):
+        self._get_piezo_motor_names()
         with h5py.File(self.path_h5, "r") as h5f:
             sh = [h5f[self.scan_no][f"technique/{x}"][()] for x in ("dim0", "dim1")]
             m1n, m2n = self.m1name, self.m2name
-
-            self.ax.set_xlabel(f"{m1n} (um)")
-            self.ax.set_ylabel(f"{m2n} (um)")
-
             m1, m2 = [
-                h5f[f"{self.scan_no}/instrument/positioners/{m}_position"][()]
+                h5f[f"{self.scan_no}/instrument/positioners/{m}_position"][()].reshape(
+                    sh
+                )
                 for m in (m1n, m2n)
             ]
 
-            # surely this can be done in a more intelligent way
-            if m1.size != sh[0] * sh[1]:
-                m1m, m1M, m2m, m2M = [
-                    float(command.split(" ")[x][:-1]) for x in (2, 3, 6, 7)
-                ]
-                self.img.set_extent([m1m, m1M, m2m, m2M])
-            else:
-                self.img.set_extent([m1.min(), m1.max(), m2.min(), m2.max()])
+            self.piezo_motorpos = {f"{m1n}": m1, f"{m2n}": m2}
+            self._m1 = m1
+            self._m2 = m2
+            self._map_shape = sh
+
+    @retry()
+    def _update_img_extent(self):  # mpl
+        self._get_piezo_coordinates()
+        sh = self._map_shape
+        m1, m2 = self._m1, self._m2
+
+        # surely this can be done in a more intelligent way
+        if m1.size != sh[0] * sh[1]:
+            m1m, m1M, m2m, m2M = [
+                float(self.command.split(" ")[x][:-1]) for x in (2, 3, 6, 7)
+            ]
+            self.img.set_extent([m1m, m1M, m2m, m2M])
+        else:
+            self.img.set_extent([m1.min(), m1.max(), m2.min(), m2.max()])
 
     @retry()
     def _update_specs(self):
@@ -358,14 +400,14 @@ class InspectROI(object):
         self.command = self._commands[self.scan_no]
 
         self._update_roi({"new": self.roisel.value})
-        self._get_motor_names()
+        self._get_piezo_motor_names()
         self._update_specs()
-        
-        if backend == 'mpl':
-            self._update_norm({"new": False})
-            self._update_piezo_coordinates()
 
-        if self._print_sharpness == True:
+        if self.backend == "mpl":
+            self._update_norm({"new": False})
+            self._update_img_extent()
+
+        if self._print_sharpness is True:
             self._get_sharpness()
 
     def show(self):
@@ -373,9 +415,27 @@ class InspectROI(object):
         Displays widget.
         """
 
-        display(
-            ipw.HBox(
-                [self.selector, self.figout],
-                layout={"justify-content": "space-between"},
+        if self.backend == "mpl":
+            display(
+                ipw.HBox(
+                    [self.selector, self.figout],
+                    layout={"justify-content": "space-between"},
+                )
             )
-        )
+        # TODO embedding does not work!
+        # https://panel.holoviz.org/reference/panes/IPyWidget.html#limitations
+        # rewrite widgets as panel widgets e ciao
+        elif self.backend == "bokeh":
+            self.selector.layout = {
+                "border": "2px solid grey",
+                "padding": "2px",
+                "align-items": "stretch",
+                "width": "auto",
+                "display": "flex",
+                "flex_flow": "column",
+            }
+            select = pn.Column(
+                self.selector, align="start", width_policy="max", height_policy="max"
+            )
+            app = pn.panel(pn.Row(select, self.figout, css_classes=["app_layout"]))
+            display(app)
