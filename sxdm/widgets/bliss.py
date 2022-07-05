@@ -2,6 +2,7 @@ import h5py
 import ipywidgets as ipw
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import bokeh as bk
 import os
 import numpy as np
 
@@ -25,6 +26,8 @@ class InspectROI(object):
         roilist=None,
         init_scan_no=None,
         fixed_clims=None,
+        backend='mpl',
+        bk_opts={'width'=300, 'height'=300}
     ):
         """
         Plot ROI data acquired during a BLISS experiment.
@@ -48,12 +51,12 @@ class InspectROI(object):
         self.roiname = default_roi
         self.path_h5 = path_h5
         self.fixed_clims = fixed_clims
+        self.bk_opts = bk_opts
 
         # get list of rois + other stuff
         with h5py.File(path_h5, "r") as h5f:
 
             scan_nos = list(h5f.keys())
-            nscans = len(scan_nos)
             commands = [h5f[f"{s}/title"][()].decode() for s in scan_nos]
 
             scan_nos = [s for s, c in zip(scan_nos, commands) if "sxdm" in c]
@@ -79,10 +82,30 @@ class InspectROI(object):
         # output widget to be filled with plt.figure
         self.figout = ipw.Output(layout=dict(border="2px solid grey"))
 
-        self._print_sharpness = False
-        self._init_fig()
-        self._update_norm({"new": False})
+        if backend == 'mpl':
+            self._init_fig()
+            self._update_norm({"new": False})
+        elif backend == 'bokeh':
+            pass
+
         self._init_widgets()
+        self._print_sharpness = False
+
+    def _init_bk_data_source(self):
+        self.bk_roidatasource = bk.models.ColumnDataSource(data=dict(roidata=[self.roidata]))
+
+    def _init_bk_roi_source():
+        pass
+
+    def _init_bk_figs():
+        bk_fig = bk.plotting.figure(tools='pan,reset', **self.bk_opts)
+        bk_img = bk_fig.image(image='roidata', source=self.bk_roidatasource, x=0, y=0)
+
+        with self.figout:
+            display(bk_fig)
+
+        self.bk_fig = bk_fig
+        self.img = bk_img
 
     def _init_fig(self):  # mpl
 
@@ -140,7 +163,7 @@ class InspectROI(object):
         ifmulti = ipw.Checkbox(
             value=False, description="Crosshair", layout=items_layout, indent=False
         )
-        ifmulti.observe(self._add_crosshar, names="value")
+        ifmulti.observe(self._add_crosshair, names="value")
 
         # group checkboxes
         ifs = ipw.HBox(
@@ -184,7 +207,7 @@ class InspectROI(object):
             else:
                 pass
 
-    def _add_crosshar(self, change):  # mpl
+    def _add_crosshair(self, change):  # mpl
         ismulti = change["new"]
         if ismulti:
             self.multi = Cursor(self.ax, color="r", lw=0.7, useblit=True)
@@ -192,20 +215,25 @@ class InspectROI(object):
             del self.multi
 
     @retry()
-    def _update_roi(self, change):  # mpl
+    def _update_roi(self, change):  # mpl, bk
         roi = change["new"]
         img = self.img
+
         roidata = get_roidata(self.path_h5, self.scan_no, roi)
         dsetname = os.path.basename(self.path_h5)
 
-        img.set_data(roidata)
-        img.axes.set_title(f"{dsetname}\n#{self.scan_no} - {roi}")
-        try:
-            img.set_clim(roidata.min(), roidata.max())
-        except ValueError:
-            img.set_clim(0.1, roidata.max())
+        if backend == 'mpl':
+            img.set_data(roidata)
+            img.axes.set_title(f"{dsetname}\n#{self.scan_no} - {roi}")
+            try:
+                img.set_clim(roidata.min(), roidata.max())
+            except ValueError:
+                img.set_clim(0.1, roidata.max())
 
-        self.roidata = roidata
+            self.roidata = roidata
+            self._update_norm({"new": False})
+        elif backend == 'bokeh':
+            self.bk_roidatasource.data['roidata'] = roidata
 
     def _update_norm(self, change):  # mpl
         islog = change["new"]
@@ -330,10 +358,12 @@ class InspectROI(object):
         self.command = self._commands[self.scan_no]
 
         self._update_roi({"new": self.roisel.value})
-        self._update_norm({"new": False})
         self._get_motor_names()
-        self._update_piezo_coordinates()
         self._update_specs()
+        
+        if backend == 'mpl':
+            self._update_norm({"new": False})
+            self._update_piezo_coordinates()
 
         if self._print_sharpness == True:
             self._get_sharpness()
