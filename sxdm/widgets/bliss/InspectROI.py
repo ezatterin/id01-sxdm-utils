@@ -14,8 +14,8 @@ from IPython import get_ipython
 from bokeh import models as bk_models
 from bokeh import plotting as bk_plotting
 
-from ..plot import add_colorbar
-from ..io.bliss import get_roidata, get_motorpos, get_command, get_datetime
+from ...plot import add_colorbar
+from ...io.bliss import get_roidata, get_motorpos, get_command, get_datetime
 
 ipython = get_ipython()
 ipython.magic("matplotlib widget")
