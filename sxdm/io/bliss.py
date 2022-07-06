@@ -11,9 +11,12 @@ from .utils import _get_chunk_indexes, _get_qspace_avg_chunk, ioh5
 @ioh5
 def get_roidata(h5f, scan_no, roi_name, return_pi_motors=False):
     entry = scan_no
-    sh = [h5f[entry][f"technique/{x}"][()] for x in ("dim0", "dim1")]
-    sh = sh[::-1]
-    command = h5f[f"{entry}/title"][()].decode()
+    command_list = h5f[f"{entry}/title"][()].decode().split(" ")
+
+    try:
+        sh = [h5f[entry][f"technique/{x}"][()] for x in ("dim0", "dim1")][::-1]
+    except KeyError: # must be a mesh scan
+        sh = [int(command_list[x]) + 1 for x in (4, 8)][::-1]
 
     data = h5f[entry][f"measurement/{roi_name}"][()]
 
@@ -25,8 +28,12 @@ def get_roidata(h5f, scan_no, roi_name, return_pi_motors=False):
         data = empty.reshape(*sh)
 
     if return_pi_motors:
-        m1, m2 = [command.split(" ")[x][:-1] for x in (1, 5)]
-        m1, m2 = [h5f[f"{entry}/measurement/{m}_position"][()] for m in (m1, m2)]
+        try:
+            m1, m2 = [command_list[x][:-1] for x in (1, 5)]
+            m1, m2 = [h5f[f"{entry}/measurement/{m}_position"][()] for m in (m1, m2)]
+        except KeyError: # mesh
+            m1, m2 = [command_list[x] for x in (1, 5)]
+            m1, m2 = [h5f[f"{entry}/measurement/{m}"][()] for m in (m1, m2)]
         m1, m2 = [m.reshape(*sh) for m in (m1, m2)]
 
         return data, m1, m2
