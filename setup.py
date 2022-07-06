@@ -9,7 +9,8 @@ setup(
     packages=["sxdm", 
               "sxdm.io",
               "sxdm.utils",
-              "sxdm.widgets"],
+              "sxdm.widgets",
+              "sxdm.widgets.bliss"],
     license="LICENSE.txt",
     description="Code to treat Scanning X-ray Diffraction Microscopy data\
          collected on beamline ID01 at ESRF",
