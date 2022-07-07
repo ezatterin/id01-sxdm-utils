@@ -2,6 +2,7 @@ import h5py
 
 from functools import wraps
 
+
 def ioh5(func):
     @wraps(func)  # to get docstring of dectorated func
     def wrapper(filename, *args, **kwargs):
@@ -9,6 +10,11 @@ def ioh5(func):
             return func(h5f, *args, **kwargs)
 
     return wrapper
+
+
+@ioh5
+def list_available_counters(h5f, scan_no):
+    return list(h5f[f"{scan_no}/measurement/"].keys())
 
 
 def _get_chunk_indexes(path_h5, path_in_h5, n_threads):

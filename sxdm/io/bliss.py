@@ -9,36 +9,27 @@ from .utils import _get_chunk_indexes, _get_qspace_avg_chunk, ioh5
 
 
 @ioh5
-def get_roidata(h5f, scan_no, roi_name, return_pi_motors=False):
-    entry = scan_no
-    command_list = h5f[f"{entry}/title"][()].decode().split(" ")
+def get_counter(h5f, scan_no, counter_name):
+    return h5f[f"{scan_no}/measurement/{counter_name}"][()]
 
+
+@ioh5
+def get_command(h5f, scan_no):
+    return h5f[f"{scan_no}/title"][()].decode()
+
+
+@ioh5
+def get_scan_shape(h5f, scan_no):
+    command_list = h5f[f"{scan_no}/title"][()].decode().split(" ")
     try:
-        sh = [h5f[entry][f"technique/{x}"][()] for x in ("dim0", "dim1")][::-1]
-    except KeyError: # must be a mesh scan
-        sh = [int(command_list[x]) + 1 for x in (4, 8)][::-1]
+        sh = [h5f[f"{scan_no}/technique/{x}"][()] for x in ("dim0", "dim1")][::-1]
+    except KeyError:  # must be a mesh or a scan
+        try:  # mesh
+            sh = [int(command_list[x]) + 1 for x in (4, 8)][::-1]
+        except IndexError:  # scan
+            sh = int(command_list[4])
 
-    data = h5f[entry][f"measurement/{roi_name}"][()]
-
-    if data.size == sh[0] * sh[1]:
-        data = data.reshape(*sh)
-    else:
-        empty = np.zeros(sh).flatten()
-        empty[: data.size] = data
-        data = empty.reshape(*sh)
-
-    if return_pi_motors:
-        try:
-            m1, m2 = [command_list[x][:-1] for x in (1, 5)]
-            m1, m2 = [h5f[f"{entry}/measurement/{m}_position"][()] for m in (m1, m2)]
-        except KeyError: # mesh
-            m1, m2 = [command_list[x] for x in (1, 5)]
-            m1, m2 = [h5f[f"{entry}/measurement/{m}"][()] for m in (m1, m2)]
-        m1, m2 = [m.reshape(*sh) for m in (m1, m2)]
-
-        return data, m1, m2
-    else:
-        return data
+    return sh
 
 
 @ioh5
@@ -48,16 +39,56 @@ def get_motorpos(h5f, scan_no, motor_name):
 
 @ioh5
 def get_datetime(h5f, scan_no):
-    entry = scan_no
-    dtime = h5f[f"{entry}/start_time"][()].decode()
+    scan_no = scan_no
+    dtime = h5f[f"{scan_no}/start_time"][()].decode()
     dtime = datetime.fromisoformat(dtime).strftime("%b %d | %H:%M:%S")
 
     return dtime
 
 
-@ioh5
-def get_command(h5f, scan_no):
-    return h5f[f"/{scan_no}/title"][()].decode()
+def get_piezo_motor_names(h5f, scan_no):
+    command = get_command(h5f, scan_no)
+    if "mesh" in command:  # this has a spec syntax for now!
+        m1_name, m2_name = [command.split(" ")[x] for x in (1, 5)]
+    elif "sxdm" in command:
+        m1_name, m2_name = [command.split(" ")[x][:-1] for x in (1, 5)]
+    else:
+        fname = os.path.basename(h5f)
+        msg = f"Scan {scan_no} in {fname} is not a mesh or an sxdm scan!"
+        raise Exception(msg)
+
+    return m1_name, m2_name
+
+
+def get_piezo_motor_positions(h5f, scan_no):
+    sh = get_scan_shape(h5f, scan_no)
+    m1n, m2n = get_piezo_motor_names(h5f, scan_no)
+
+    try:  # sxdm
+        m1, m2 = [get_counter(h5f, scan_no, f"{m}_position") for m in (m1n, m2n)]
+    except KeyError:  # mesh
+        m1, m2 = [get_counter(h5f, scan_no, m) for m in (m1n, m2n)]
+    m1, m2 = [m.reshape(*sh) for m in (m1, m2)]
+
+    return m1, m2
+
+
+def get_roidata(h5f, scan_no, roi_name, return_pi_motors=False):
+    sh = get_scan_shape(h5f, scan_no)
+    data = get_counter(h5f, scan_no, roi_name)
+
+    if data.size == sh[0] * sh[1]:
+        data = data.reshape(*sh)
+    else:
+        empty = np.zeros(sh).flatten()
+        empty[: data.size] = data
+        data = empty.reshape(*sh)
+
+    if return_pi_motors:
+        m1, m2 = get_piezo_motor_positions(h5f, scan_no)
+        return data, m1, m2
+    else:
+        return data
 
 
 def get_sxdm_frame_sum(path_dset, scan_no, n_threads=None):

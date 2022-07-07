@@ -2,7 +2,6 @@ import h5py
 import ipywidgets as ipw
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import panel as pn
 import os
 import numpy as np
 
@@ -11,11 +10,15 @@ from IPython.display import display
 from silx.io.h5py_utils import retry
 from IPython import get_ipython
 
-from bokeh import models as bk_models
-from bokeh import plotting as bk_plotting
-
 from ...plot import add_colorbar
-from ...io.bliss import get_roidata, get_motorpos, get_command, get_datetime
+from ...io.bliss import (
+    get_roidata,
+    get_motorpos,
+    get_command,
+    get_datetime,
+    get_piezo_motor_positions,
+    get_scan_shape,
+)
 
 ipython = get_ipython()
 ipython.magic("matplotlib widget")
@@ -74,7 +77,7 @@ class InspectROI(object):
             try:
                 self.command = self._commands[self.scan_no]
             except KeyError:
-                raise KeyError(f"Scan {self.scan_no} is not an SXDM scan!")
+                raise KeyError(f"Scan {self.scan_no} is not a mesh or an SXDM scan!")
 
             counters = list(h5f[f"{self.scan_no}/measurement"].keys())
             self.roilist = counters if roilist is None else roilist
@@ -235,36 +238,24 @@ class InspectROI(object):
             _ = im.set_norm(mpl.colors.Normalize(*_clims))
 
     @retry()
-    def _get_piezo_motor_names(self):  # TODO merge this in bliss.io
+    def _get_piezo_motor_names(self):
         if "mesh" in self.command:
             m1name, m2name = [self.command.split(" ")[x] for x in (1, 5)]
         else:
             m1name, m2name = [self.command.split(" ")[x][:-1] for x in (1, 5)]
         self.m1name, self.m2name = m1name, m2name
 
-    def _get_piezo_coordinates(self):  # TODO merge this in bliss.io
+    def _get_piezo_coordinates(self):
         self._get_piezo_motor_names()
-        with h5py.File(self.path_h5, "r") as h5f:
-            m1n, m2n = self.m1name, self.m2name
+        m1n, m2n = self.m1name, self.m2name
 
-            try:
-                sh = [h5f[self.scan_no][f"technique/{x}"][()] for x in ("dim0", "dim1")]
-                m1, m2 = [
-                    h5f[f"{self.scan_no}/measurement/{m}_position"][()]
-                    for m in (m1n, m2n)
-                ]
-            except KeyError:
-                sh = [int(self.command.split(" ")[x]) + 1 for x in (4, 8)]
-                m1, m2 = [
-                    h5f[f"{self.scan_no}/measurement/{m}"][()] for m in (m1n, m2n)
-                ]
+        m1, m2 = get_piezo_motor_positions(self.path_h5, self.scan_no)
+        sh = get_scan_shape(self.path_h5, self.scan_no)
 
-            m1, m2 = [m.reshape(*sh) for m in (m1, m2)]
-
-            self.piezo_motorpos = {f"{m1n}": m1, f"{m2n}": m2}
-            self._m1 = m1
-            self._m2 = m2
-            self._map_shape = sh
+        self.piezo_motorpos = {f"{m1n}": m1, f"{m2n}": m2}
+        self._m1 = m1
+        self._m2 = m2
+        self._map_shape = sh
 
     @retry()
     def _update_img_extent(self):  # mpl
