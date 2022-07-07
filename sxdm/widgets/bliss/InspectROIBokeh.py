@@ -15,7 +15,7 @@ from bokeh import models as bk_models
 from bokeh import plotting as bk_plotting
 
 from ...plot import add_colorbar
-from ...io.bliss import get_roidata, get_motorpos, get_command, get_datetime
+from ...io.bliss import get_roidata, get_positioner, get_command, get_datetime
 
 ipython = get_ipython()
 ipython.magic("matplotlib widget")
@@ -361,7 +361,7 @@ class InspectROI(object):
         with h5py.File(self.path_h5, "r") as h5f:
             motors = list(h5f[f"/{self.scan_no}/instrument/positioners/"].keys())
 
-        positions = {m: get_motorpos(self.path_h5, self.scan_no, m) for m in motors}
+        positions = {m: get_positioner(self.path_h5, self.scan_no, m) for m in motors}
         motorspecs = [
             "<div>",
             '<table class="specs rendered_html output_html">',

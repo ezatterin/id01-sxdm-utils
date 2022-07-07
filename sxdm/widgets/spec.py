@@ -158,7 +158,7 @@ class RoiPlotter(object):
     def _update_specs(self):
 
         angles = "eta,del,phi,nu".split(",")
-        angles = [self.pscan.get_motorpos(ang) for ang in angles]
+        angles = [self.pscan.get_positioner(ang) for ang in angles]
 
         specs = [
             "<div>",
@@ -187,7 +187,7 @@ class RoiPlotter(object):
         specs = "\n".join(specs)
         self.specs.value = specs
 
-        positions = {m: self.pscan.get_motorpos(m) for m in self.motors}
+        positions = {m: self.pscan.get_positioner(m) for m in self.motors}
 
         motorspecs = [
             "<div>",

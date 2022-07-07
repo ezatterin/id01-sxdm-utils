@@ -10,10 +10,10 @@ from IPython.display import display
 from silx.io.h5py_utils import retry
 from IPython import get_ipython
 
+from id01lib.io.bliss import get_positioner
 from ...plot import add_colorbar
 from ...io.bliss import (
     get_roidata,
-    get_motorpos,
     get_command,
     get_datetime,
     get_piezo_motor_positions,
@@ -305,7 +305,7 @@ class InspectROI(object):
         with h5py.File(self.path_h5, "r") as h5f:
             motors = list(h5f[f"/{self.scan_no}/instrument/positioners/"].keys())
 
-        positions = {m: get_motorpos(self.path_h5, self.scan_no, m) for m in motors}
+        positions = {m: get_positioner(self.path_h5, self.scan_no, m) for m in motors}
         motorspecs = [
             "<div>",
             '<table class="specs rendered_html output_html">',

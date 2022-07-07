@@ -161,7 +161,7 @@ class PiezoScan(Scan):
     get_piezo_coordinates()
         Returns the first, second motor (in the same order used when launching the
         SPEC command) coordinates as a 2D `np.array`.
-    get_motorpos(motor_name)
+    get_positioner(motor_name)
         Returns the position of the SPEC motor `motor_name`.
     get_roipos(roi_name)
         Returns a dictionary as `roi_name`:[x0, x1, y0, y1] where [x0, x1, y0, y1]
@@ -261,7 +261,7 @@ class PiezoScan(Scan):
         ]
         return motor1, motor2
 
-    def get_motorpos(self, motor_name):
+    def get_positioner(self, motor_name):
         return self.motor_position_by_name(motor_name)
 
     def get_roipos(self):
@@ -435,7 +435,7 @@ class PiezoScan(Scan):
         if cen_pix is None:
             if _calib:
                 if detector == "maxipix" and not ignore_mpx_motors:
-                    mpxy, mpxz = [self.get_motorpos(m) for m in ("mpxy", "mpxz")]
+                    mpxy, mpxz = [self.get_positioner(m) for m in ("mpxy", "mpxz")]
                     cpy += mpxz / 1000.0 / det.pixsize[0]  # row
                     cpx -= mpxy / 1000.0 / det.pixsize[1]  # col
 
@@ -475,7 +475,7 @@ class PiezoScan(Scan):
         # subtract offset from used angles
         for a in self._angles:
             if a in self.qconversion_motors_use:
-                pos = self.get_motorpos(a if a != "delta" else "del")
+                pos = self.get_positioner(a if a != "delta" else "del")
             else:
                 pos = 0.0
             self._angles[a] = pos - self.qconversion_motors_offsets[a]

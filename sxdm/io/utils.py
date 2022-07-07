@@ -1,15 +1,6 @@
 import h5py
 
-from functools import wraps
-
-
-def ioh5(func):
-    @wraps(func)  # to get docstring of dectorated func
-    def wrapper(filename, *args, **kwargs):
-        with h5py.File(filename, "r") as h5f:
-            return func(h5f, *args, **kwargs)
-
-    return wrapper
+from id01lib.io.utils import ioh5
 
 
 @ioh5

@@ -5,17 +5,11 @@ import os
 from tqdm.auto import tqdm
 from functools import partial
 from datetime import datetime
-from .utils import _get_chunk_indexes, _get_qspace_avg_chunk, ioh5
 
+from id01lib.io.utils import ioh5
+from id01lib.io.bliss import get_command, get_counter
 
-@ioh5
-def get_counter(h5f, scan_no, counter_name):
-    return h5f[f"{scan_no}/measurement/{counter_name}"][()]
-
-
-@ioh5
-def get_command(h5f, scan_no):
-    return h5f[f"{scan_no}/title"][()].decode()
+from .utils import _get_chunk_indexes, _get_qspace_avg_chunk
 
 
 @ioh5
@@ -30,11 +24,6 @@ def get_scan_shape(h5f, scan_no):
             sh = int(command_list[4])
 
     return sh
-
-
-@ioh5
-def get_motorpos(h5f, scan_no, motor_name):
-    return h5f[f"/{scan_no}/instrument/positioners/{motor_name}"][()]
 
 
 @ioh5
