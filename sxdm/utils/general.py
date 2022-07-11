@@ -147,7 +147,7 @@ def get_shift(
     shifts.insert(0, np.array([0, 0]))
     for i in tqdm(range(1, len(sxdm_raw))):
         if med_filt is not None:
-            p, n = [median_filter(s, (2, 2)) for s in (sxdm_raw[i - 1], sxdm_raw[i])]
+            p, n = [median_filter(s, med_filt) for s in (sxdm_raw[i - 1], sxdm_raw[i])]
         else:
             p, n = [s for s in (sxdm_raw[i - 1], sxdm_raw[i])]
         sh = registration.phase_cross_correlation(
