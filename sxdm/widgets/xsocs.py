@@ -93,7 +93,7 @@ class Inspect5DQspace(object):
 
         with h5py.File(self._h5f, "r") as h5f:
             idx = row * self._init_darr.shape[1] + col
-            if np.ma.isMaskedArray(self._init_darr):
+            if np.ma.is_masked(self._init_darr):
                 idx_allowed = np.where(~self._init_darr.mask.ravel())[0]
             else:
                 idx_allowed = np.arange(self._init_darr.size)
