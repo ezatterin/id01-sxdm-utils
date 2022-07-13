@@ -23,7 +23,10 @@ from ...io.bliss import (
 ipython = get_ipython()
 ipython.magic("matplotlib widget")
 
-
+# TODO:
+# - print_motor_positions_click=(pix, piy)
+# - explicit_scan_list
+# - offset_between_two_points
 class InspectROI(object):
     def __init__(
         self,
@@ -139,10 +142,10 @@ class InspectROI(object):
         idxsel.observe(self._update_scan, names="value")
 
         # log scale the images?
-        iflog = ipw.Checkbox(
+        self.iflog = ipw.Checkbox(
             value=False, description="Log Intensity", layout=items_layout, indent=False
         )
-        iflog.observe(self._update_norm, names="value")
+        self.iflog.observe(self._update_norm, names="value")
 
         # show a crosshair at the mouse position?
         ifmulti = ipw.Checkbox(
@@ -152,7 +155,7 @@ class InspectROI(object):
 
         # group checkboxes
         ifs = ipw.HBox(
-            [iflog, ifmulti],
+            [self.iflog, ifmulti],
             layout={
                 "width": "auto",
                 "flex_flow": "row nowrap",
@@ -347,7 +350,7 @@ class InspectROI(object):
         self._get_piezo_motor_names()
         self._update_specs()
 
-        self._update_norm({"new": False})
+        self._update_norm({"new": self.iflog.value})
         self._update_img_extent()
 
         if self._print_sharpness is True:

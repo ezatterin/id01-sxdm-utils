@@ -201,7 +201,7 @@ def calc_roi_sum(path_qspace, mask=None, n_threads=None):
     else:
         ncpu = n_threads
 
-    idxs = _get_chunk_indexes(path_qspace, ncpu)
+    idxs = _get_chunk_indexes(path_qspace, 'Data/qspace', n_threads=ncpu)
     roi_sum_list = []
 
     with mp.Pool(processes=ncpu) as p:
