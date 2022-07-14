@@ -24,9 +24,9 @@ ipython = get_ipython()
 ipython.magic("matplotlib widget")
 
 # TODO:
-# - print_motor_positions_click=(pix, piy)
-# - explicit_scan_list
 # - offset_between_two_points
+# - file select tab
+# - fullscreen
 class InspectROI(object):
     def __init__(
         self,
@@ -35,6 +35,7 @@ class InspectROI(object):
         roilist=None,
         init_scan_no=None,
         fixed_clims=None,
+        show_scan_nos=None,
     ):
         """
         Plot ROI data acquired during a BLISS experiment.
@@ -48,12 +49,14 @@ class InspectROI(object):
         roilist : list of str, optional
             List of ROI names to display. Defaults to all of the available BLISS
             counters.
-        init_scan_no : str, optional
+        init_scan_no : str or int, optional
             First scan to display. Defaults to the lowest-index SXDM scan in the
             dataset.
         fixed_clims : list, optional
             List of [lower, upper] intensity colour limits. Defaults to [max, min] of
             the displayed data.
+        show_scan_nos : list, optional
+            List of scan numbers to display.
         """
 
         self.roiname = default_roi
@@ -73,17 +76,31 @@ class InspectROI(object):
             ]
             scan_nos_int = sorted([int(s.split(".")[0]) for s in scan_nos])
 
-            self._scan_nos = [f"{s}.1" for s in scan_nos_int]
+            if show_scan_nos is not None:
+                self._scan_nos = [
+                    f"{x}.1" if type(x) is int else x for x in show_scan_nos
+                ]
+            else:
+                self._scan_nos = [f"{s}.1" for s in scan_nos_int]
             self._commands = {s: h5f[f"{s}/title"][()].decode() for s in self._scan_nos}
+            init_scan_no = (
+                f"{init_scan_no}.1" if type(init_scan_no) is int else init_scan_no
+            )
             self.scan_no = self._scan_nos[0] if init_scan_no is None else init_scan_no
 
             try:
                 self.command = self._commands[self.scan_no]
             except KeyError:
-                raise KeyError(f"Scan {self.scan_no} is not a mesh or an SXDM scan!")
+                msg = f"Scan {self.scan_no} is either: \n"
+                msg += "- not a mesh or an SXDM scan \n"
+                msg += "- not in the list of given scans \n"
+                msg += "- does not exist in the selected dataset \n"
+                print(msg)
+                raise ValueError("Invalid scan number")
 
             counters = list(h5f[f"{self.scan_no}/measurement"].keys())
             self.roilist = counters if roilist is None else roilist
+
         # default roi data and motors
         self.roidata = get_roidata(
             path_h5, self.scan_no, self.roiname, return_pi_motors=False
@@ -153,14 +170,29 @@ class InspectROI(object):
         )
         ifmulti.observe(self._add_crosshair, names="value")
 
+        # flip x axis?
+        flipx = ipw.Checkbox(
+            value=False, description="Flip x axis", layout=items_layout, indent=False
+        )
+        flipx.observe(self._flip_xaxis, names="value")
+
+        # flip y axis?
+        flipy = ipw.Checkbox(
+            value=False, description="Flip y axis", layout=items_layout, indent=False
+        )
+        flipy.observe(self._flip_yaxis, names="value")
+
         # group checkboxes
-        ifs = ipw.HBox(
-            [self.iflog, ifmulti],
-            layout={
-                "width": "auto",
-                "flex_flow": "row nowrap",
-                "justify_content": "center",
-            },
+        cblayout = {
+            "width": "auto",
+            "flex_flow": "row nowrap",
+            "justify_content": "center",
+        }
+        ifs = ipw.VBox(
+            [
+                ipw.HBox([self.iflog, ifmulti], layout=cblayout),
+                ipw.HBox([flipx, flipy], layout=cblayout),
+            ]
         )
 
         # HTML table with motor specs
@@ -201,6 +233,13 @@ class InspectROI(object):
             self.multi = Cursor(self.ax, color="r", lw=0.7, useblit=True)
         else:
             del self.multi
+
+    def _flip_xaxis(self, change): # mpl
+        self.ax.invert_xaxis()
+
+    def _flip_yaxis(self, change): # mpl
+        self.ax.invert_yaxis()
+
 
     @retry()
     def _update_roi(self, change):  # mpl
@@ -334,7 +373,7 @@ class InspectROI(object):
 
     def _get_sharpness(self):
         gy, gx = np.gradient(self.roidata)
-        gnorm = np.sqrt(gx**2 + gy**2)
+        gnorm = np.sqrt(gx ** 2 + gy ** 2)
         self.sharpness = np.average(gnorm)
 
         with self.figout:
