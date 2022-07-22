@@ -80,10 +80,9 @@ def get_roidata(h5f, scan_no, roi_name, return_pi_motors=False):
         return data
 
 
-def get_sxdm_frame_sum(path_dset, scan_no, n_threads=None):
+def get_sxdm_frame_sum(path_dset, scan_no, n_threads=None, detector='mpx1x4'):
     """
     Return the average q-space intensity from a 3D-SXDM measurement.
-    The data file `path_dset` is a q-space file produced by XSOCS.
     """
 
     if n_threads is None:
@@ -91,12 +90,12 @@ def get_sxdm_frame_sum(path_dset, scan_no, n_threads=None):
     else:
         ncpu = n_threads
 
-    indexes = _get_chunk_indexes(path_dset, f"/{scan_no}/instrument/mpx1x4/data", ncpu)
+    indexes = _get_chunk_indexes(path_dset, f"/{scan_no}/instrument/{detector}/data", ncpu)
     frame_sum_list = []
 
     with mp.Pool(processes=ncpu) as p:
         pfun = partial(
-            _get_qspace_avg_chunk, path_dset, f"/{scan_no}/instrument/mpx1x4/data"
+            _get_qspace_avg_chunk, path_dset, f"/{scan_no}/instrument/{detector}/data"
         )
         for res in tqdm(p.imap(pfun, indexes), total=len(indexes)):
             frame_sum_list.append(res)
