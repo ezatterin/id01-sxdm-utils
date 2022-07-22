@@ -99,11 +99,18 @@ def make_xsocs_links(
             counters = [
                 x for x in _instr if _instr[x].attrs.get("NX_class") == "NXdetector"
             ]
-            counters.remove(f"{detector}_beam")
+            try:
+                counters.remove(f"{detector}_beam")
+            except ValueError:
+                pass
+            try:
+                counters.remove(f"{detector}_DB")
+            except ValueError:
+                pass
 
             # get piezo coordinates
             pi_positioners = [
-                x for x in _instr if _instr[x].attrs.get("NX_class") == "NXpositioner"
+                x for x in _instr if _instr[x].attrs.get("NX_class") == "NXpositioner" and x!='time'
             ]
             positioners = [x for x in _instr["positioners"]]
 
