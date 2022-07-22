@@ -7,7 +7,7 @@ from functools import partial
 from datetime import datetime
 
 from id01lib.io.utils import ioh5
-from id01lib.io.bliss import get_command, get_counter
+from id01lib.io.bliss import get_command, get_counter, get_positioner
 
 from .utils import _get_chunk_indexes, _get_qspace_avg_chunk
 
@@ -52,11 +52,12 @@ def get_piezo_motor_names(h5f, scan_no):
 def get_piezo_motor_positions(h5f, scan_no):
     sh = get_scan_shape(h5f, scan_no)
     m1n, m2n = get_piezo_motor_names(h5f, scan_no)
-
+    command = 
+    
     try:  # sxdm
-        m1, m2 = [get_counter(h5f, scan_no, f"{m}_position") for m in (m1n, m2n)]
-    except KeyError:  # mesh
-        m1, m2 = [get_counter(h5f, scan_no, m) for m in (m1n, m2n)]
+        m1, m2 = [get_positioner(h5f, scan_no, f"{m}_position") for m in (m1n, m2n)]
+    except KeyError: # mesh
+        m1, m2 = [get_positioner(h5f, scan_no, m) for m in (m1n, m2n)] 
     m1, m2 = [m.reshape(*sh) for m in (m1, m2)]
 
     return m1, m2
