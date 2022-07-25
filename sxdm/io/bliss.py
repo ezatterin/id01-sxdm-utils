@@ -52,7 +52,6 @@ def get_piezo_motor_names(h5f, scan_no):
 def get_piezo_motor_positions(h5f, scan_no):
     sh = get_scan_shape(h5f, scan_no)
     m1n, m2n = get_piezo_motor_names(h5f, scan_no)
-    command = 
     
     try:  # sxdm
         m1, m2 = [get_positioner(h5f, scan_no, f"{m}_position") for m in (m1n, m2n)]
