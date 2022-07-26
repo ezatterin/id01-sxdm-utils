@@ -82,7 +82,7 @@ def get_roidata(h5f, scan_no, roi_name, return_pi_motors=False):
 
 def get_sxdm_frame_sum(path_dset, scan_no, n_threads=None, detector='mpx1x4'):
     """
-    Return the average q-space intensity from a 3D-SXDM measurement.
+    Return sum of all frames of an SXDM scan.
     """
 
     if n_threads is None:
