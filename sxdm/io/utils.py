@@ -17,13 +17,15 @@ def _get_chunk_indexes(path_h5, path_in_h5, n_threads=None):
     efficient parallel computation.
     """
 
-    if n_threads is None:
-        ncpu = os.cpu_count()
-    else:
-        ncpu = n_threads
-
     with h5py.File(path_h5, "r") as h5f:
         map_shape_flat = h5f[path_in_h5].shape[0]
+    
+    if n_threads is None:
+        ncpu = os.cpu_count()
+    elif n_threads == 1:
+        return [(0, map_shape_flat)]
+    else:
+        ncpu = n_threads
 
     chunk_size = map_shape_flat // ncpu
     last_chunk = chunk_size + map_shape_flat % chunk_size
