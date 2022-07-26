@@ -6,7 +6,7 @@ import functools
 
 from tqdm.auto import tqdm
 
-from .io.utils import _get_chunk_indexes
+from ..io.utils import _get_chunk_indexes
 
 
 def get_nearest_index(arr, val):
