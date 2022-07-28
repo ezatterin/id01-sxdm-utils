@@ -81,7 +81,7 @@ def _calc_com_3d(arr, x, y, z, n_pix=None):
     return cx, cy, cz
 
 
-def _calc_com_qspace3d(path_qspace, idx, mask=None, n_pix=None):
+def _calc_com_qspace3d(path_qspace, roi_slice, idx, n_pix=None):
     """
     Compute the center of mass (COM) of an XSOCS 4D q-space array in q-space
     coordinates at position `idx`.
@@ -90,12 +90,10 @@ def _calc_com_qspace3d(path_qspace, idx, mask=None, n_pix=None):
     ----------
     path_qspace : str
         Path to the XSOCS q-space file.
+    roi_slice :
     idx : int
         Index of the first dimension of the 4D q-space array, i.e. the index of
         the sample position at which the 3D q-space volume was measured.
-    mask : numpy.ndarray, optional
-        3D boolean array restricting the COM computation to the q-space portion for
-        which `mask` is equal to True.
     n_pix : int, optional
         Restrict the computation of the COM for the `n_pix` strongest pixels in the
         3D q-space array.
@@ -107,22 +105,12 @@ def _calc_com_qspace3d(path_qspace, idx, mask=None, n_pix=None):
     """
     with h5py.File(path_qspace, "r") as h5f:
 
-        qspace_sh = h5f["Data/qspace"].shape[1:]
-        if mask is None:
-            mask = np.ones(qspace_sh).astype("bool")
-
-        # TODO It should be possible to do it like:
-        # row, col, depth = np.where(mask)
-        # r0, r1 = row.min(), row.max()
-        # c0, c1 = col.min(), col.max()
-        # d0, d1 = depth.min(), depth.max()
-        # arr = h5f['Data/qspace'][i,  r0:r1, np.unique(col), d0:d1].ravel()
-        # but it only works for simple masks right?
-        arr = h5f["Data/qspace"][idx][mask]
+        roi = (idx, *roi_slice)
+        arr = h5f["Data/qspace"][roi]
 
         # coordinates
         qx, qy, qz = [h5f[f"Data/{x}"][...] for x in "qx,qy,qz".split(",")]
-        qxm, qym, qzm = [q[mask] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
+        qxm, qym, qzm = [q[roi_slice] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
 
         # com
         cx, cy, cz = _calc_com_3d(arr, qxm, qym, qzm, n_pix=n_pix)
@@ -130,7 +118,7 @@ def _calc_com_qspace3d(path_qspace, idx, mask=None, n_pix=None):
         return cx, cy, cz
 
 
-def calc_coms_qspace3d(path_qspace, mask=None, n_pix=None):
+def calc_coms_qspace3d(path_qspace, roi_slice, n_pix=None):
     """
     Compute the center of mass (COM) of an XSOCS 4D array for each direct space
     position. The 4D array is Intensity(direct_space_position, qx, qy, qz).
@@ -139,9 +127,7 @@ def calc_coms_qspace3d(path_qspace, mask=None, n_pix=None):
     ----------
     path_qspace : str
         Path to the XSOCS q-space file.
-    mask : numpy.ndarray, optional
-        3D boolean array restricting the COM computation to the q-space portion for
-        which `mask` is equal to True.
+    roi_slice : 
     n_pix : int, optional
         Restrict the computation of the COM for the `n_pix` strongest pixels in the
         3D q-space array.
@@ -157,7 +143,7 @@ def calc_coms_qspace3d(path_qspace, mask=None, n_pix=None):
     coms = []
     with mp.Pool(processes=os.cpu_count()) as p:
         _partial_fun = functools.partial(
-            _calc_com_qspace3d, path_qspace, mask=mask, n_pix=n_pix
+            _calc_com_qspace3d, path_qspace, roi_slice, n_pix=n_pix
         )
         for res in tqdm(
             p.imap(_partial_fun, range(map_shape_flat)), total=map_shape_flat
@@ -169,44 +155,28 @@ def calc_coms_qspace3d(path_qspace, mask=None, n_pix=None):
     return cx, cy, cz
 
 
-def _calc_roi_sum_chunk(path_qspace, indexes, mask=None):
+def _calc_roi_sum_chunk(path_qspace, roi_slice, idx_range):
+    """
+    TODO
+    """
+    roi_mask = (slice(idx_range[0], idx_range[1], None) , *roi_slice)
+    with h5py.File(path_qspace, 'r') as h5f:
+        return h5f['Data/qspace'][roi_mask].sum(axis=(1,2,3))
+
+
+def calc_roi_sum(path_qspace, roi_slice, n_proc=None):
     """
     TODO
     """
 
-    i0, i1 = indexes
-    range_sh = i1 - i0
+    if n_proc is None:
+        n_proc = os.cpu_count()
 
-    with h5py.File(path_qspace, "r") as h5f:
-        qspace_sh = h5f["Data/qspace"].shape[1:]
-
-        if mask is None:
-            mask = np.ones(qspace_sh).astype("bool")
-        mask = (mask[None, ...] * np.ones((range_sh, 1, 1, 1))).astype("bool")
-
-        chunk = h5f["Data/qspace"][i0:i1][mask]
-        chunk = chunk.reshape(range_sh, chunk.shape[0] // range_sh).sum(1)
-
-    return chunk
-
-
-def calc_roi_sum(path_qspace, mask=None, n_threads=None):
-    """
-    TODO
-    Return the sum of local q-space intensity falling within `mask` from
-    a 3D-SXDM dataset.
-    """
-
-    if n_threads is None:
-        ncpu = os.cpu_count()
-    else:
-        ncpu = n_threads
-
-    idxs = _get_chunk_indexes(path_qspace, "Data/qspace", n_threads=ncpu)
+    idxs = _get_chunk_indexes(path_qspace, "Data/qspace", n_threads=n_proc)
+    pfun = functools.partial(_calc_roi_sum_chunk, path_qspace, roi_slice)
+    
     roi_sum_list = []
-
-    with mp.Pool(processes=ncpu) as p:
-        pfun = functools.partial(_calc_roi_sum_chunk, path_qspace, mask=mask)
+    with mp.Pool(processes=n_proc) as p:
         for res in tqdm(p.imap(pfun, idxs), total=len(idxs)):
             roi_sum_list.append(res)
 
