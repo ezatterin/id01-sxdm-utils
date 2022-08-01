@@ -235,10 +235,10 @@ class InspectROI(object):
         else:
             del self.multi
 
-    def _flip_xaxis(self, change): # mpl
+    def _flip_xaxis(self, change):  # mpl
         self.ax.invert_xaxis()
 
-    def _flip_yaxis(self, change): # mpl
+    def _flip_yaxis(self, change):  # mpl
         self.ax.invert_yaxis()
 
 
