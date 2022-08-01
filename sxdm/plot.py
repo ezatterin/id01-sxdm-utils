@@ -12,6 +12,29 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 from matplotlib.patches import FancyArrowPatch, Rectangle
 
+def add_hsv_colobar(tiltmag, ax, labels, size='20%', pad=0.05):
+    a, b = np.meshgrid(np.linspace(0, 1, 100), np.linspace(180, -180, 100))
+    cmap = make_hsv(a, b)
+
+    cax = make_axes_locatable(ax).append_axes("right", size=size, pad=pad)
+    cax.imshow(cmap, aspect="auto")
+
+    cax.tick_params(
+        labelsize="small", left=False, right=True, labelleft=False, labelright=True
+    )
+    cax.locator_params(axis="y", tight=True, nbins=7)
+
+    cax.set_yticks([0, 25, 50, 75, 100])
+    cax.set_yticklabels(labels)
+    
+    cax.set_xticks([0, 99])
+    cax.set_xticklabels([f"{tiltmag.min():.2f}", f"{tiltmag.max():.2f}"], rotation=40)
+
+    cax.yaxis.set_label_position("right")
+    cax.set_ylabel(r"Direction", labelpad=3, fontsize="small")
+    cax.set_xlabel(r"Magnitude $(\degree)$", labelpad=1, fontsize="small")
+
+    return cax
 
 def make_hsv(tiltmag, azimuth, stretch=False, v2s=False):
 

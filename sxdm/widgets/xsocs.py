@@ -111,7 +111,7 @@ class Inspect5DQspace(object):
 
         with plt.ioff():
             self.fig, self.ax = plt.subplots(
-                2, 2, figsize=(4.5, 4), dpi=160, layout="tight"
+                2, 2, figsize=(6, 5)
             )
         with self._figout:
             display(self.fig.canvas)
@@ -125,7 +125,7 @@ class Inspect5DQspace(object):
             self.qx[self.roi[0]], self.qy[self.roi[1]], self.qz[self.roi[2]]
         )
         for i, a in enumerate(self.ax.flatten()[1:]):
-            a.imshow(rsm.sum(i).T, extent=qext[i], origin="lower")
+            a.imshow(rsm.sum(i).T, extent=qext[i], origin="lower", cmap='magma')
         
         if self.coms is not None:
             cx, cy, cz = self.coms

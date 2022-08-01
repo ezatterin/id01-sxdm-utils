@@ -8,6 +8,7 @@ setup(
     author_email="edoardo.zatterin@esrf.fr",
     packages=["sxdm", 
               "sxdm.io",
+              "sxdm.process",
               "sxdm.utils",
               "sxdm.widgets",
               "sxdm.widgets.bliss"],
