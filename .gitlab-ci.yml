@@ -8,3 +8,11 @@
 #   artifacts:
 #     paths:
 #       - public
+
+image: python:latest
+
+before_script:
+  - python -V  
+  - pip install virtualenv
+  - virtualenv venv
+  - source venv/bin/activate
