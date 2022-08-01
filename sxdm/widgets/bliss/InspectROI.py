@@ -21,7 +21,8 @@ from ...io.bliss import (
 )
 
 ipython = get_ipython()
-ipython.magic("matplotlib widget")
+if ipython is not None:
+    ipython.magic("matplotlib widget")
 
 # TODO:
 # - offset_between_two_points
