@@ -1,8 +1,0 @@
-ipympl
-ipywidgets
-matplotlib
-numpy
-pandas
-silx>=1.0.0
-tqdm
-xrayutilities
