@@ -23,7 +23,7 @@ test:
 
 pages:
   script:
-    - pip install sphinx sphinx-rtd-theme
+    - pip install sphinx sphinx-rtd-theme myst-parser
     - cd doc
     - make html
     - mv build/html/ ../public/
