@@ -6,7 +6,7 @@ import numpy as np
 
 from IPython.display import display
 
-from ..plot import add_colorbar
+from ..plot.utils import add_colorbar
 from ..utils import get_qspace_coords, get_q_extents
 
 

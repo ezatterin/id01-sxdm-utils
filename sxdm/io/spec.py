@@ -5,6 +5,7 @@ Read SXDM data, i.e. the output of pscan commands on ID01.
 import re
 import os
 import time
+import warnings
 
 import numpy as np
 import silx.io
@@ -264,6 +265,16 @@ class PiezoScan(Scan):
     def get_positioner(self, motor_name):
         return self.motor_position_by_name(motor_name)
 
+    # TODO replace with decorator for aliases + warnings
+    # https://stackoverflow.com/questions/70213055/
+    def get_motorpos(self, motor_name):
+        warnings.warn(
+            "The get_motorpos method is deprecated. Use get_positioner instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_positioner(motor_name)
+
     def get_roipos(self):
         roipos = [x for x in self.file_header_dict["Ulima"].split("\n")][1:]
         roipos = np.array([x.split(" ") for x in roipos])
@@ -313,7 +324,7 @@ class PiezoScan(Scan):
         print("Uncompressing data...", end=" ")
         edf_h5 = silx.io.open(edf_filename)
         try:
-            self.frames = edf_h5['entry_0000/measurement/data'][...]
+            self.frames = edf_h5["entry_0000/measurement/data"][...]
         except KeyError:
             self.frames = edf_h5[f"{entry_name}/image/data"][...]
         print("Done in {:.2f}s".format(time.time() - t0))

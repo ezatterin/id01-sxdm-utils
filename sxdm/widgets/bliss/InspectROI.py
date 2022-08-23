@@ -11,7 +11,7 @@ from silx.io.h5py_utils import retry
 from IPython import get_ipython
 
 from id01lib.io.bliss import get_positioner
-from ...plot import add_colorbar
+from ...plot.utils import add_colorbar
 from ...io.bliss import (
     get_roidata,
     get_command,

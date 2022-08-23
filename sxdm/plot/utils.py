@@ -12,7 +12,8 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 from matplotlib.patches import FancyArrowPatch, Rectangle
 
-def add_hsv_colobar(tiltmag, ax, labels, size='20%', pad=0.05):
+
+def add_hsv_colorbar(tiltmag, ax, labels, size="20%", pad=0.05):
     a, b = np.meshgrid(np.linspace(0, 1, 100), np.linspace(180, -180, 100))
     cmap = make_hsv(a, b)
 
@@ -26,7 +27,7 @@ def add_hsv_colobar(tiltmag, ax, labels, size='20%', pad=0.05):
 
     cax.set_yticks([0, 25, 50, 75, 100])
     cax.set_yticklabels(labels)
-    
+
     cax.set_xticks([0, 99])
     cax.set_xticklabels([f"{tiltmag.min():.2f}", f"{tiltmag.max():.2f}"], rotation=40)
 
@@ -35,6 +36,7 @@ def add_hsv_colobar(tiltmag, ax, labels, size='20%', pad=0.05):
     cax.set_xlabel(r"Magnitude $(\degree)$", labelpad=1, fontsize="small")
 
     return cax
+
 
 def make_hsv(tiltmag, azimuth, stretch=False, v2s=False):
 
@@ -72,7 +74,7 @@ def add_scalebar(
     loc="lower right",
     pad=0.5,
     sep=5,
-    **kwargs
+    **kwargs,
 ):
 
     # size of the image within ax in pixels
@@ -105,7 +107,7 @@ def add_scalebar(
         pad=pad,
         sep=sep,
         fontproperties=fontprops,
-        **kwargs
+        **kwargs,
     )
 
     # add scalebar to ax
@@ -167,7 +169,7 @@ def add_directions(
     hl=3,
     fs="small",
     custom=False,
-    **kwargs
+    **kwargs,
 ):
 
     arr = FancyArrowPatch(
@@ -178,7 +180,7 @@ def add_directions(
         linewidth=0.5,
         shrinkA=0.0,
         shrinkB=0.0,
-        **kwargs
+        **kwargs,
     )
     arr2 = FancyArrowPatch(
         (x, y),
@@ -188,7 +190,7 @@ def add_directions(
         linewidth=0.5,
         shrinkA=0.0,
         shrinkB=0.0,
-        **kwargs
+        **kwargs,
     )
     ax.add_patch(arr)
     ax.add_patch(arr2)
@@ -208,7 +210,7 @@ def add_directions(
         va="bottom",
         transform=ax.transAxes,
         fontsize=fs,
-        **kwargs
+        **kwargs,
     )
     ax.text(
         x + alx + labelpadx,
@@ -218,5 +220,5 @@ def add_directions(
         va="center",
         transform=ax.transAxes,
         fontsize=fs,
-        **kwargs
+        **kwargs,
     )

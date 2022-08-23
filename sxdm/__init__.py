@@ -1,1 +1,1 @@
-from . import (utils, io, plot, widgets, process)
+from . import utils, io, widgets, process, plot

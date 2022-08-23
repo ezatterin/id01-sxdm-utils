@@ -11,7 +11,7 @@ from matplotlib.widgets import MultiCursor, RectangleSelector
 from IPython.display import display
 
 from ..utils import get_detector_roilist
-from ..plot import add_colorbar
+from ..plot.utils import add_colorbar
 
 mpl.rcParams["font.family"] = "Liberation Sans, sans-serif"
 

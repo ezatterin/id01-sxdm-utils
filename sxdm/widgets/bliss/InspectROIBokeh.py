@@ -14,7 +14,7 @@ from IPython import get_ipython
 from bokeh import models as bk_models
 from bokeh import plotting as bk_plotting
 
-from ...plot import add_colorbar
+from ...plot.utils import add_colorbar
 from ...io.bliss import get_roidata, get_positioner, get_command, get_datetime
 
 ipython = get_ipython()

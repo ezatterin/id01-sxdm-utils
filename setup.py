@@ -6,12 +6,15 @@ setup(
     version="0.1.0",
     author="E. Zatterin",
     author_email="edoardo.zatterin@esrf.fr",
-    packages=["sxdm", 
-              "sxdm.io",
-              "sxdm.process",
-              "sxdm.utils",
-              "sxdm.widgets",
-              "sxdm.widgets.bliss"],
+    packages=[
+        "sxdm",
+        "sxdm.plot",
+        "sxdm.io",
+        "sxdm.process",
+        "sxdm.utils",
+        "sxdm.widgets",
+        "sxdm.widgets.bliss",
+    ],
     license="LICENSE.txt",
     description="Code to treat Scanning X-ray Diffraction Microscopy data\
          collected on beamline ID01 at ESRF",
@@ -24,7 +27,7 @@ setup(
         "silx>=1.0.0",
         "pandas",
         "xrayutilities",
-        "ipympl" # xsocs, id01lib
+        "ipympl",  # xsocs, id01lib
     ],
 )
 
