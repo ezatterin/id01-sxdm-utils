@@ -2,4 +2,5 @@
 **/.ipynb_checkpoints
 *.pyc
 **/build
+**/id01_sxdm_utils.egg-info
 *.log
