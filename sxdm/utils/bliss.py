@@ -178,9 +178,7 @@ def make_xsocs_links(
             print(f"> Using all scan numbers in {_name_dset}")
             _scan_idxs = range(1, len(list(h5f.keys())) + 1)
             _commands = [h5f[f"{s}.1/title"][()].decode() for s in _scan_idxs]
-            _scan_nums = [
-                f"{s}.1" for s, c in zip(_scan_idxs, _commands) if "sxdm" in c
-            ]
+            _scan_nums = [f"{s}.1" for s, c in zip(_scan_idxs, _commands) if any([s in c for s in ("sxdm", "kmap")])]
         else:
             print(
                 f"> Selecting scans {scan_nums[0]} --> {scan_nums[-1]} in {_name_dset}"
