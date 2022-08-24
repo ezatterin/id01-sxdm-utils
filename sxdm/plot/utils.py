@@ -7,10 +7,11 @@ import numpy as np
 import matplotlib.font_manager as fm
 import matplotlib as mpl
 
-from mpl_toolkits.axes_grid1 import make_axes_locatable, anchored_artists
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
-from matplotlib.patches import FancyArrowPatch, Rectangle
+
+from matplotlib.patches import FancyArrowPatch, Rectangle, ArrowStyle
+from matplotlib.offsetbox import AuxTransformBox
 
 
 def add_hsv_colorbar(tiltmag, ax, labels, size="20%", pad=0.05):
@@ -64,42 +65,40 @@ def make_hsv(tiltmag, azimuth, stretch=False, v2s=False):
 
 def add_scalebar(
     ax,
-    xsize,
-    unit,
-    h_scale=5,
-    v_scale=150,
-    font_size="small",
-    label="auto",
+    x_scale=3,
+    y_scale=100,
+    label=None,
     color="black",
     loc="lower right",
     pad=0.5,
     sep=5,
-    **kwargs,
+    **font_kwargs,
 ):
 
-    # size of the image within ax in pixels
+    # size of the img in data coords
     try:
         img = ax.get_images()[0]
-        ypix, xpix = img.get_size()
-    except:
+        ext = img.get_extent()  # left, right, bottom, top
+        xsize, ysize = (ext[1] - ext[0], ext[3] - ext[2])
+    except AttributeError:
         img = [x for x in ax.get_children() if type(x) == mpl.collections.QuadMesh][0]
-        ypix, xpix = img._meshHeight + 1, img._meshWidth + 1
+        xc, yc = img.get_coordinates().T
+        xsize, ysize = [c.max() - c.min() for c in (xc, yc)]
 
     # size of the scalebar wrt the image size in um or nm
-    h_size = xsize / h_scale
-    v_size = xsize / v_scale
+    h_size = xsize / x_scale
+    v_size = ysize / y_scale
+
+    # label
+    if label is None:
+        label = f"{h_size:.3f}"
 
     # the scale bar object
-    fontprops = fm.FontProperties(size=font_size)
-
-    scalebarlabel = "{0:.3f} {1}".format(h_size, unit)
-    if label != "auto":
-        scalebarlabel = label
-
+    fontprops = fm.FontProperties(**font_kwargs)
     scalebar = AnchoredSizeBar(
         ax.transData,
         h_size,
-        scalebarlabel,
+        label,
         loc,
         color=color,
         frameon=False,
@@ -107,7 +106,6 @@ def add_scalebar(
         pad=pad,
         sep=sep,
         fontproperties=fontprops,
-        **kwargs,
     )
 
     # add scalebar to ax
@@ -154,71 +152,91 @@ def add_roilabel(ax, roi):
     ax.add_artist(at)
 
 
-# TODO - change with anchored dir arrows or auto ax calc
 def add_directions(
     ax,
-    up,
-    right,
-    x=0.07,
-    y=0.07,
-    labelpadx=0.12,
-    labelpady=0.12,
-    alx=0.1,
-    aly=0.1,
-    hw=1.2,
-    hl=3,
-    fs="small",
-    custom=False,
-    **kwargs,
+    text_x,
+    text_y,
+    loc,
+    color="k",
+    transform=None,
+    angle=0,
+    length=0.1,
+    line_width=0.5,
+    aspect_ratio=1,
+    head_width=1.2,
+    head_length=3,
+    arrow_props=None,
+    tpad_x=0.01,
+    tpad_y=0.01,
+    text_props=None,
+    pad=0.4,
+    borderpad=0.5,
+    frameon=False,
+    **obox_kwargs,
 ):
 
-    arr = FancyArrowPatch(
-        (x, y),
-        (x, y + aly),
-        transform=ax.transAxes,
-        arrowstyle="->, head_width={}, head_length={}".format(hw, hl),
-        linewidth=0.5,
-        shrinkA=0.0,
-        shrinkB=0.0,
-        **kwargs,
-    )
-    arr2 = FancyArrowPatch(
-        (x, y),
-        (x + alx, y),
-        transform=ax.transAxes,
-        arrowstyle="->, head_width={}, head_length={}".format(hw, hl),
-        linewidth=0.5,
-        shrinkA=0.0,
-        shrinkB=0.0,
-        **kwargs,
-    )
-    ax.add_patch(arr)
-    ax.add_patch(arr2)
+    ## arrows
 
-    if custom:
-        txt_up = up
-        txt_right = right
-    else:
-        txt_up = r"$\;\;[{}]$".format(up)
-        txt_right = r"$[{}]$".format(right)
+    alx = length
+    aly = length * aspect_ratio
 
-    ax.text(
-        x,
-        y + aly + labelpady,
-        txt_up,
-        ha="center",
-        va="bottom",
-        transform=ax.transAxes,
-        fontsize=fs,
-        **kwargs,
+    arrowstyle = ArrowStyle("->", head_width=head_width, head_length=head_length)
+    if arrow_props is None:
+        arrow_props = dict()
+    if "color" not in arrow_props:
+        arrow_props["color"] = color
+    if "linewidth" not in arrow_props:
+        arrow_props["linewidth"] = line_width
+
+    a_coords = [(0, aly), (alx, 0)]
+    arr_x, arr_y = [
+        FancyArrowPatch(
+            (0, 0),
+            c,
+            arrowstyle=arrowstyle,
+            shrinkA=0.0,
+            shrinkB=0.0,
+            **arrow_props,
+        )
+        for c in a_coords
+    ]
+
+    ## text
+
+    if text_props is None:
+        text_props = dict()
+    if "color" not in text_props:
+        text_props["color"] = color
+
+    t_coords = [((alx + tpad_x), 0), (0, (aly + tpad_y))]
+    t_align = [dict(va="center"), dict(ha="center")]
+
+    txt_x, txt_y = [
+        mpl.text.Text(
+            *c,
+            t,
+            transform=transform,
+            **al,
+            **text_props,
+        )
+        for c, t, al in zip(t_coords, [text_x, text_y], t_align)
+    ]
+
+    ## box
+
+    if transform is None:
+        transform = ax.transAxes
+
+    t_start = transform
+    t_end = t_start + mpl.transforms.Affine2D().rotate_deg(angle)
+
+    box = mpl.offsetbox.AuxTransformBox(t_end)
+    [box.add_artist(a) for a in (arr_x, arr_y, txt_x, txt_y)]
+
+    ## anchored box
+
+    abox = mpl.offsetbox.AnchoredOffsetbox(
+        loc, child=box, pad=pad, borderpad=borderpad, frameon=frameon, **obox_kwargs
     )
-    ax.text(
-        x + alx + labelpadx,
-        y,
-        txt_right,
-        ha="left",
-        va="center",
-        transform=ax.transAxes,
-        fontsize=fs,
-        **kwargs,
-    )
+
+    ax.add_artist(abox)
