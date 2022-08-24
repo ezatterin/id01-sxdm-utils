@@ -179,7 +179,7 @@ def make_xsocs_links(
             _scan_idxs = range(1, len(list(h5f.keys())) + 1)
             _commands = [h5f[f"{s}.1/title"][()].decode() for s in _scan_idxs]
             _scan_nums = [
-                f"{s}.1" for s, c in zip(_scan_idxs, _commands) if "sxdm" in c
+                f"{s}.1" for s, c in zip(_scan_idxs, _commands) if "sxdm" or "kmap" in c
             ]
         else:
             print(
