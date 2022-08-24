@@ -73,7 +73,7 @@ class InspectROI(object):
             scan_nos = [
                 s
                 for s, c in zip(scan_nos, commands)
-                if any([k in c for k in ("sxdm", "mesh")])
+                if any([k in c for k in ("sxdm", "mesh", "kmap")])
             ]
             scan_nos_int = sorted([int(s.split(".")[0]) for s in scan_nos])
 
