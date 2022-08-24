@@ -39,7 +39,7 @@ def get_piezo_motor_names(h5f, scan_no):
     command = get_command(h5f, scan_no)
     if "mesh" in command:  # this has a spec syntax for now!
         m1_name, m2_name = [command.split(" ")[x] for x in (1, 5)]
-    elif "sxdm" in command:
+    elif any([x in command for x in ("sxdm", "kmap")]):
         m1_name, m2_name = [command.split(" ")[x][:-1] for x in (1, 5)]
     else:
         fname = os.path.basename(h5f)
