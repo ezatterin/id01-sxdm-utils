@@ -137,18 +137,17 @@ def add_letter(ax, letter, x=0.03, y=0.92, fs="large", fw="bold", **kwargs):
     return txt
 
 
-def add_roilabel(ax, roi):
-    at = mpl.offsetbox.AnchoredText(
-        "{}".format(roi),
-        loc="upper left",
-        frameon=False,
-        pad=0.05,
-        prop=dict(
+def add_roilabel(ax, roi, loc="upper left", frameon=False, pad=0.05, prop=None):
+
+    if prop is None:
+        prop = dict(
             color="black",
             fontsize="small",
             bbox=dict(facecolor="whitesmoke", alpha=0.7, lw=0, pad=1.5),
-        ),
-    )
+        )
+
+    at = mpl.offsetbox.AnchoredText(roi, loc=loc, frameon=frameon, pad=pad, prop=prop)
+
     ax.add_artist(at)
 
 
