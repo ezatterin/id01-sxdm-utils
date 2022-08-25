@@ -155,16 +155,17 @@ def calc_coms_qspace3d(path_qspace, roi_slice, n_pix=None):
     return cx, cy, cz
 
 
-def _calc_roi_sum_chunk(path_qspace, roi_slice, idx_range):
+def _calc_roi_sum_chunk(path_qspace, roi_slice, idx_range, all_masked_indexes=None):
     """
     TODO
     """
+
     roi_mask = (slice(idx_range[0], idx_range[1], None) , *roi_slice)
     with h5py.File(path_qspace, 'r') as h5f:
         return h5f['Data/qspace'][roi_mask].sum(axis=(1,2,3))
 
 
-def calc_roi_sum(path_qspace, roi_slice, n_proc=None):
+def calc_roi_sum(path_qspace, roi_slice, n_proc=None, real_space_mask=None):
     """
     TODO
     """
@@ -172,10 +173,13 @@ def calc_roi_sum(path_qspace, roi_slice, n_proc=None):
     if n_proc is None:
         n_proc = os.cpu_count()
 
-    idxs = _get_chunk_indexes(path_qspace, "Data/qspace", n_threads=n_proc)
+    idxs = _get_chunk_indexes(path_qspace, "Data/qspace", n_threads=n_proc, real_space_mask=real_space_mask)[0]
+    all_masked_indexes = _get_chunk_indexes(path_qspace, "Data/qspace", n_threads=n_proc, real_space_mask=real_space_mask)[1]
+
     pfun = functools.partial(_calc_roi_sum_chunk, path_qspace, roi_slice)
     
     roi_sum_list = []
+
     with mp.Pool(processes=n_proc) as p:
         for res in tqdm(p.imap(pfun, idxs), total=len(idxs)):
             roi_sum_list.append(res)
