@@ -166,3 +166,6 @@ def get_shift(
         return shifts, sxdm_raw, sxdm_shifted
     else:
         return shifts
+
+def slice_from_mask():
+    pass
