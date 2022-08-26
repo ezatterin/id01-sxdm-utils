@@ -211,7 +211,7 @@ def calc_roi_sum(path_qspace, mask_reciprocal, mask_direct=None, n_proc=None):
     roi_rec_sl = tuple([slice(x.min(), x.max() + 1) for x in roi_rec])
 
     # direct space mask
-    mask_dir = mask_direct.flatten() if mask_direct is not None else np.ones(sh)
+    mask_dir = mask_direct.flatten() if mask_direct is not None else np.zeros(sh)
 
     pfun = functools.partial(_calc_roi_sum_chunk, path_qspace, roi_rec_sl, mask_dir)
     roi_sum_list = []
