@@ -1,3 +1,5 @@
+[![pipeline status](https://gitlab.esrf.fr/id01-science/id01-sxdm-utils/badges/main/pipeline.svg)](https://gitlab.esrf.fr/id01-science/id01-sxdm-utils/-/commits/main)
+
 # How to run the tutorial notebooks on Jupyter-slurm
 
 1. Go to the [Jupyter-SLURM hub](https://jupyter-slurm.esrf.fr/). 
