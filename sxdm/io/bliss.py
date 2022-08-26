@@ -1,6 +1,7 @@
 import numpy as np
 import multiprocessing as mp
 import os
+import h5py
 
 from tqdm.auto import tqdm
 from functools import partial
@@ -52,11 +53,11 @@ def get_piezo_motor_names(h5f, scan_no):
 def get_piezo_motor_positions(h5f, scan_no):
     sh = get_scan_shape(h5f, scan_no)
     m1n, m2n = get_piezo_motor_names(h5f, scan_no)
-    
+
     try:  # sxdm
         m1, m2 = [get_positioner(h5f, scan_no, f"{m}_position") for m in (m1n, m2n)]
-    except KeyError: # mesh
-        m1, m2 = [get_positioner(h5f, scan_no, m) for m in (m1n, m2n)] 
+    except KeyError:  # mesh
+        m1, m2 = [get_positioner(h5f, scan_no, m) for m in (m1n, m2n)]
     m1, m2 = [m.reshape(*sh) for m in (m1, m2)]
 
     return m1, m2
@@ -80,23 +81,31 @@ def get_roidata(h5f, scan_no, roi_name, return_pi_motors=False):
         return data
 
 
-def get_sxdm_frame_sum(path_dset, scan_no, n_threads=None, detector='mpx1x4'):
+def get_sxdm_frame_sum(
+    path_dset, scan_no, mask_direct=None, n_threads=None, detector="mpx1x4"
+):
     """
     Return sum of all frames of an SXDM scan.
     """
+
+    path_data_h5 = f"/{scan_no}/instrument/{detector}/data"
 
     if n_threads is None:
         ncpu = os.cpu_count()
     else:
         ncpu = n_threads
 
-    indexes = _get_chunk_indexes(path_dset, f"/{scan_no}/instrument/{detector}/data", ncpu)
-    frame_sum_list = []
+    with h5py.File(path_dset, "r") as h5f:
+        sh = h5f[path_data_h5].shape[:1]
 
+    indexes = _get_chunk_indexes(path_dset, path_data_h5, ncpu)
+
+    mask = mask_direct if mask_direct is not None else np.ones(sh)
+    idx_mask = {idx: val for idx, val in zip(np.indices(sh)[0], mask.flatten())}
+
+    frame_sum_list = []
     with mp.Pool(processes=ncpu) as p:
-        pfun = partial(
-            _get_qspace_avg_chunk, path_dset, f"/{scan_no}/instrument/{detector}/data"
-        )
+        pfun = partial(_get_qspace_avg_chunk, path_dset, path_data_h5, idx_mask)
         for res in tqdm(p.imap(pfun, indexes), total=len(indexes)):
             frame_sum_list.append(res)
 
