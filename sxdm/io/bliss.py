@@ -1,6 +1,7 @@
 import numpy as np
 import multiprocessing as mp
 import os
+import h5py
 
 from tqdm.auto import tqdm
 from functools import partial
@@ -79,23 +80,31 @@ def get_roidata(h5f, scan_no, roi_name, return_pi_motors=False):
     else:
         return data
 
-
-def get_sxdm_frame_sum(path_dset, scan_no, n_threads=None, detector='mpx1x4'):
+    
+def get_sxdm_frame_sum(path_dset, scan_no, real_space_mask=None, n_threads=None, detector='mpx1x4'):
     """
     Return sum of all frames of an SXDM scan.
     """
+
+    path_data_h5 = f"/{scan_no}/instrument/{detector}/data"
 
     if n_threads is None:
         ncpu = os.cpu_count()
     else:
         ncpu = n_threads
 
-    indexes = _get_chunk_indexes(path_dset, f"/{scan_no}/instrument/{detector}/data", ncpu)
-    frame_sum_list = []
+    with h5py.File(path_dset, "r") as h5f:
+        sh = h5f[path_data_h5].shape[:1]
 
+    indexes = _get_chunk_indexes(path_dset, path_data_h5, ncpu)
+
+    mask = real_space_mask if real_space_mask is not None else np.ones(sh)
+    idx_mask = {idx:val for idx, val in zip(np.indices(sh)[0], mask.flatten())}
+    
+    frame_sum_list = []
     with mp.Pool(processes=ncpu) as p:
         pfun = partial(
-            _get_qspace_avg_chunk, path_dset, f"/{scan_no}/instrument/{detector}/data"
+            _get_qspace_avg_chunk, path_dset, path_data_h5, idx_mask
         )
         for res in tqdm(p.imap(pfun, indexes), total=len(indexes)):
             frame_sum_list.append(res)

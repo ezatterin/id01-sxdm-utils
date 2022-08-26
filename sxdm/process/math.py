@@ -127,7 +127,7 @@ def calc_coms_qspace3d(path_qspace, roi_slice, n_pix=None):
     ----------
     path_qspace : str
         Path to the XSOCS q-space file.
-    roi_slice : 
+    roi_slice :
     n_pix : int, optional
         Restrict the computation of the COM for the `n_pix` strongest pixels in the
         3D q-space array.
@@ -155,33 +155,68 @@ def calc_coms_qspace3d(path_qspace, roi_slice, n_pix=None):
     return cx, cy, cz
 
 
-def _calc_roi_sum_chunk(path_qspace, roi_slice, idx_range, all_masked_indexes=None):
+def _calc_roi_sum_chunk(path_qspace, roi_rec_sl, mask_direct, idx_range):
     """
-    TODO
+    Calculate the intensity of a 5D qspace dataset:
+    * for the direct space indexes in the range `idx_range`;
+    * within the reciprocal space slice `roi_rec_sl`;
+    * masked in direct space where `mask_direct` is True.
+
+    Returns a `numpy.masked_array`.
     """
+    i0, i1 = idx_range
 
-    roi_mask = (slice(idx_range[0], idx_range[1], None) , *roi_slice)
-    with h5py.File(path_qspace, 'r') as h5f:
-        return h5f['Data/qspace'][roi_mask].sum(axis=(1,2,3))
+    roi_slice = (slice(i0, i1, None), *roi_rec_sl)
+    mask_dir_range = mask_direct[i0:i1]
+
+    with h5py.File(path_qspace, "r") as h5f:
+        arr = h5f["Data/qspace"][roi_slice].sum(axis=(1, 2, 3))
+
+    return np.ma.masked_where(mask_dir_range, arr)
 
 
-def calc_roi_sum(path_qspace, roi_slice, n_proc=None, real_space_mask=None):
+def calc_roi_sum(path_qspace, mask_reciprocal, mask_direct=None, n_proc=None):
     """
-    TODO
+    Calculate the intensity in direct space integrated within `mask_reciprocal`
+    for the 5D SXDM dataset contained in `path_qspace` (as "Data/qspace").
+
+    Parameters
+    ----------
+    path_qspace : str
+        Path to the XSOCS q-space file.
+    mask_reciprocal : numpy.ndarray
+        3D boolean array. False for portions *not* to be considered.
+    mask_direct : numpy.ndarray
+        2D boolean array. False for portions *not* to be considered.
+    n_proc : int, optional
+        Number of processes to spawn. Defaults to the number of logical machine cores.
+
+    Returns
+    -------
+    roi_sum : numpy.ma.core.MaskedArray
     """
 
     if n_proc is None:
         n_proc = os.cpu_count()
 
-    idxs = _get_chunk_indexes(path_qspace, "Data/qspace", n_threads=n_proc, real_space_mask=real_space_mask)[0]
-    all_masked_indexes = _get_chunk_indexes(path_qspace, "Data/qspace", n_threads=n_proc, real_space_mask=real_space_mask)[1]
+    # direct space shape (1D)
+    with h5py.File(path_qspace, "r") as h5f:
+        sh = h5f["Data/qspace"].shape[:1]
 
-    pfun = functools.partial(_calc_roi_sum_chunk, path_qspace, roi_slice)
-    
+    # list of idx ranges [(i0, i1), (i0, i1), ...]
+    idxs_list = _get_chunk_indexes(path_qspace, "Data/qspace", n_threads=n_proc)
+
+    # recipocal space slice from mask
+    roi_rec = np.where(np.invert(mask_reciprocal))
+    roi_rec_sl = tuple([slice(x.min(), x.max() + 1) for x in roi_rec])
+
+    # direct space mask
+    mask_dir = mask_direct.flatten() if mask_direct is not None else np.ones(sh)
+
+    pfun = functools.partial(_calc_roi_sum_chunk, path_qspace, roi_rec_sl, mask_dir)
     roi_sum_list = []
-
     with mp.Pool(processes=n_proc) as p:
-        for res in tqdm(p.imap(pfun, idxs), total=len(idxs)):
+        for res in tqdm(p.imap(pfun, idxs_list), total=len(idxs_list)):
             roi_sum_list.append(res)
 
-    return np.concatenate(roi_sum_list)
+    return np.ma.concatenate(roi_sum_list)
