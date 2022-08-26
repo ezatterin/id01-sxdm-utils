@@ -180,10 +180,13 @@ def make_xsocs_links(
             _commands = [h5f[f"{s}.1/title"][()].decode() for s in _scan_idxs]
             _scan_nums = [f"{s}.1" for s, c in zip(_scan_idxs, _commands) if any([s in c for s in ("sxdm", "kmap")])]
         else:
+            try:
+                _scan_nums = [f"{int(x)}.1" for x in scan_nums]
+            except ValueError: # not a list of int
+                _scan_nums = scan_nums
             print(
-                f"> Selecting scans {scan_nums[0]} --> {scan_nums[-1]} in {_name_dset}"
+                f"> Selecting scans {_scan_nums[0]} --> {_scan_nums[-1]} in {_name_dset}"
             )
-            _scan_nums = [f"{x}.1" for x in scan_nums]
             _commands = [h5f[f"{s}/title"][()].decode() for s in _scan_nums]
 
         # name the output files
