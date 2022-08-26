@@ -9,7 +9,7 @@ from functools import partial
 from .utils import _get_chunk_indexes, _get_qspace_avg_chunk, ioh5
 
 
-def get_qspace_avg(path_qspace, n_threads=None, direct_space_mask=None):
+def get_qspace_avg(path_qspace, n_threads=None, mask_direct=None):
     """
     Return the average q-space intensity from a 3D-SXDM measurement.
     The data file `path_qspace` is a q-space file produced by XSOCS.
@@ -25,7 +25,7 @@ def get_qspace_avg(path_qspace, n_threads=None, direct_space_mask=None):
 
     indexes = _get_chunk_indexes(path_qspace, "Data/qspace", ncpu)
 
-    mask = direct_space_mask.flatten() if direct_space_mask is not None else np.ones(sh)
+    mask = mask_direct.flatten() if mask_direct is not None else np.ones(sh)
     idx_mask = {idx: val for idx, val in zip(np.indices(sh)[0], mask.flatten())}
 
     qspace_avg_list = []
