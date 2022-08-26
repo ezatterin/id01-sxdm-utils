@@ -1,5 +1,6 @@
 import h5py
 import os
+import numpy as np
 
 from id01lib.io.utils import ioh5
 
@@ -19,7 +20,7 @@ def _get_chunk_indexes(path_h5, path_in_h5, n_threads=None):
 
     with h5py.File(path_h5, "r") as h5f:
         map_shape_flat = h5f[path_in_h5].shape[0]
-    
+
     if n_threads is None:
         ncpu = os.cpu_count()
     elif n_threads == 1:
@@ -39,14 +40,14 @@ def _get_chunk_indexes(path_h5, path_in_h5, n_threads=None):
     return indexes
 
 
-def _get_qspace_avg_chunk(path_h5, path_in_h5, indexes):
+def _get_qspace_avg_chunk(path_h5, path_in_h5, idx_mask, idx_range):
     """
     Return the q-space intensity array summed over the (flattened) sample positons
-    given by `indexes`, which is a list of tuples.
+    given by `idx_range`, which is a list of tuples.
     """
 
-    i0, i1 = indexes
+    idx_list = [x for x in range(*idx_range, 1) if idx_mask[x].astype("bool") == True]
     with h5py.File(path_h5, "r") as h5f:
-        chunk = h5f[path_in_h5][i0:i1, ...].sum(0)
+        chunk = h5f[path_in_h5][idx_list, ...].sum(0)
 
     return chunk

@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import multiprocessing as mp
+import h5py
 
 from tqdm.auto import tqdm
 from functools import partial
@@ -8,7 +9,7 @@ from functools import partial
 from .utils import _get_chunk_indexes, _get_qspace_avg_chunk, ioh5
 
 
-def get_qspace_avg(path_qspace, n_threads=None):
+def get_qspace_avg(path_qspace, n_threads=None, mask_direct=None):
     """
     Return the average q-space intensity from a 3D-SXDM measurement.
     The data file `path_qspace` is a q-space file produced by XSOCS.
@@ -19,11 +20,17 @@ def get_qspace_avg(path_qspace, n_threads=None):
     else:
         ncpu = n_threads
 
-    indexes = _get_chunk_indexes(path_qspace, "Data/qspace", ncpu)
-    qspace_avg_list = []
+    with h5py.File(path_qspace, "r") as h5f:
+        sh = h5f["Data/qspace"].shape[:1]
 
+    indexes = _get_chunk_indexes(path_qspace, "Data/qspace", ncpu)
+
+    mask = mask_direct.flatten() if mask_direct is not None else np.ones(sh)
+    idx_mask = {idx: val for idx, val in zip(np.indices(sh)[0], mask.flatten())}
+
+    qspace_avg_list = []
     with mp.Pool(processes=ncpu) as p:
-        pfun = partial(_get_qspace_avg_chunk, path_qspace, "Data/qspace")
+        pfun = partial(_get_qspace_avg_chunk, path_qspace, "Data/qspace", idx_mask)
         for res in tqdm(p.imap(pfun, indexes), total=len(indexes)):
             qspace_avg_list.append(res)
 
