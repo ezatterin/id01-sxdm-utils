@@ -81,7 +81,7 @@ def _calc_com_3d(arr, x, y, z, n_pix=None):
     return cx, cy, cz
 
 
-def _calc_com_qspace3d(path_qspace, roi_slice, idx, n_pix=None):
+def _calc_com_qspace3d(path_qspace, mask_reciprocal, idx, n_pix=None):
     """
     Compute the center of mass (COM) of an XSOCS 4D q-space array in q-space
     coordinates at position `idx`.
@@ -90,7 +90,10 @@ def _calc_com_qspace3d(path_qspace, roi_slice, idx, n_pix=None):
     ----------
     path_qspace : str
         Path to the XSOCS q-space file.
-    roi_slice :
+    mask_reciprocal : numpy.ndarray
+        3D boolean array. True for portions *not* to be considered. NOTE: for the
+        moment this works only for contiguous subarrays of the reciprocal space
+        volume; that is, only "cube-like" masks are supported.
     idx : int
         Index of the first dimension of the 4D q-space array, i.e. the index of
         the sample position at which the 3D q-space volume was measured.
@@ -103,14 +106,19 @@ def _calc_com_qspace3d(path_qspace, roi_slice, idx, n_pix=None):
     out : tuple
         Coordinates of the q-space COM at position `idx`.
     """
+
+    # recipocal space slice from mask
+    roi_rec = np.where(np.invert(mask_reciprocal))
+    roi_rec_sl = tuple([slice(x.min(), x.max() + 1) for x in roi_rec])
+
     with h5py.File(path_qspace, "r") as h5f:
 
-        roi = (idx, *roi_slice)
+        roi = (idx, *roi_rec_sl)
         arr = h5f["Data/qspace"][roi]
 
         # coordinates
         qx, qy, qz = [h5f[f"Data/{x}"][...] for x in "qx,qy,qz".split(",")]
-        qxm, qym, qzm = [q[roi_slice] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
+        qxm, qym, qzm = [q[roi_rec_sl] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
 
         # com
         cx, cy, cz = _calc_com_3d(arr, qxm, qym, qzm, n_pix=n_pix)
@@ -118,7 +126,7 @@ def _calc_com_qspace3d(path_qspace, roi_slice, idx, n_pix=None):
         return cx, cy, cz
 
 
-def calc_coms_qspace3d(path_qspace, roi_slice, n_pix=None):
+def calc_coms_qspace3d(path_qspace, mask_reciprocal, n_pix=None):
     """
     Compute the center of mass (COM) of an XSOCS 4D array for each direct space
     position. The 4D array is Intensity(direct_space_position, qx, qy, qz).
@@ -127,7 +135,10 @@ def calc_coms_qspace3d(path_qspace, roi_slice, n_pix=None):
     ----------
     path_qspace : str
         Path to the XSOCS q-space file.
-    roi_slice :
+    mask_reciprocal : numpy.ndarray
+        3D boolean array. True for portions *not* to be considered. NOTE: for the
+        moment this works only for contiguous subarrays of the reciprocal space
+        volume; that is, only "cube-like" masks are supported.
     n_pix : int, optional
         Restrict the computation of the COM for the `n_pix` strongest pixels in the
         3D q-space array.
@@ -143,7 +154,7 @@ def calc_coms_qspace3d(path_qspace, roi_slice, n_pix=None):
     coms = []
     with mp.Pool(processes=os.cpu_count()) as p:
         _partial_fun = functools.partial(
-            _calc_com_qspace3d, path_qspace, roi_slice, n_pix=n_pix
+            _calc_com_qspace3d, path_qspace, mask_reciprocal, n_pix=n_pix
         )
         for res in tqdm(
             p.imap(_partial_fun, range(map_shape_flat)), total=map_shape_flat
@@ -185,9 +196,11 @@ def calc_roi_sum(path_qspace, mask_reciprocal, mask_direct=None, n_proc=None):
     path_qspace : str
         Path to the XSOCS q-space file.
     mask_reciprocal : numpy.ndarray
-        3D boolean array. False for portions *not* to be considered.
+        3D boolean array. True for portions *not* to be considered. NOTE: for the
+        moment this works only for contiguous subarrays of the reciprocal space
+        volume; that is, only "cube-like" masks are supported.
     mask_direct : numpy.ndarray
-        2D boolean array. False for portions *not* to be considered.
+        2D boolean array. True for portions *not* to be considered. 
     n_proc : int, optional
         Number of processes to spawn. Defaults to the number of logical machine cores.
 

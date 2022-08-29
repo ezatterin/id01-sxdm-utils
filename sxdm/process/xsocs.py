@@ -173,10 +173,12 @@ def _shift_write_data(path_dset, shifts, subh5):
                 data_shift[:, i0:i1, i0:i1] = dmap
                 del dmap
 
+            # TODO better printing!
+            print(f"Shifting #{root}...")
             for i, idx_pair in enumerate(idxs):
-                print(f"\r{i}/{len(idxs)}", flush=True, end=" ")
+                # print(f"\r{i}/{len(idxs)}", flush=True, end=" ")
                 shift_write_data(idx_pair)
-
+            print(f"#{root} done.")
 
 def _make_shift_master(path_out, path_dset):
 

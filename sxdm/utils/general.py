@@ -95,6 +95,7 @@ def get_shift(
     path_dset,
     roi,
     scan_nums,
+    log=False,
     med_filt=None,
     return_maps=False,
     **xcorr_kwargs,
@@ -110,6 +111,8 @@ def get_shift(
         Name of the ROI (e.g. "mpx1x4_roi2").
     scan_nums : list of str
         List of scan numbers in x.1 form (e.g., ['1.1', '2.1'])
+    log : bool, default=False
+        Transform the raw data to log scale before shift estimation.
     med_filt : list, optional
         Size of the median filter kernel in pixels. Default: None (no filter).
     return_maps : bool, default=False
@@ -141,6 +144,8 @@ def get_shift(
 
     # raw ROIs
     sxdm_raw = [get_roidata(path_dset, i, roi) for i in scan_nums]
+    if log:
+        sxdm_raw = [np.log(map, where=(map > 0)) for map in sxdm_raw]
 
     # shifts
     shifts = []
@@ -166,3 +171,6 @@ def get_shift(
         return shifts, sxdm_raw, sxdm_shifted
     else:
         return shifts
+
+def slice_from_mask():
+    pass
