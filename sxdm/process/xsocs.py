@@ -5,6 +5,7 @@ import shutil
 import glob
 import h5py
 import hdf5plugin
+import xsocs
 
 from functools import partial
 import scipy.ndimage as ndi
@@ -67,16 +68,9 @@ def get_qspace_vals_xsocs(path_master, offsets=dict()):
         detalias = detpath.split("/")[-1]
 
     det = _det_aliases[detalias]
-    try:
-        angles = {key: None for key in "phi,eta,nu,del,rhx,rhy".split(",")}
-        for a in angles:
-            pos = np.sort(np.array([h5f.positioner(e, a) for e in h5f.entries()]))
-            angles[a] = pos - offsets.get(a, 0)
-    except TypeError:
-        angles = {key: None for key in "phi,eta,nu,del,robx,roby".split(",")}
-        for a in angles:
-            pos = np.sort(np.array([h5f.positioner(e, a) for e in h5f.entries()]))
-            angles[a] = pos - offsets.get(a, 0)
+    angles = {key: None for key in "phi,eta,nu,del".split(",")}
+    for a in angles:
+        angles[a] = np.sort(np.array([h5f.positioner(e, a) for e in h5f.entries()]))
 
     nrj, cen_pix, cpd = h5f.acquisition_params().values()
 
@@ -201,6 +195,7 @@ def _make_shift_master(path_out, path_dset):
 
 # TODO use concurrent.futures instead
 def shift_xsocs_data(path_dset, path_out, shifts):
+    print(f"Using XSOCS installation: {xsocs.__file__}\n")
     name_sample = os.path.basename(path_dset).split("_")[0]
     subh5_list = glob.glob(f"{path_out}/{name_sample}*.1.h5")
 
