@@ -51,10 +51,12 @@ class RoiPlotter(object):
         self.figout = ipw.Output(layout=dict(border="2px solid grey"))
 
         ## figure
-        with self.figout:
+        with plt.ioff():
             self.fig, self.axs = plt.subplots(
                 1, 2, figsize=(6, 2.8), sharex=True, sharey=True, layout="tight"
-            )
+            )        
+        with self.figout:
+            display(self.fig.canvas)
 
         # roi images
         self.imgL, self.imgR = [ax.imshow(roidata_init) for ax in self.axs]
@@ -283,7 +285,7 @@ class RoiPlotter(object):
 
 
 class FramesExplorer(object):
-    def __init__(self, pscan, detector="maxipix", coms=None):
+    def __init__(self, pscan, detector="maxipix", coms=None, img_dir=None):
 
         """
         TODO!
@@ -296,7 +298,7 @@ class FramesExplorer(object):
         try:
             self.frames = pscan.frames
         except AttributeError:
-            self.frames = pscan.get_detector_frames()
+            self.frames = pscan.get_detector_frames(img_dir=img_dir)
 
         self.frames = self.frames.reshape(*pscan.shape, *self.frames.shape[1:])
         self.rois, self.roi_init = get_detector_roilist(pscan, detector)
@@ -307,8 +309,10 @@ class FramesExplorer(object):
 
         # init figure widget
         self.figout = ipw.Output(layout=dict(border="2px solid grey"))
-        with self.figout:
+        with plt.ioff():
             self.fig, self.axs = plt.subplots(1, 2, figsize=(8, 2.5), layout="tight")
+        with self.figout:
+            display(self.fig.canvas)
 
         # populate axes with images
         self.imgroi = self.axs[0].imshow(pscan.get_roidata(self.roi_init))
