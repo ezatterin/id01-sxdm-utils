@@ -148,6 +148,9 @@ def calc_coms_qspace3d(path_qspace, mask_reciprocal, n_pix=None):
     cx, cy, cz : numpy.ndarray
         Coordinates of the q-space COM for each direct space position.
     """
+    if type(mask_reciprocal) is not np.ndarray or len(mask_reciprocal.shape) < 3:
+        raise TypeError('mask_reciprocal has to be a 3D numpy array')
+
     with h5py.File(path_qspace, "r") as h5f:
         map_shape_flat = h5f["Data/qspace"].shape[0]
 

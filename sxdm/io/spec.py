@@ -316,13 +316,18 @@ class PiezoScan(Scan):
         )
         return edf_path
 
-    def get_detector_frames(self, entry_name="scan_0"):
-        edf_filename = self.get_edf_filename()
+    def get_detector_frames(self, img_dir=None, entry_name="scan_0"):
+        edf_path_raw = self.get_edf_filename()
+        if img_dir is None:
+            edf_path = edf_path_raw
+        else:
+            edf_fname = os.path.basename(edf_path_raw)
+            edf_path = os.path.join(img_dir, edf_fname)
 
         # decompress edf file and load to memory
         t0 = time.time()
         print("Uncompressing data...", end=" ")
-        edf_h5 = silx.io.open(edf_filename)
+        edf_h5 = silx.io.open(edf_path)
         try:
             self.frames = edf_h5["entry_0000/measurement/data"][...]
         except KeyError:

@@ -5,3 +5,4 @@
 **/id01_sxdm_utils.egg-info
 *.log
 *.npy
+tests/test-data

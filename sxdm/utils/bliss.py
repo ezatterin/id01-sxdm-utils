@@ -332,4 +332,4 @@ def make_xsocs_links(
             # print
             print(f"\r> Linking # {scan_num}/{_scan_nums[-1]}", flush=True, end=" ")
 
-        print("\n> Done!")
+        print("\n> Done!\n")

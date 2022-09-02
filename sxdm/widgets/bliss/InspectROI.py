@@ -241,7 +241,6 @@ class InspectROI(object):
     def _flip_yaxis(self, change):  # mpl
         self.ax.invert_yaxis()
 
-
     @retry()
     def _update_roi(self, change):  # mpl
         roi = change["new"]
@@ -292,8 +291,17 @@ class InspectROI(object):
         self._get_piezo_motor_names()
         m1n, m2n = self.m1name, self.m2name
 
-        m1, m2 = get_piezo_motor_positions(self.path_h5, self.scan_no)
         sh = get_scan_shape(self.path_h5, self.scan_no)
+        try:
+            m1, m2 = get_piezo_motor_positions(self.path_h5, self.scan_no)
+        except ValueError:  # failed scan: cannot reshape m1, m2 to sh
+            m1m, m2m, m1M, m2M = [
+                float(self.command.split(" ")[i][:-1]) for i in (2, 6, 3, 7)
+            ]
+            m1, m2 = [
+                np.linspace(m, M, s) for m, M, s in zip([m1m, m2m], [m1M, m2M], sh)
+            ]
+            m1, m2 = np.meshgrid(m1, m2)
 
         self.piezo_motorpos = {f"{m1n}": m1, f"{m2n}": m2}
         self._m1 = m1
@@ -374,7 +382,7 @@ class InspectROI(object):
 
     def _get_sharpness(self):
         gy, gx = np.gradient(self.roidata)
-        gnorm = np.sqrt(gx ** 2 + gy ** 2)
+        gnorm = np.sqrt(gx**2 + gy**2)
         self.sharpness = np.average(gnorm)
 
         with self.figout:
