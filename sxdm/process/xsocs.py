@@ -48,9 +48,9 @@ def grid_qspace_xsocs(
     converter.mask = mask
     converter.n_proc = n_proc
     converter.disp_times = True
-    if not center_chan:
+    if center_chan:
         converter.direct_beam = center_chan
-    if not chan_per_deg:
+    if chan_per_deg:
         converter.channels_per_degree = chan_per_deg
 
     converter.convert(overwrite=overwrite)
