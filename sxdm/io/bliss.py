@@ -40,6 +40,18 @@ def get_datetime(h5f, scan_no):
 
     return dtime
 
+@ioh5
+def get_detcalib(h5f, scan_no):
+    params = dict(beam_energy=0, center_chan=[], chan_per_deg=[])
+    calib = h5f[f'{scan_no}/instrument/detector']
+
+    for key in params.keys():
+        if key == 'beam_energy':
+            params[key] = calib[key][()]
+        else:
+            params[key] = [calib[f'{key}_dim{i}'][()] for i in (0,1)]
+
+    return params
 
 def get_piezo_motor_names(h5f, scan_no):
     command = get_command(h5f, scan_no)
