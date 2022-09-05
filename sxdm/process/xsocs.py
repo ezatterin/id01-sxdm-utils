@@ -111,7 +111,7 @@ def _get_eta_shift(path_dset, shifts):
     return etashift
 
 
-def _shift_write_data(path_dset, shifts, subh5):
+def _shift_write_data(path_dset, shifts, subh5, n_chunks=1):
 
     etashift = _get_eta_shift(path_dset, shifts)
     root = subh5.split("_")[-1][:-3]
@@ -125,7 +125,6 @@ def _shift_write_data(path_dset, shifts, subh5):
         map_sh = [h5f[f"{root}/scan/motor_{i}_steps"][()] for i in (0, 1)]  # (x, y)
         data_sh = data.shape  # (x*y, detx, dety)
 
-        n_chunks = 20
         frames_sh = data.shape[1]
         chunk_size = frames_sh // n_chunks
 
@@ -138,41 +137,47 @@ def _shift_write_data(path_dset, shifts, subh5):
 
         with h5py.File(fname_subh5_shifted, "a", libver="latest") as f:
             det_shift = f[f"{root}/instrument/detector/"]
-            data_shift_link = [f"{root}measurement/image/data"]
+            det_shift_link = f[f"{root}/measurement/image/"]
 
             del det_shift["data"]
+            del det_shift_link["data"]
+
             data_shift = det_shift.create_dataset(
                 "data",
                 shape=data_sh,
-                chunks=(1, len(idxs), len(idxs)),
                 dtype=data.dtype,
                 **hdf5plugin.Bitshuffle(nelems=0, lz4=True),
             )
-            data_shift_link = data_shift
+            det_shift_link["data"] = data_shift
 
             def shift_write_data(frame_idxs):
 
                 # load and reshape
                 i0, i1 = frame_idxs
-                dmap = data[:, i0:i1, i0:i1]
-                dmap = dmap.reshape(*map_sh, (i1 - i0) ** 2)
+                dmap = data[..., i0:i1].copy()
+                dmap = dmap.reshape(*map_sh, data.shape[1] * (i1 - i0))
 
                 # shift
                 if not np.allclose(shift, 0, atol=1e-3):
                     for i in range(dmap.shape[-1]):
                         dmap[..., i] = ndi.shift(dmap[..., i], shift)
+                        print(
+                            f"\r{i}/{list(range(dmap.shape[-1]))[-1]}",
+                            flush=True,
+                            end="",
+                        )
 
                 # reshape and write
-                dmap = dmap.reshape(data_sh[0], i1 - i0, i1 - i0)
-                data_shift[:, i0:i1, i0:i1] = dmap
+                dmap = dmap.reshape(*data_sh[:2], i1 - i0)
+                data_shift[..., i0:i1] = dmap
                 del dmap
 
             # TODO better printing!
             print(f"Shifting #{root}...")
-            for i, idx_pair in enumerate(idxs):
-                # print(f"\r{i}/{len(idxs)}", flush=True, end=" ")
+            for idx_pair in idxs:
                 shift_write_data(idx_pair)
             print(f"#{root} done.")
+
 
 def _make_shift_master(path_out, path_dset):
 
