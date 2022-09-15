@@ -23,4 +23,4 @@ t0 = time.time()
 sxdm.process.xsocs.shift_xsocs_data(path_dset, path_out, shifts)
 t1 = time.time()
 
-print(f"\n Shifting took {t1-t0:.1f}s")
+print(f"\n\n >> Shifting took {t1-t0:.1f}s")

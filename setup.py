@@ -27,7 +27,8 @@ setup(
         "silx>=1.0.0",
         "pandas",
         "xrayutilities",
-        "ipympl",  # xsocs, id01lib
+        "ipympl", 
+        "scikit-image" # xsocs, id01lib
     ],
 )
 
