@@ -21,6 +21,9 @@ before_script:
 test:
   script:
     - pip install pytest
+    - pip install .
+    - python tests/xsocs_shift.py
+    - python tests/xsocs_qconvert.py
 
 pages:
   script:
