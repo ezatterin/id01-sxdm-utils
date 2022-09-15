@@ -6,6 +6,7 @@ import glob
 import h5py
 import hdf5plugin
 import xsocs
+import time
 
 from functools import partial
 import scipy.ndimage as ndi
@@ -32,7 +33,7 @@ def grid_qspace_xsocs(
     n_proc=None,
     center_chan=None,
     chan_per_deg=None,
-    beam_energy=None
+    beam_energy=None,
 ):
 
     converter = QSpaceConverter(
@@ -120,30 +121,36 @@ def _get_eta_shift(path_dset, shifts):
     return etashift
 
 
-def _shift_write_data(path_dset, shifts, subh5, n_chunks=1):
+def _shift_write_data(path_dset, shifts, n_chunks, roi, subh5):
+
+    t_init = time.time()
+    scan_no = subh5.split("_")[-1][:-3]
+    print(f"\nShifting #{scan_no}...")
 
     etashift = _get_eta_shift(path_dset, shifts)
-    root = subh5.split("_")[-1][:-3]
+    roi = (
+        np.s_[roi[0] : roi[1], roi[2] : roi[3]] if roi is not None else np.s_[...]
+    )  # TODO!
 
     with h5py.File(subh5, "r", libver="latest") as h5f:
 
-        data = h5f[f"/{root}/instrument/detector/data"]
+        root = list(h5f.keys())[0]
+        data = h5f[f"/{root}/instrument/detector/data"]  # shape: (x*y, detx, dety)
         eta = str(np.round(h5f[f"{root}/instrument/positioners/eta"][()], 4))
         shift = etashift[eta]
 
-        map_sh = [h5f[f"{root}/scan/motor_{i}_steps"][()] for i in (0, 1)]  # (x, y)
-        data_sh = data.shape  # (x*y, detx, dety)
-
-        frames_sh = data.shape[1]
-        chunk_size = frames_sh // n_chunks
-
-        c0 = [x for x in range(0, frames_sh, chunk_size)]
-        c1 = [x for x in c0.copy()[1:]] + [frames_sh]
-        idxs = list(zip(c0, c1))
+        sh_map = tuple(
+            [h5f[f"{root}/scan/motor_{i}_steps"][()] for i in (0, 1)]
+        )  # (x, y)
+        try:
+            sh_chunk = data.chunks[1:]
+        except TypeError:  # data is not chunked
+            sh_chunk = tuple([x // n_chunks for x in data.shape[1:]])
 
         fname_subh5_shifted = os.path.abspath(subh5).split(".")[0]
         fname_subh5_shifted = shutil.copy(subh5, f"{fname_subh5_shifted}.1_shifted.h5")
 
+        t2 = 0
         with h5py.File(fname_subh5_shifted, "a", libver="latest") as f:
             det_shift = f[f"{root}/instrument/detector/"]
             det_shift_link = f[f"{root}/measurement/image/"]
@@ -153,42 +160,48 @@ def _shift_write_data(path_dset, shifts, subh5, n_chunks=1):
 
             data_shift = det_shift.create_dataset(
                 "data",
-                shape=data_sh,
+                shape=data.shape,
                 dtype=data.dtype,
+                chunks=(1, *sh_chunk),
                 **hdf5plugin.Bitshuffle(nelems=0, lz4=True),
             )
             det_shift_link["data"] = data_shift
 
-            def shift_write_data(frame_idxs):
+            # for each chunk of data
+            for i1 in range(data.shape[1] // sh_chunk[0]):
+                for i2 in range(data.shape[2] // sh_chunk[1]):
+                    sl_chunk = np.s_[
+                        :,
+                        i1 * sh_chunk[0] : (i1 + 1) * sh_chunk[0],
+                        i2 * sh_chunk[1] : (i2 + 1) * sh_chunk[1],
+                    ]
 
-                # load and reshape
-                i0, i1 = frame_idxs
-                dmap = data[..., i0:i1].copy()
-                dmap = dmap.reshape(*map_sh, data.shape[1] * (i1 - i0))
+                    # read the chunk
+                    _t2 = time.time()
+                    chunk = data[sl_chunk].reshape(sh_map[::-1] + (-1,)).copy()
+                    t2 += time.time() - _t2
 
-                # shift
-                if not np.allclose(shift, 0, atol=1e-3):
-                    for i in range(dmap.shape[-1]):
-                        dmap[..., i] = ndi.shift(dmap[..., i], shift)
-                        print(
-                            f"\r{i}/{list(range(dmap.shape[-1]))[-1]}",
-                            flush=True,
-                            end="",
-                        )
+                    # if shifts are non-zero within tolerance
+                    if not np.allclose(shift, 0, atol=1e-3):
+                        # shift each data point in the chunk
+                        for i in range(chunk.shape[-1]):
+                            chunk[..., i] = ndi.shift(chunk[..., i], shift)
 
-                # reshape and write
-                dmap = dmap.reshape(*data_sh[:2], i1 - i0)
-                data_shift[..., i0:i1] = dmap
-                del dmap
+                    # write the shifted chunks to the shift file
+                    _t2 = time.time()
+                    chunk.resize((np.prod(sh_map),) + sh_chunk)
+                    data_shift[sl_chunk] = chunk
+                    t2 += time.time() - _t2
+                    del chunk
 
-            # TODO better printing!
-            print(f"Shifting #{root}...")
-            for idx_pair in idxs:
-                shift_write_data(idx_pair)
-            print(f"#{root} done.")
+    t_tot = time.time() - t_init
+    print(
+        f"\n{os.path.basename(subh5)} finished after "
+        f"{t_tot:.2f}s. I/O time: {t2:.2f}s"
+    )
 
 
-def _make_shift_master(path_out, path_dset):
+def make_shift_master(path_out, path_dset):
 
     namelist = os.path.basename(path_dset).split(".")[0].split("_")
     name_sample = "_".join(namelist[:-1])
@@ -208,13 +221,13 @@ def _make_shift_master(path_out, path_dset):
 
 
 # TODO use concurrent.futures instead
-def shift_xsocs_data(path_dset, path_out, shifts):
+def shift_xsocs_data(path_dset, path_out, shifts, n_chunks=3, roi=None):
     print(f"Using XSOCS installation: {xsocs.__file__}\n")
     name_sample = os.path.basename(path_dset).split("_")[0]
     subh5_list = glob.glob(f"{path_out}/{name_sample}*.1.h5")
 
     with mp.Pool() as pool:
-        pf = partial(_shift_write_data, path_dset, shifts)
+        pf = partial(_shift_write_data, path_dset, shifts, n_chunks, roi)
         pool.map(pf, subh5_list)
 
     _make_shift_master(path_out, path_dset)
