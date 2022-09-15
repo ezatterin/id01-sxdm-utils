@@ -28,7 +28,8 @@ setup(
         "pandas",
         "xrayutilities",
         "ipympl", 
-        "scikit-image" # xsocs, id01lib
+        "scikit-image",
+        "hdf5plugin" # xsocs, id01lib
     ],
 )
 
