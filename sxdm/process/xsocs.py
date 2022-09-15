@@ -201,7 +201,7 @@ def _shift_write_data(path_dset, shifts, n_chunks, roi, subh5):
     )
 
 
-def make_shift_master(path_out, path_dset):
+def _make_shift_master(path_out, path_dset):
 
     namelist = os.path.basename(path_dset).split(".")[0].split("_")
     name_sample = "_".join(namelist[:-1])
