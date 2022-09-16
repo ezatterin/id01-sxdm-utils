@@ -63,6 +63,7 @@ class InspectROI(object):
         self.roiname = default_roi
         self.path_h5 = path_h5
         self.fixed_clims = fixed_clims
+        self.roilist = roilist
 
         # get list of rois + other stuff
         with h5py.File(path_h5, "r") as h5f:
@@ -99,15 +100,13 @@ class InspectROI(object):
                 print(msg)
                 raise ValueError("Invalid scan number")
 
-            counters = list(h5f[f"{self.scan_no}/measurement"].keys())
-            self.roilist = counters if roilist is None else roilist
-
         # default roi data and motors
         self.roidata = get_roidata(
             path_h5, self.scan_no, self.roiname, return_pi_motors=False
         )
 
         self.figout = ipw.Output(layout=dict(border="2px solid grey"))
+        self._load_counters()
         self._init_fig()
         self._update_norm({"new": False})
         self._init_widgets()
@@ -141,7 +140,7 @@ class InspectROI(object):
 
         # menu to select left ROI
         self.roisel = ipw.Dropdown(
-            options=self.roilist,
+            options=self.counters,
             value=self.roiname,
             layout=items_layout,
             description="ROI:",
@@ -216,6 +215,14 @@ class InspectROI(object):
             "padding": "2px",
             "align-items": "stretch",
         }
+
+    def _load_counters(self):
+        with h5py.File(self.path_h5, "r") as h5f:
+            self.counters = (
+                list(h5f[f"{self.scan_no}/measurement"].keys())
+                if self.roilist is None
+                else self.roilist
+            )
 
     def _on_click(self, event):  # mpl
         with self.figout:
@@ -394,6 +401,7 @@ class InspectROI(object):
         self.scan_no = self._scan_nos[scan_idx]
         self.command = self._commands[self.scan_no]
 
+        self._load_counters()
         self._update_roi({"new": self.roisel.value})
         self._get_piezo_motor_names()
         self._update_specs()
