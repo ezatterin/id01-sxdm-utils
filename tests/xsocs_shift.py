@@ -4,10 +4,9 @@ import shutil
 import numpy as np
 import time
 
-print(os.listdir('.'))
-
-path_dset = "./data/sample_0001/sample_0001.h5"
-path_out = "./data/test-output/"
+# weirdly it seems the GL pipeline sees the root dir
+path_dset = "tests/data/sample_0001/sample_0001.h5"
+path_out = "tests/data/test-output/"
 
 shifts = np.array([[0.0, 0.0], [4.0, 0.0], [9.0, -1.0], [14.0, -1.0], [17.0, -3.0]])
 
