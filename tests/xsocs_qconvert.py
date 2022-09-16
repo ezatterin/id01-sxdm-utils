@@ -4,7 +4,7 @@ import time
 from xsocs.process.qspace.helpers import kmap_2_qspace
 
 path_out = "tests/data/test-output"
-path_master = f"{path_out}/ech_1_night1_0010_master.h5"  # _shifted
+path_master = f"{path_out}/sample_0001_master_shifted.h5"  
 path_qspace = f"{path_out}/qspace_shift.h5"
 
 try:
