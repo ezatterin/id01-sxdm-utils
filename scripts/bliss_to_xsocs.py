@@ -77,9 +77,9 @@ def parse_scan_command(command):
     return cmd_dict
 
 
-# this will eventually end up in sxdm.bliss.utils too
+# this is in sxdm.bliss.utils too!
 def make_xsocs_links(
-    path_dset, path_out, scan_nums, detector="mpx1x4", name_outh5=None
+    path_dset, path_out, scan_nums, detector=None, name_outh5=None
 ):
     """
     Generates a set of .h5 files to be fed to XSOCS from a 3D-SXDM dataset.
@@ -93,7 +93,7 @@ def make_xsocs_links(
         Path to the folder where the XSOCS-compatible .h5 files will be saved.
     scan_nums : list, tuple or range of int
         Scan numbers to be processed.
-    detector : str, default "mpx1x4"
+    detector : str, default `None`
         The name of the detector used to collect the data.
     name_outh5 : str, default `None`
         Prefix of the XSOCS-compatible .h5 files generated. Defaults to the suffix of
@@ -124,18 +124,36 @@ def make_xsocs_links(
             _scan_idxs = range(1, len(list(h5f.keys())) + 1)
             _commands = [h5f[f"{s}.1/title"][()].decode() for s in _scan_idxs]
             _scan_nums = [
-                f"{s}.1" for s, c in zip(_scan_idxs, _commands) if "sxdm" in c
+                f"{s}.1"
+                for s, c in zip(_scan_idxs, _commands)
+                if any([s in c for s in ("sxdm", "kmap")])
             ]
         else:
+            try:
+                _scan_nums = [f"{int(x)}.1" for x in scan_nums]
+            except ValueError:  # not a list of int
+                _scan_nums = scan_nums
             print(
-                f"> Selecting scans {scan_nums[0]} --> {scan_nums[-1]} in {_name_dset}"
+                f"> Selecting scans {_scan_nums[0]} --> {_scan_nums[-1]} in {_name_dset}"
             )
-            _scan_nums = [f"{x}.1" for x in scan_nums]
             _commands = [h5f[f"{s}/title"][()].decode() for s in _scan_nums]
 
         # name the output files
         if name_outh5 is None:
             name_outh5 = _name_dset
+
+        # detector?
+        if detector is None:
+            detector = get_detector_aliases(path_dset, _scan_nums[0])
+            if len(detector) > 1:
+                msg = f"Found multiple detector groups: {detector}, select"
+                msg += "one by explicitly setting the `det` keyword argument"
+                raise Exception(msg)
+            else:
+                detector = detector[0]
+        else:
+            detector = detector
+        print(f'> Selecting detector {detector}')
 
         # generate output master file
         out_h5f_master = f"{path_out}/{name_outh5}_master.h5"
@@ -260,7 +278,7 @@ def make_xsocs_links(
             # print
             print(f"\r> Linking # {scan_num}/{_scan_nums[-1]}", flush=True, end=" ")
 
-        print("\n> Done!")
+        print("\n> Done!\n")
 
 
 ##########
