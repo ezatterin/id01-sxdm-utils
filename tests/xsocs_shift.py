@@ -4,6 +4,8 @@ import shutil
 import numpy as np
 import time
 
+print(os.listdir('.'))
+
 path_dset = "./data/sample_0001/sample_0001.h5"
 path_out = "./data/test-output/"
 
