@@ -5,14 +5,14 @@ import numpy as np
 import time
 
 path_dset = "./data/sample_0001/sample_0001.h5"
-path_out = "./data/test-output"
+path_out = "./data/test-output/"
 
 shifts = np.array([[0.0, 0.0], [4.0, 0.0], [9.0, -1.0], [14.0, -1.0], [17.0, -3.0]])
 
 if path_out in os.listdir("."):
     shutil.rmtree(path_out)
 
-os.mkdir(path_out)
+os.makedirs(path_out)
 
 sxdm.utils.bliss.make_xsocs_links(path_dset, path_out, None)
 
