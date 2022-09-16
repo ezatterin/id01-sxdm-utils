@@ -23,7 +23,7 @@ pip install --pre --find-links https://kmap.gitlab-pages.esrf.fr/xsocs/wheels/ x
 Then `id01lib`:
 
 ```bash
-pip install -e git+https://gitlab.esrf.fr/id01-science/id01-core.git#egg=id01lib
+pip install -e git+https://gitlab.esrf.fr/id01-science/id01-core.git#egg=id01-core
 ```
 
 Finally this package, `sxdm`:
