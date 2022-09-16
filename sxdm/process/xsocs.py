@@ -221,10 +221,13 @@ def _make_shift_master(path_out, path_dset):
 
 
 # TODO use concurrent.futures instead
-def shift_xsocs_data(path_dset, path_out, shifts, n_chunks=3, roi=None):
-    print(f"Using XSOCS installation: {xsocs.__file__}\n")
+def shift_xsocs_data(
+    path_dset, path_out, shifts, subh5_list=None, n_chunks=3, roi=None
+):
+
     name_sample = os.path.basename(path_dset).split("_")[0]
-    subh5_list = glob.glob(f"{path_out}/{name_sample}*.1.h5")
+    if subh5_list is None:
+        subh5_list = glob.glob(f"{path_out}/{name_sample}*.1.h5")
 
     with mp.Pool() as pool:
         pf = partial(_shift_write_data, path_dset, shifts, n_chunks, roi)
