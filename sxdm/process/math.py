@@ -180,7 +180,7 @@ def calc_coms_qspace3d(path_qspace, mask_reciprocal, n_pix=None, std=False):
                 p.imap(_partial_fun, range(map_shape_flat)), total=map_shape_flat
             ):
                 coms.append(res)
-        cx, cy, cz = np.array(coms).reshape(map_shape_flat, 003).T
+        cx, cy, cz = np.array(coms).reshape(map_shape_flat, 3).T
         return cx, cy, cz
 
 
