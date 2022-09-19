@@ -46,7 +46,7 @@ def ang_between(v1, v2):
     return out
 
 
-def _calc_com_3d(arr, x, y, z, n_pix=None):
+def _calc_com_3d(arr, x, y, z, n_pix=None, std=False):
     """
     Compute the centre of mass (COM) of an indexed 3D array.
 
@@ -77,11 +77,13 @@ def _calc_com_3d(arr, x, y, z, n_pix=None):
     # com
     prob = arr_idxs / arr_idxs.sum()
     cx, cy, cz = [np.sum(prob * q.ravel()[idxs]) for q in (x, y, z)]
+    if std == True:
+        stdx, stdy, stdz = [np.sqrt(np.sum(prob ** 2))*np.std(prob * q.ravel()[idxs]) for q in (x, y, z)]
+        return cx, cy, cz, stdx, stdy, stdz
+    else:
+        return cx, cy, cz
 
-    return cx, cy, cz
-
-
-def _calc_com_qspace3d(path_qspace, mask_reciprocal, idx, n_pix=None):
+def _calc_com_qspace3d(path_qspace, mask_reciprocal, idx, n_pix=None,std=False):
     """
     Compute the center of mass (COM) of an XSOCS 4D q-space array in q-space
     coordinates at position `idx`.
@@ -121,12 +123,14 @@ def _calc_com_qspace3d(path_qspace, mask_reciprocal, idx, n_pix=None):
         qxm, qym, qzm = [q[roi_rec_sl] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
 
         # com
-        cx, cy, cz = _calc_com_3d(arr, qxm, qym, qzm, n_pix=n_pix)
+        if std == True:
+            cx, cy, cz, stdx, stdy, stdz = _calc_com_3d(arr, qxm, qym, qzm, n_pix=n_pix, std=True)
+            return cx, cy, cz, stdx, stdy, stdz              
+        else:
+            cx, cy, cz = _calc_com_3d(arr, qxm, qym, qzm, n_pix=n_pix, std=False)
+            return cx, cy, cz
 
-        return cx, cy, cz
-
-
-def calc_coms_qspace3d(path_qspace, mask_reciprocal, n_pix=None):
+def calc_coms_qspace3d(path_qspace, mask_reciprocal, n_pix=None, std=False):
     """
     Compute the center of mass (COM) of an XSOCS 4D array for each direct space
     position. The 4D array is Intensity(direct_space_position, qx, qy, qz).
@@ -154,19 +158,30 @@ def calc_coms_qspace3d(path_qspace, mask_reciprocal, n_pix=None):
     with h5py.File(path_qspace, "r") as h5f:
         map_shape_flat = h5f["Data/qspace"].shape[0]
 
-    coms = []
-    with mp.Pool(processes=os.cpu_count()) as p:
-        _partial_fun = functools.partial(
-            _calc_com_qspace3d, path_qspace, mask_reciprocal, n_pix=n_pix
-        )
-        for res in tqdm(
-            p.imap(_partial_fun, range(map_shape_flat)), total=map_shape_flat
-        ):
-            coms.append(res)
-
-    cx, cy, cz = np.array(coms).reshape(map_shape_flat, 3).T
-
-    return cx, cy, cz
+    if std == True:
+        coms = []
+        with mp.Pool(processes=os.cpu_count()) as p:
+            _partial_fun = functools.partial(
+                _calc_com_qspace3d, path_qspace, mask_reciprocal, n_pix=n_pix, std=True
+            )
+            for res in tqdm(
+                p.imap(_partial_fun, range(map_shape_flat)), total=map_shape_flat
+            ):
+                coms.append(res)
+        cx, cy, cz, stdx, stdy, stdz = np.array(coms).reshape(map_shape_flat, 6).T
+        return cx, cy, cz, stdx, stdy, stdz
+    else:
+        coms = []
+        with mp.Pool(processes=os.cpu_count()) as p:
+            _partial_fun = functools.partial(
+                _calc_com_qspace3d, path_qspace, mask_reciprocal, n_pix=n_pix
+            )
+            for res in tqdm(
+                p.imap(_partial_fun, range(map_shape_flat)), total=map_shape_flat
+            ):
+                coms.append(res)
+        cx, cy, cz = np.array(coms).reshape(map_shape_flat, 003).T
+        return cx, cy, cz
 
 
 def _calc_roi_sum_chunk(path_qspace, roi_rec_sl, mask_direct, idx_range):
