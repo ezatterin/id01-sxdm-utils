@@ -57,12 +57,19 @@ def _calc_com_3d(arr, x, y, z, n_pix=None, std=False):
     x, y, z : numpy.ndarray
         3D arrays whose entries correspond to the coordinates of `arr` along each
         axis.
+    n_pix: int, optional
+        Restrict the computation of the COM for the `n_pix` strongest (most intense) pixels in the
+        3D q-space array.
+    std: bool, optional
+        Calculates the standard deviation of COMx, COMy, COMz. Useful to check in 2D d-spacing 
+        distribution maps whether or not you might have strained less strained areas in x, y, z
 
     Returns
     -------
     out : tuple
-        Coordinates of the COM of `arr` expressed within `x`, `y`, `z` coordinates.
-    """
+        Coordinates of the COM of `arr` expressed within `x`, `y`, `z` coordinates
+        If std=True returns COM and stderr of `arr` expressed as `x`, `y`, `z`,`stdx`, `stdy`, `stdz`
+        """
     arr = arr.ravel()
 
     # indexes of n_pix most intense pixels of array
@@ -100,9 +107,10 @@ def _calc_com_qspace3d(path_qspace, mask_reciprocal, idx, n_pix=None,std=False):
         Index of the first dimension of the 4D q-space array, i.e. the index of
         the sample position at which the 3D q-space volume was measured.
     n_pix : int, optional
-        Restrict the computation of the COM for the `n_pix` strongest pixels in the
-        3D q-space array.
-
+        Restrict the computation of the COM for the `n_pix` strongest pixels in the 3D q-space array.
+    std : bool, optional
+        Calculates the standard deviation of COMx, COMy, COMz. Useful to check in 2D d-spacing distribution maps
+        whether or not you might have strained/less strained areas in x, y, z
     Returns
     -------
     out : tuple
@@ -151,6 +159,9 @@ def calc_coms_qspace3d(path_qspace, mask_reciprocal, n_pix=None, std=False):
     -------
     cx, cy, cz : numpy.ndarray
         Coordinates of the q-space COM for each direct space position.
+    If std=True 
+    cx, cy, cz, stdx, stdy, stdz: numpy.ndarray
+        Coordinates of the q-space COM plus their relative standard deviation.
     """
     if type(mask_reciprocal) is not np.ndarray or len(mask_reciprocal.shape) < 3:
         raise TypeError('mask_reciprocal has to be a 3D numpy array')
