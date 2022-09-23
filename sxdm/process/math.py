@@ -78,7 +78,7 @@ def _calc_com_3d(arr, x, y, z, n_pix=None, std=False):
     prob = arr_idxs / arr_idxs.sum()
     cx, cy, cz = [np.sum(prob * q.ravel()[idxs]) for q in (x, y, z)]
     if std == True:
-        stdx, stdy, stdz = [np.sqrt(np.sum(prob ** 2))*np.std(prob * q.ravel()[idxs]) for q in (x, y, z)]
+        stdx, stdy, stdz = [np.sqrt(np.sum(prob*(q.ravel()[idxs]-com)**2)) for q,com in zip((x, y, z),(cx,cy,cz))]
         return cx, cy, cz, stdx, stdy, stdz
     else:
         return cx, cy, cz
