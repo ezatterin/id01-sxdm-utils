@@ -20,6 +20,7 @@ before_script:
 
 test:
   script:
+    - pip install hpy
     - pip install --pre --find-links https://kmap.gitlab-pages.esrf.fr/xsocs/wheels/ xsocs
     - pip install -e git+https://gitlab.esrf.fr/id01-science/id01-core.git#egg=id01-core
     - pip install .
