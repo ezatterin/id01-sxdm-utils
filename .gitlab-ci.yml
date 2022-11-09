@@ -9,7 +9,7 @@
 #     paths:
 #       - public
 
-image: python:latest
+image: python:3.9
 
 before_script:
   - export no_proxy='esrf.fr' 
