@@ -5,7 +5,6 @@ import shutil
 import glob
 import h5py
 import hdf5plugin
-import xsocs
 import time
 
 from functools import partial
@@ -227,7 +226,13 @@ def shift_xsocs_data(
 
     name_sample = os.path.basename(path_dset).split("_")[0]
     if subh5_list is None:
-        subh5_list = glob.glob(f"{path_out}/{name_sample}*.1.h5")
+        pattern = f"{path_out}/{name_sample}*.1.h5"
+        subh5_list = glob.glob(pattern)
+        print(f'Using subh5_list=None, shifting file pattern {pattern} !\n')
+
+    subh5_list = sorted(subh5_list, key=lambda x: x.split('_')[-1].split('.1')[-2])
+    if len(subh5_list) != len(shifts):
+        raise ValueError('subh5_list and shifts are not the same length!')
 
     with mp.Pool() as pool:
         pf = partial(_shift_write_data, path_dset, shifts, n_chunks, roi)
