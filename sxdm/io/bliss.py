@@ -111,8 +111,6 @@ def get_sxdm_frame_sum(
     else:
         path_data_h5 = f"/{scan_no}/instrument/{detector}/data"
 
-        path_data_h5 = f"/{scan_no}/instrument/{detector}/data"
-
         if n_threads is None:
             ncpu = os.cpu_count()
         else:
