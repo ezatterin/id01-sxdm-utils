@@ -104,10 +104,12 @@ def get_sxdm_frame_sum(
     """
     Return sum of all frames of an SXDM scan.
     """
-    h5_det = get_detector_aliases(path_dset,scan_no)[0]
+    detlist = get_detector_aliases(path_dset,scan_no)
     
-    if detector != h5_det:
-        raise ValueError(f'Found \'{h5_det}\' detector name, but defined \'{detector}\' in get_sxdm_frame_sum() function. Please, change it and retry')
+    if detector not in detlist:
+        raise ValueError(
+            f'Detector {detector} not in data file. Available detectors are: {detlist}.'
+            )
     else:
         path_data_h5 = f"/{scan_no}/instrument/{detector}/data"
 
@@ -133,7 +135,6 @@ def get_sxdm_frame_sum(
         frame_sum = np.stack(frame_sum_list).sum(0)
 
         return frame_sum
-
 
 
 @ioh5
