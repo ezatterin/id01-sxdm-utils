@@ -104,41 +104,37 @@ def get_sxdm_frame_sum(
     """
     Return sum of all frames of an SXDM scan.
     """
+    h5_det = get_detector_aliases(path_dset,scan_no)[0]
     
-    with h5py.File(path_dset, 'r') as det:
-        test = det[f'{scan_no}']['instrument'].keys()
-        find = detector in test
-        try:
-            if find == False:
-                raise ValueError
-        except ValueError:
-            print('ValueError: Detector name is not matching, please specify it in the function \nUsually \'mpxgaas\' or \'mpx1x4\'. Default detector: \'mpx1x4\' ')
+    if detector != h5_det:
+        raise ValueError(f'Found \'{h5_det}\' detector name, but defined \'{detector}\' in get_sxdm_frame_sum() function. Please, change it and retry')
+    else:
+        path_data_h5 = f"/{scan_no}/instrument/{detector}/data"
+
+        path_data_h5 = f"/{scan_no}/instrument/{detector}/data"
+
+        if n_threads is None:
+            ncpu = os.cpu_count()
         else:
-            path_data_h5 = f"/{scan_no}/instrument/{detector}/data"
+            ncpu = n_threads
 
+        with h5py.File(path_dset, "r") as h5f:
+            sh = h5f[path_data_h5].shape[:1]
 
-            if n_threads is None:
-                ncpu = os.cpu_count()
-            else:
-                ncpu = n_threads
+        indexes = _get_chunk_indexes(path_dset, path_data_h5, ncpu)
 
-            with h5py.File(path_dset, "r") as h5f:
-                sh = h5f[path_data_h5].shape[:1]
+        mask = mask_direct if mask_direct is not None else np.ones(sh)
+        idx_mask = {idx: val for idx, val in zip(np.indices(sh)[0], mask.flatten())}
 
-            indexes = _get_chunk_indexes(path_dset, path_data_h5, ncpu)
+        frame_sum_list = []
+        with mp.Pool(processes=ncpu) as p:
+            pfun = partial(_get_qspace_avg_chunk, path_dset, path_data_h5, idx_mask)
+            for res in tqdm(p.imap(pfun, indexes), total=len(indexes)):
+                frame_sum_list.append(res)
 
-            mask = mask_direct if mask_direct is not None else np.ones(sh)
-            idx_mask = {idx: val for idx, val in zip(np.indices(sh)[0], mask.flatten())}
+        frame_sum = np.stack(frame_sum_list).sum(0)
 
-            frame_sum_list = []
-            with mp.Pool(processes=ncpu) as p:
-                pfun = partial(_get_qspace_avg_chunk, path_dset, path_data_h5, idx_mask)
-                for res in tqdm(p.imap(pfun, indexes), total=len(indexes)):
-                    frame_sum_list.append(res)
-
-            frame_sum = np.stack(frame_sum_list).sum(0)
-
-            return frame_sum
+        return frame_sum
 
 
 
