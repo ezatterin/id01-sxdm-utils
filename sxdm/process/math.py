@@ -58,18 +58,21 @@ def _calc_com_3d(arr, x, y, z, n_pix=None, std=False):
         3D arrays whose entries correspond to the coordinates of `arr` along each
         axis.
     n_pix: int, optional
-        Restrict the computation of the COM for the `n_pix` strongest (most intense) pixels in the
+        Restrict the computation of the COM for the `n_pix` strongest (most intense)
+                pixels in the
         3D q-space array.
     std: bool, optional
-        Calculates the standard deviation of COMx, COMy, COMz. Useful to check in 2D d-spacing 
-        distribution maps whether or not you might have strained less strained areas in x, y, z
+        Calculates the standard deviation of COMx, COMy, COMz. Useful to check in
+        2D d-spacingdistribution maps whether or not you might have strained less
+        strained areas in x, y, z
 
     Returns
     -------
     out : tuple
         Coordinates of the COM of `arr` expressed within `x`, `y`, `z` coordinates
-        If std=True returns COM and stderr of `arr` expressed as `x`, `y`, `z`,`stdx`, `stdy`, `stdz`
-        """
+        If std=True returns COM and stderr of `arr` expressed as `x`, `y`, `z`,`stdx`,
+        `stdy`, `stdz`
+    """
     arr = arr.ravel()
 
     # indexes of n_pix most intense pixels of array
@@ -84,13 +87,17 @@ def _calc_com_3d(arr, x, y, z, n_pix=None, std=False):
     # com
     prob = arr_idxs / arr_idxs.sum()
     cx, cy, cz = [np.sum(prob * q.ravel()[idxs]) for q in (x, y, z)]
-    if std == True:
-        stdx, stdy, stdz = [np.sqrt(np.sum(prob*(q.ravel()[idxs]-com)**2)) for q,com in zip((x, y, z),(cx,cy,cz))]
+    if std is True:
+        stdx, stdy, stdz = [
+            np.sqrt(np.sum(prob * (q.ravel()[idxs] - com) ** 2))
+            for q, com in zip((x, y, z), (cx, cy, cz))
+        ]
         return cx, cy, cz, stdx, stdy, stdz
     else:
         return cx, cy, cz
 
-def _calc_com_qspace3d(path_qspace, mask_reciprocal, idx, n_pix=None,std=False):
+
+def _calc_com_qspace3d(path_qspace, mask_reciprocal, idx, n_pix=None, std=False):
     """
     Compute the center of mass (COM) of an XSOCS 4D q-space array in q-space
     coordinates at position `idx`.
@@ -107,9 +114,11 @@ def _calc_com_qspace3d(path_qspace, mask_reciprocal, idx, n_pix=None,std=False):
         Index of the first dimension of the 4D q-space array, i.e. the index of
         the sample position at which the 3D q-space volume was measured.
     n_pix : int, optional
-        Restrict the computation of the COM for the `n_pix` strongest pixels in the 3D q-space array.
+        Restrict the computation of the COM for the `n_pix` strongest pixels in the 3D
+        q-space array.
     std : bool, optional
-        Calculates the standard deviation of COMx, COMy, COMz. Useful to check in 2D d-spacing distribution maps
+        Calculates the standard deviation of COMx, COMy, COMz. Useful to check in 2D
+                d-spacing distribution maps
         whether or not you might have strained/less strained areas in x, y, z
     Returns
     -------
@@ -131,12 +140,15 @@ def _calc_com_qspace3d(path_qspace, mask_reciprocal, idx, n_pix=None,std=False):
         qxm, qym, qzm = [q[roi_rec_sl] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
 
         # com
-        if std == True:
-            cx, cy, cz, stdx, stdy, stdz = _calc_com_3d(arr, qxm, qym, qzm, n_pix=n_pix, std=True)
-            return cx, cy, cz, stdx, stdy, stdz              
+        if std is True:
+            cx, cy, cz, stdx, stdy, stdz = _calc_com_3d(
+                arr, qxm, qym, qzm, n_pix=n_pix, std=True
+            )
+            return cx, cy, cz, stdx, stdy, stdz
         else:
             cx, cy, cz = _calc_com_3d(arr, qxm, qym, qzm, n_pix=n_pix, std=False)
             return cx, cy, cz
+
 
 def calc_coms_qspace3d(path_qspace, mask_reciprocal, n_pix=None, std=False):
     """
@@ -159,17 +171,17 @@ def calc_coms_qspace3d(path_qspace, mask_reciprocal, n_pix=None, std=False):
     -------
     cx, cy, cz : numpy.ndarray
         Coordinates of the q-space COM for each direct space position.
-    If std=True 
+    If std=True
     cx, cy, cz, stdx, stdy, stdz: numpy.ndarray
         Coordinates of the q-space COM plus their relative standard deviation.
     """
     if type(mask_reciprocal) is not np.ndarray or len(mask_reciprocal.shape) < 3:
-        raise TypeError('mask_reciprocal has to be a 3D numpy array')
+        raise TypeError("mask_reciprocal has to be a 3D numpy array")
 
     with h5py.File(path_qspace, "r") as h5f:
         map_shape_flat = h5f["Data/qspace"].shape[0]
 
-    if std == True:
+    if std is True:
         coms = []
         with mp.Pool(processes=os.cpu_count()) as p:
             _partial_fun = functools.partial(
@@ -229,7 +241,7 @@ def calc_roi_sum(path_qspace, mask_reciprocal, mask_direct=None, n_proc=None):
         moment this works only for contiguous subarrays of the reciprocal space
         volume; that is, only "cube-like" masks are supported.
     mask_direct : numpy.ndarray
-        2D boolean array. True for portions *not* to be considered. 
+        2D boolean array. True for portions *not* to be considered.
     n_proc : int, optional
         Number of processes to spawn. Defaults to the number of logical machine cores.
 
