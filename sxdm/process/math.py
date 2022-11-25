@@ -45,8 +45,54 @@ def ang_between(v1, v2):
 
     return out
 
+def calc_com_2d(arr, x, y, n_pix=None, std=False):
+    """
+    Compute the centre of mass (COM) of an indexed 2D array.
 
-def _calc_com_3d(arr, x, y, z, n_pix=None, std=False):
+    Parameters
+    ----------
+    arr : numpy.ndarray
+        2D array of intensity values.
+    x, y : numpy.ndarray
+        2D arrays whose entries correspond to the coordinates of `arr` along each
+        axis.
+    n_pix: int, optional
+        Restrict the computation of the COM for the `n_pix` strongest (most intense)
+        pixels in the 2D q-space array.
+    std: bool, optional
+        Calculates the standard deviation of COMx, COMy.
+
+    Returns
+    -------
+    out : tuple
+        Coordinates of the COM of `arr` expressed within `x`, `y`, coordinates
+        If std=True returns COM and stderr of `arr` expressed as `x`, `y`,`stdx`,
+        `stdy
+    """
+    arr = arr.ravel()
+
+    # indexes of n_pix most intense pixels of array
+    if n_pix is not None:
+        idxs = arr.argsort()[::-1][:n_pix]
+    else:
+        idxs = arr.argsort()[::-1]
+
+    # intensity of such pixels
+    arr_idxs = arr[idxs]
+
+    # com
+    prob = arr_idxs / arr_idxs.sum()
+    cx, cy = [np.sum(prob * q.ravel()[idxs]) for q in (x, y)]
+    if std is True:
+        stdx, stdy = [
+            np.sqrt(np.sum(prob * (q.ravel()[idxs] - com) ** 2))
+            for q, com in zip((x, y), (cx, cy))
+        ]
+        return cx, cy, stdx, stdy
+    else:
+        return cx, cy
+
+def calc_com_3d(arr, x, y, z, n_pix=None, std=False):
     """
     Compute the centre of mass (COM) of an indexed 3D array.
 
@@ -59,8 +105,7 @@ def _calc_com_3d(arr, x, y, z, n_pix=None, std=False):
         axis.
     n_pix: int, optional
         Restrict the computation of the COM for the `n_pix` strongest (most intense)
-                pixels in the
-        3D q-space array.
+        pixels in the 3D q-space array.
     std: bool, optional
         Calculates the standard deviation of COMx, COMy, COMz. Useful to check in
         2D d-spacingdistribution maps whether or not you might have strained less
@@ -141,12 +186,12 @@ def _calc_com_qspace3d(path_qspace, mask_reciprocal, idx, n_pix=None, std=False)
 
         # com
         if std is True:
-            cx, cy, cz, stdx, stdy, stdz = _calc_com_3d(
+            cx, cy, cz, stdx, stdy, stdz = calc_com_3d(
                 arr, qxm, qym, qzm, n_pix=n_pix, std=True
             )
             return cx, cy, cz, stdx, stdy, stdz
         else:
-            cx, cy, cz = _calc_com_3d(arr, qxm, qym, qzm, n_pix=n_pix, std=False)
+            cx, cy, cz = calc_com_3d(arr, qxm, qym, qzm, n_pix=n_pix, std=False)
             return cx, cy, cz
 
 
