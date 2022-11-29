@@ -6,8 +6,10 @@ import os
 import numpy as np
 
 from matplotlib.widgets import Cursor
-from IPython.display import display
 from silx.io.h5py_utils import retry
+
+from IPython.display import display
+from IPython.terminal.pt_inputhooks import UnknownBackend
 from IPython import get_ipython
 
 from id01lib.io.bliss import get_positioner
@@ -22,7 +24,10 @@ from ...io.bliss import (
 
 ipython = get_ipython()
 if ipython is not None:
-    ipython.magic("matplotlib widget")
+    try:
+        ipython.magic("matplotlib widget")
+    except UnknownBackend:
+        pass
 
 # TODO:
 # - offset_between_two_points
