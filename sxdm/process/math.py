@@ -94,21 +94,21 @@ def calc_com_2d(arr, x, y, n_pix=None, std=False):
 
 def calc_com_3d(arr, x, y, z, n_pix=None, std=False):
     """
-    Compute the centre of mass (COM) of an indexed 3D array.
+    Compute the centre of mass (COM) of an indexed 3D or 2D array.
 
     Parameters
     ----------
     arr : numpy.ndarray
-        3D array of intensity values.
+        3D or 2D array of intensity values.
     x, y, z : numpy.ndarray
-        3D arrays whose entries correspond to the coordinates of `arr` along each
+        3D or 2D arrays whose entries correspond to the coordinates of `arr` along each
         axis.
     n_pix: int, optional
         Restrict the computation of the COM for the `n_pix` strongest (most intense)
         pixels in the 3D q-space array.
     std: bool, optional
         Calculates the standard deviation of COMx, COMy, COMz. Useful to check in
-        2D d-spacingdistribution maps whether or not you might have strained less
+        2D d-spacing distribution maps whether or not you might have strained less
         strained areas in x, y, z
 
     Returns
@@ -116,7 +116,7 @@ def calc_com_3d(arr, x, y, z, n_pix=None, std=False):
     out : tuple
         Coordinates of the COM of `arr` expressed within `x`, `y`, `z` coordinates
         If std=True returns COM and stderr of `arr` expressed as `x`, `y`, `z`,`stdx`,
-        `stdy`, `stdz`
+        `stdy`, `stdz`.
     """
     arr = arr.ravel()
 
