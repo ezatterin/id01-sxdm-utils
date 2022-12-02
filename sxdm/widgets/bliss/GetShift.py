@@ -381,6 +381,7 @@ class GetShiftCustom(object):
 
         self.data = img_list[0]
         self.img_idx = 0
+        self.init = True
 
         self.shifts = (
             np.zeros((len(img_list), 2)) if init_shifts is None else init_shifts
@@ -598,9 +599,10 @@ class GetShiftCustom(object):
 
     def _calc_shifts(self):
 
-        if self.shifts.any() == True:
+        if self.shifts.any() == True and self.init == True:
             for x in range(1, len(self.img_list)):
                 self.marks[x] = list(np.array(self.marks[0]) - self.shifts[x][::-1])
+            self.init = False
         else:
             pos = [
                 self.marks[x] if self.marks[x] is not None else self.marks[0]
