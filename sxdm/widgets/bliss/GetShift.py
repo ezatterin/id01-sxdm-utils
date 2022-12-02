@@ -23,6 +23,7 @@ if ipython is not None:
     except UnknownBackend:
         pass
 
+
 class GetShift(object):
     def __init__(
         self,
@@ -354,11 +355,11 @@ class GetShift(object):
 
 
 class GetShiftCustom(object):
-    
     def __init__(
         self,
         img_list,
         fixed_clims=None,
+        init_shifts=None,
     ):
         """
         Estimate shift between images of counters acquired during an SXDM experiment.
@@ -367,20 +368,24 @@ class GetShiftCustom(object):
         ----------
         img_list : list of 2D np.ndarray
             List of images to be shifted.
+            List of scan numbers to be treated, of the form ['1.1', '2.1', '3.1'].
+            Name of the counter to be displayed by default.
         fixed_clims : list, optional
             List of [lower, upper] intensity colour limits. Defaults to [max, min] of
             the displayed data.
         """
 
-        self.fixed_clims = fixed_clims
+        self.fixed_clims = fixed_clims if fixed_clims is not None else False
         self.img_list = img_list
         self.figout = ipw.Output(layout=dict(border="2px solid grey"))
-        
+
         self.data = img_list[0]
         self.img_idx = 0
-        
-        self.shifts = np.zeros((len(img_list), 2))
-        self.marks = {key:None for key in range(len(img_list))}
+
+        self.shifts = (
+            np.zeros((len(img_list), 2)) if init_shifts is None else init_shifts
+        )
+        self.marks = {key: None for key in range(len(img_list))}
 
         self._init_fig()
         self._update_norm({"new": False})
@@ -442,11 +447,11 @@ class GetShiftCustom(object):
         self.shiftit.observe(self._apply_shift_counter)
 
         # incr or decr scan idx
-        self.fwd = ipw.Button(description=">>")
-        self.fwd.on_click(self._img_idx_fwd)
+        self._fwd = ipw.Button(description=">>")
+        self._fwd.on_click(self._img_idx_fwd)
 
-        self.bkw = ipw.Button(description="<<")
-        self.bkw.on_click(self._img_idx_bkw)
+        self._bkw = ipw.Button(description="<<")
+        self._bkw.on_click(self._img_idx_bkw)
 
         # shifts
         self.shifts_widget = ipw.HTML()
@@ -460,7 +465,7 @@ class GetShiftCustom(object):
         ifs = ipw.VBox(
             [
                 ipw.HBox([self.iflog], layout=cblayout),
-                ipw.HBox([self.bkw, self.fwd], layout=cblayout),
+                ipw.HBox([self._bkw, self._fwd], layout=cblayout),
                 ipw.HBox([self.shiftit], layout=cblayout),
                 self.shifts_widget,
             ]
@@ -500,7 +505,7 @@ class GetShiftCustom(object):
         im = self.img
         data = im.get_array()
 
-        if self.fixed_clims is None:
+        if not self.fixed_clims:
             _clims = [data[data.nonzero()].min(), data.max()]
         else:
             _clims = self.fixed_clims
@@ -572,7 +577,7 @@ class GetShiftCustom(object):
         else:
             self.img.set_data(self.img_list[self.img_idx])
         self.ax.set_title(f"#{self.img_idx}")
-        
+
         self._update_norm({"new": self.iflog.value})
         self._update_mark()
         self._calc_shifts()
@@ -583,20 +588,26 @@ class GetShiftCustom(object):
             self._calc_shifts()
             self.img_list_shifted = {
                 n: ndi.shift(x, s, order=0)
-                for n, x, s in zip(range(len(self.img_list)), self.img_list, self.shifts)
+                for n, x, s in zip(
+                    range(len(self.img_list)), self.img_list, self.shifts
+                )
             }
             self.idxsel.value = 0
         else:
             self.idxsel.value = 0
 
     def _calc_shifts(self):
-        pos = [
-            self.marks[x] if self.marks[x] is not None else self.marks[0]
-            for x in range(len(self.img_list))
-        ]
-        shifts = np.array(pos) - np.array(pos[0])
 
-        self.shifts = np.fliplr(-shifts)
+        if self.shifts.any() == True:
+            for x in range(1, len(self.img_list)):
+                self.marks[x] = list(np.array(self.marks[0]) - self.shifts[x][::-1])
+        else:
+            pos = [
+                self.marks[x] if self.marks[x] is not None else self.marks[0]
+                for x in range(len(self.img_list))
+            ]
+            shifts = np.array(pos) - np.array(pos[0])
+            self.shifts = np.fliplr(-shifts)
         self._update_shifts_tab()
 
     def _update_shifts_tab(self):
