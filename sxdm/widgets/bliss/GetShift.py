@@ -6,6 +6,8 @@ import numpy as np
 import scipy.ndimage as ndi
 
 from IPython.display import display
+from IPython.terminal.pt_inputhooks import UnknownBackend
+from IPython import get_ipython
 
 from sxdm.io.utils import list_available_counters
 from sxdm.plot.utils import add_colorbar
@@ -14,6 +16,12 @@ from sxdm.io.bliss import (
     get_piezo_motor_names,
 )
 
+ipython = get_ipython()
+if ipython is not None:
+    try:
+        ipython.magic("matplotlib widget")
+    except UnknownBackend:
+        pass
 
 class GetShift(object):
     def __init__(
@@ -90,7 +98,6 @@ class GetShift(object):
         _ = add_colorbar(ax, self.img)
         _ = ax.set_xlabel(f"{self.m1name} (pixels)")
         _ = ax.set_ylabel(f"{self.m2name} (pixels)")
-        _ = ax.set_title(f"#{self.scan_no} - {self.counter_name}")
         _ = ax.set_title(f"{self.dsetname}\n#{self.scan_no} - {self.counter_name}")
 
         # connect to mpl event manager
@@ -312,6 +319,280 @@ class GetShift(object):
         pos = [
             self.marks[x] if self.marks[x] is not None else self.marks[self.scan_nos[0]]
             for x in self.scan_nos
+        ]
+        shifts = np.array(pos) - np.array(pos[0])
+
+        self.shifts = np.fliplr(-shifts)
+        self._update_shifts_tab()
+
+    def _update_shifts_tab(self):
+        shifts_tab = [
+            "<div>",
+            "<style>",
+            "    .specs tbody {",
+            "        font-family: Liberation Sans, sans-serif ;",
+            "        font-size: small ;",
+            "        text-align: right ;",
+            "    }",
+            "</style>",
+            '<table class="specs rendered_html output_html">',
+            "  <tbody>",
+            "    <tr>",
+            "      <th>rows</th>",
+            "      <th>cols</th>",
+            "    </tr>",
+            *[
+                f"     <tr><td>{x:.3f}</td><td>{y:.3f}</td></tr>"
+                for x, y in self.shifts
+            ],
+            "  </tbody>",
+            "</table>",
+            "</div>",
+        ]
+
+        self.shifts_widget.value = "\n".join(shifts_tab)
+
+
+class GetShiftCustom(object):
+    
+    def __init__(
+        self,
+        img_list,
+        fixed_clims=None,
+    ):
+        """
+        Estimate shift between images of counters acquired during an SXDM experiment.
+
+        Parameters
+        ----------
+        img_list : list of 2D np.ndarray
+            List of images to be shifted.
+        fixed_clims : list, optional
+            List of [lower, upper] intensity colour limits. Defaults to [max, min] of
+            the displayed data.
+        """
+
+        self.fixed_clims = fixed_clims
+        self.img_list = img_list
+        self.figout = ipw.Output(layout=dict(border="2px solid grey"))
+        
+        self.data = img_list[0]
+        self.img_idx = 0
+        
+        self.shifts = np.zeros((len(img_list), 2))
+        self.marks = {key:None for key in range(len(img_list))}
+
+        self._init_fig()
+        self._update_norm({"new": False})
+        self._init_widgets()
+        self._calc_shifts()
+
+    def _init_fig(self):
+
+        with plt.ioff():
+            fig, ax = plt.subplots(1, 1, figsize=(4, 4), layout="tight")
+        with self.figout:
+            display(fig.canvas)
+        self.fig, self.ax = fig, ax
+
+        # image
+        self.img = ax.imshow(self.data, origin="lower")
+
+        # init scatter
+        dim0, dim1 = self.data.shape
+        self.refmark = ax.scatter(dim1 // 2, dim0 // 2, marker="x", color="red")
+        self.marks[self.img_idx] = [dim1 // 2, dim0 // 2]
+
+        # labels etc
+        _ = add_colorbar(ax, self.img)
+        _ = ax.set_title(f"#{self.img_idx}")
+
+        # connect to mpl event manager
+        self.fig.canvas.mpl_connect("button_press_event", self._on_click)
+
+    def _init_widgets(self):
+
+        # layout of individual items - css properties
+        items_layout = ipw.Layout(width="auto")
+
+        # slider to select scan index
+        self.idxsel = ipw.IntSlider(
+            value=self.img_idx,
+            min=0,
+            max=(len(self.img_list) - 1),
+            step=1,
+            layout=items_layout,
+            description="Scan index",
+        )
+        self.idxsel.observe(self._update_scan, names="value")
+
+        # log scale the images?
+        self.iflog = ipw.Checkbox(
+            value=False, description="Log Intensity", layout=items_layout, indent=False
+        )
+        self.iflog.observe(self._update_norm, names="value")
+
+        # shift?
+        self.shiftit = ipw.ToggleButton(
+            value=False,
+            description="Apply shift to images",
+            tooltip="Apply shift to images",
+            layout={"width": "100%"},
+        )
+        self.shiftit.observe(self._apply_shift_counter)
+
+        # incr or decr scan idx
+        self.fwd = ipw.Button(description=">>")
+        self.fwd.on_click(self._img_idx_fwd)
+
+        self.bkw = ipw.Button(description="<<")
+        self.bkw.on_click(self._img_idx_bkw)
+
+        # shifts
+        self.shifts_widget = ipw.HTML()
+
+        # group checkboxes
+        cblayout = {
+            "width": "auto",
+            "flex_flow": "row nowrap",
+            "justify_content": "center",
+        }
+        ifs = ipw.VBox(
+            [
+                ipw.HBox([self.iflog], layout=cblayout),
+                ipw.HBox([self.bkw, self.fwd], layout=cblayout),
+                ipw.HBox([self.shiftit], layout=cblayout),
+                self.shifts_widget,
+            ]
+        )
+
+        # group all widgets together
+        self.selector = ipw.VBox([self.idxsel, ifs])
+        self.selector.layout = {
+            "border": "2px solid grey",
+            "width": "30%",
+            "padding": "2px",
+            "align-items": "stretch",
+        }
+
+    def _img_idx_fwd(self, widget):
+        try:
+            self.img_idx += 1
+            self._update_scan({"new": self.img_idx})
+        except (IndexError, KeyError):
+            self.img_idx -= 1
+        self.idxsel.value = self.img_idx
+
+    def _img_idx_bkw(self, widget):
+
+        if self.img_idx > 0:
+            self.img_idx -= 1
+            self._update_scan({"new": self.img_idx})
+        elif self.img_idx < 0:
+            self.img_idx += 1
+        self.idxsel.value = self.img_idx
+
+    def _update_norm(self, change):
+        # when scan idx changed with slider (_update_scan)
+
+        islog = change["new"]
+
+        im = self.img
+        data = im.get_array()
+
+        if self.fixed_clims is None:
+            _clims = [data[data.nonzero()].min(), data.max()]
+        else:
+            _clims = self.fixed_clims
+        self.clims = _clims
+
+        if islog:
+            try:
+                _ = im.set_norm(mpl.colors.LogNorm(*_clims))
+            except ValueError as err:
+                print(f"{err}, setting lower bound to 0.1")
+                _ = im.set_norm(mpl.colors.LogNorm(0.1, _clims[1]))
+        else:
+            _ = im.set_norm(mpl.colors.Normalize(*_clims))
+
+    def show(self):
+        """
+        Displays widget.
+        """
+
+        display(
+            ipw.HBox(
+                [self.selector, self.figout],
+                layout={"justify-content": "space-between"},
+            )
+        )
+
+    def _on_click(self, event):
+        with self.figout:
+            if event.inaxes == self.ax:
+                x, y = event.xdata, event.ydata
+
+                msg = f"You clicked: col={x:.4f}, row={y:.4f}"
+                print(f"\r {msg}", flush=True, end="")
+
+                if self.fig.canvas.toolbar.mode == "":
+                    self.refmark.set_offsets([x, y])
+                    self.marks[self.img_idx] = [x, y]
+                else:
+                    pass
+
+            else:
+                pass
+
+    def _update_mark(self):
+        # when scan idx changed with slider (_update_scan)
+
+        if self.marks[self.img_idx] is None:
+            off = self.marks[self.img_idx - 1]
+
+            if off is None:  # because you skip scans with slider
+                off = self.marks[0]
+            if self.shiftit.value:
+                off += self.shifts[self.img_idx][::-1]
+
+            self.refmark.set_offsets(off)
+            self.marks[self.img_idx] = off
+        else:
+            off = self.marks[self.img_idx]
+            if self.shiftit.value:
+                off += self.shifts[self.img_idx][::-1]
+            self.refmark.set_offsets(off)
+
+    def _update_scan(self, change):
+        # when scan idx changed with slider
+
+        self.img_idx = change["new"]
+        if self.shiftit.value:
+            self.img.set_data(self.img_list_shifted[self.img_idx])
+        else:
+            self.img.set_data(self.img_list[self.img_idx])
+        self.ax.set_title(f"#{self.img_idx}")
+        
+        self._update_norm({"new": self.iflog.value})
+        self._update_mark()
+        self._calc_shifts()
+
+    def _apply_shift_counter(self, change):
+
+        if self.shiftit.value:
+            self._calc_shifts()
+            self.img_list_shifted = {
+                n: ndi.shift(x, s, order=0)
+                for n, x, s in zip(range(len(self.img_list)), self.img_list, self.shifts)
+            }
+            self.idxsel.value = 0
+        else:
+            self.idxsel.value = 0
+
+    def _calc_shifts(self):
+        pos = [
+            self.marks[x] if self.marks[x] is not None else self.marks[0]
+            for x in range(len(self.img_list))
         ]
         shifts = np.array(pos) - np.array(pos[0])
 
