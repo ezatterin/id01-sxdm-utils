@@ -49,7 +49,7 @@ class GetShift(object):
         """
 
         self.path_h5 = path_h5
-        self.scan_nos = sorted(scan_nos, key=lambda x: x.split(".")[0])
+        self.scan_nos = scan_nos
         self.counter_name = counter_name
         self.fixed_clims = fixed_clims
         self.dsetname = os.path.basename(path_h5)
@@ -153,6 +153,10 @@ class GetShift(object):
 
         # shifts
         self.shifts_widget = ipw.HTML()
+        view_shifts = ipw.Accordion([self.shifts_widget])
+        view_shifts.set_title(0, "View shifts")
+        view_shifts.selected_index = None
+        view_shifts.layout = {"font-family": "Liberation Sans"}
 
         # group checkboxes
         cblayout = {
@@ -165,7 +169,7 @@ class GetShift(object):
                 ipw.HBox([self.iflog], layout=cblayout),
                 ipw.HBox([self.bkw, self.fwd], layout=cblayout),
                 ipw.HBox([self.shiftit], layout=cblayout),
-                self.shifts_widget,
+                view_shifts,
             ]
         )
 
@@ -456,6 +460,10 @@ class GetShiftCustom(object):
 
         # shifts
         self.shifts_widget = ipw.HTML()
+        view_shifts = ipw.Accordion([self.shifts_widget])
+        view_shifts.set_title(0, "View shifts")
+        view_shifts.selected_index = None
+        view_shifts.layout = {"font-family": "Liberation Sans"}
 
         # group checkboxes
         cblayout = {
@@ -468,7 +476,7 @@ class GetShiftCustom(object):
                 ipw.HBox([self.iflog], layout=cblayout),
                 ipw.HBox([self._bkw, self._fwd], layout=cblayout),
                 ipw.HBox([self.shiftit], layout=cblayout),
-                self.shifts_widget,
+                view_shifts,
             ]
         )
 
