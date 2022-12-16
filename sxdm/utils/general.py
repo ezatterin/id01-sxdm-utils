@@ -127,19 +127,22 @@ def get_shift(
         2D array giving shifts in pixels along rows (first col)
         and columns (second col).
     raw_maps : list of np.ndarray
-        List of *raw* SXDM maps of the specified ROI sorted according to the scan list 
+        List of *raw* SXDM maps of the specified ROI sorted according to the scan list
         provided as input.
     shifted_maps : list of np.ndarray
-        List of *shifted* SXDM maps of the specified ROI sorted according to the scan 
+        List of *shifted* SXDM maps of the specified ROI sorted according to the scan
         list provided as input.
 
     Example
     -------
-    >>> shifts, raw_maps, shited_maps = get_shift('data.h5',
-                                                  'mpx1x4_mpx4int',
-                                                  [f'{x}.1' for x in range(1,41)],
-                                                  med_filt=[2,2],
-                                                  return_maps=True)
+    >>> shifts, raw_maps, shited_maps = sxdm.utils.get_shift(
+            path_dset,
+            roi="mpx1x4_roi1",
+            scan_nums=[f"{x}.1" for x in range(1, 61)],
+            return_maps=True,
+            med_filt=(2,2),
+            reference_mask=mask
+        )
     """
 
     # raw ROIs
@@ -171,6 +174,7 @@ def get_shift(
         return shifts, sxdm_raw, sxdm_shifted
     else:
         return shifts
+
 
 def slice_from_mask():
     pass
