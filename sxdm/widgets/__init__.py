@@ -9,3 +9,4 @@ except ValueError:
     pass
 
 from . import (spec, xsocs)
+from .Inspect4DArray import Inspect4DArray
