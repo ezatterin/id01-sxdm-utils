@@ -1,5 +1,6 @@
 import matplotlib as mpl
 
+from .Inspect4DArray import Inspect4DArray
 from . import bliss
 
 try:
@@ -9,4 +10,3 @@ except ValueError:
     pass
 
 from . import (spec, xsocs)
-from .Inspect4DArray import Inspect4DArray
