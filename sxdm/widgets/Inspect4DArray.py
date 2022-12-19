@@ -2,6 +2,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import ipywidgets as ipw
 import numpy as np
+import h5py
 
 from ..plot.utils import add_colorbar
 from IPython.display import display
@@ -12,12 +13,14 @@ class Inspect4DArray(object):
     def __init__(self, arr, fixed_clims=None):
         # arr is 4D - d0, d1, d2, d3
 
+        self.ish5 = False if not isinstance(arr, h5py.Dataset) else True
         self.data = arr
         self.d0 = 30
         self.d1 = 30
 
-        self.lower_data = self.data.sum(axis=(2, 3))
-        self.higher_data = self.data.sum(axis=(0, 1))
+        if not self.ish5:
+            self.lower_data = self.data.sum(axis=(2, 3))
+            self.higher_data = self.data.sum(axis=(0, 1))
 
         self.fixed_clims = fixed_clims
 
@@ -26,10 +29,12 @@ class Inspect4DArray(object):
 
     def _init_fig(self):
 
-        self.figout = ipw.Output(layout=dict(border="2px solid grey"))
+        self.figout = ipw.Output(
+            layout=dict(border="2px solid grey", flex="4 1 0%", width="auto")
+        )
 
         with plt.ioff():
-            fig, ax = plt.subplots(1, 2, figsize=(7, 3))
+            fig, ax = plt.subplots(1, 2, figsize=(8, 3.5))
         with self.figout:
             display(fig.canvas)
 
@@ -38,14 +43,14 @@ class Inspect4DArray(object):
 
         self.lower_curpos = ax[0].scatter(0, 0, marker="x", c="r")
         self.higher_curpos = ax[1].scatter(100, 100, marker="x", c="r")
-        
+
         for a in ax:
             add_colorbar(a, a.get_images()[0])
-            
+
         ax[0].set_title("Sum over d2, d3")
         ax[1].set_title("Sum over d0, d1")
-        
-        fig.subplots_adjust(wspace=.4, left=.1)
+
+        fig.subplots_adjust(left=0.05, right=0.9, wspace=0.4)
         fig.canvas.mpl_connect("button_press_event", self._onclick_callback)
         fig.canvas.mpl_connect("key_press_event", self._onkey)
 
@@ -69,7 +74,7 @@ class Inspect4DArray(object):
                 )
             )
         [s.set_active(False) for s in self.custom_roi_selectors]
-        
+
         # log scale?
         self.iflog = ipw.Checkbox(value=False, description="Log Intensity")
         self.iflog.observe(self._update_norm, names="value")
@@ -81,18 +86,19 @@ class Inspect4DArray(object):
         # custom (d2, d3) roi?
         self.if23roi = ipw.Checkbox(value=False, description="Define new (d2, d3) ROI")
         self.if23roi.observe(self._is_d23_roi, names="value")
-        
-#         for w in (self.iflog, self.if01roi, self.if23roi):
-#             w.layout = ipw.Layout(width='auto')
+
+        for w in (self.iflog, self.if01roi, self.if23roi):
+            w.layout = ipw.Layout(width="auto")
+            w.indent = False
 
         # group widgets together
         self.widgets = ipw.VBox(
             [self.iflog, self.if01roi, self.if23roi],
             layout=dict(
                 border="2px solid grey",
-                width="20%",
-                justify_content="center",
-                flex_flow="column nowrap",
+                align_items="stretch",
+                flex="1 1 0%",
+                width="auto",
             ),
         )
 
@@ -167,12 +173,17 @@ class Inspect4DArray(object):
                 self.higher_img.set_data(self.higher_data)
                 self.lower_curpos.set_offsets([self.col, self.row])
 
+                self.ax[0].set_title("Index: [{}, {}]".format(self.row, self.col))
+                self.ax[1].set_title("Intensity @ [{}, {}]".format(self.row, self.col))
+
             elif self.idx == 1:
                 self.lower_data = self.data[:, :, self.row, self.col]
                 self.lower_img.set_data(self.lower_data)
                 self.higher_curpos.set_offsets([self.col, self.row])
 
-            self.ax[self.idx].set_title("Index: [{}, {}]".format(self.row, self.col))
+                self.ax[1].set_title("Index: [{}, {}]".format(self.row, self.col))
+                self.ax[0].set_title("Features @ [{}, {}]".format(self.row, self.col))
+
         else:
             if self.idx == 0:
                 self.higher_data = self.data[
@@ -199,7 +210,7 @@ class Inspect4DArray(object):
         for im in [a.get_images()[0] for a in self.ax]:
             data = im.get_array()
 
-            if self.fixed_clims == None:
+            if self.fixed_clims is None:
                 try:
                     _clims = [data[data.nonzero()].min(), data.max()]
                 except ValueError:  # only 0s
@@ -219,4 +230,6 @@ class Inspect4DArray(object):
                 _ = im.set_norm(mpl.colors.Normalize(*_clims))
 
     def show(self):
-        display(ipw.HBox([self.widgets, self.figout]))
+        display(
+            ipw.HBox([self.widgets, self.figout], layout=dict(align_items="stretch"))
+        )
