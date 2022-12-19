@@ -607,7 +607,7 @@ class GetShiftCustom(object):
 
     def _calc_shifts(self):
 
-        if self.shifts.any() == True and self.init == True:
+        if self.shifts.any() is True and self.init is True:
             for x in range(1, len(self.img_list)):
                 self.marks[x] = list(np.array(self.marks[0]) - self.shifts[x][::-1])
             self.init = False
