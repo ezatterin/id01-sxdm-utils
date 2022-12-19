@@ -40,18 +40,20 @@ def get_datetime(h5f, scan_no):
 
     return dtime
 
+
 @ioh5
 def get_detcalib(h5f, scan_no):
     params = dict(beam_energy=0, center_chan=[], chan_per_deg=[])
-    calib = h5f[f'{scan_no}/instrument/detector']
+    calib = h5f[f"{scan_no}/instrument/detector"]
 
     for key in params.keys():
-        if key == 'beam_energy':
+        if key == "beam_energy":
             params[key] = calib[key][()]
         else:
-            params[key] = [calib[f'{key}_dim{i}'][()] for i in (0,1)]
+            params[key] = [calib[f"{key}_dim{i}"][()] for i in (0, 1)]
 
     return params
+
 
 def get_piezo_motor_names(h5f, scan_no):
     command = get_command(h5f, scan_no)
@@ -104,12 +106,12 @@ def get_sxdm_frame_sum(
     """
     Return sum of all frames of an SXDM scan.
     """
-    detlist = get_detector_aliases(path_dset,scan_no)
-    
+    detlist = get_detector_aliases(path_dset, scan_no)
+
     if detector not in detlist:
         raise ValueError(
-            f'Detector {detector} not in data file. Available detectors are: {detlist}.'
-            )
+            f"Detector {detector} not in data file. Available detectors are: {detlist}."
+        )
     else:
         path_data_h5 = f"/{scan_no}/instrument/{detector}/data"
 
@@ -135,6 +137,70 @@ def get_sxdm_frame_sum(
         frame_sum = np.stack(frame_sum_list).sum(0)
 
         return frame_sum
+
+
+def _calc_pos_sum_chunk(
+    path_dset, scan_no, detector, roi_rec_sl, mask_direct, idx_range
+):
+    """
+    Calculate the intensity of a 5D qspace dataset:
+    * for the direct space indexes in the range `idx_range`;
+    * within the reciprocal space slice `roi_rec_sl`;
+    * masked in direct space where `mask_direct` is True.
+
+    Returns a `numpy.masked_array`.
+    """
+    i0, i1 = idx_range
+
+    roi_slice = (slice(i0, i1, None), *roi_rec_sl)  # 4D
+    mask_dir_range = mask_direct[i0:i1]
+
+    with h5py.File(path_dset, "r") as h5f:
+        arr = h5f[f"{scan_no}/measurement/{detector}"][roi_slice].sum(axis=(1, 2))
+
+    return np.ma.masked_where(mask_dir_range, arr)
+
+
+def get_sxdm_pos_sum(
+    path_dset,
+    scan_no,
+    detector="mpx1x4",
+    mask_reciprocal=None,
+    mask_direct=None,
+    n_proc=None,
+):
+
+    path_h5_data = f"{scan_no}/measurement/{detector}"
+
+    if n_proc is None:
+        n_proc = os.cpu_count()
+
+    # direct space shape (1D)
+    with h5py.File(path_dset, "r") as h5f:
+        sh = h5f[path_h5_data].shape[0]
+
+    # list of idx ranges [(i0, i1), (i0, i1), ...]
+    idxs_list = _get_chunk_indexes(path_dset, path_h5_data, n_threads=n_proc)
+
+    # recipocal space slice from mask
+    if mask_reciprocal is not None:
+        roi_rec = np.where(np.invert(mask_reciprocal))
+        roi_rec_sl = tuple([slice(x.min(), x.max() + 1) for x in roi_rec])
+    else:
+        roi_rec_sl = np.s_[:,:]
+
+    # direct space mask
+    mask_dir = mask_direct.flatten() if mask_direct is not None else np.zeros(sh)
+
+    pfun = partial(
+        _calc_pos_sum_chunk, path_dset, scan_no, detector, roi_rec_sl, mask_dir
+    )
+    roi_sum_list = []
+    with mp.Pool(processes=n_proc) as p:
+        for res in tqdm(p.imap(pfun, idxs_list), total=len(idxs_list)):
+            roi_sum_list.append(res)
+
+    return np.ma.concatenate(roi_sum_list)
 
 
 @ioh5
