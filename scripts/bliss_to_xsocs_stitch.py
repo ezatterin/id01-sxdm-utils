@@ -206,7 +206,7 @@ def make_links(path_dset, path_out, scan_nums, detector, name_outh5=None):
                     try:
                         new_c = pi_motor_names[pp]
                         xsocsh5f.add_file_link(
-                            f"{entry_name}/measurement/{new_c}",
+                            f"{_entry_name}/measurement/{new_c}",
                             path_dset,
                             f"{scan_num}/instrument/{pp}/value",
                         )
