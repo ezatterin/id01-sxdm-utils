@@ -203,12 +203,15 @@ def make_links(path_dset, path_out, scan_nums, detector, name_outh5=None):
                         )
 
                 for pp in pi_positioners:
-                    new_c = pi_motor_names[pp]
-                    xsocsh5f.add_file_link(
-                        f"{_entry_name}/measurement/{new_c}",
-                        path_dset,
-                        f"{scan_num}/instrument/{pp}/value",
-                    )
+                    try:
+                        new_c = pi_motor_names[pp]
+                        xsocsh5f.add_file_link(
+                            f"{_entry_name}/measurement/{new_c}",
+                            path_dset,
+                            f"{scan_num}/instrument/{pp}/value",
+                        )
+                    except KeyError:
+                        pass
 
                 _imgnr = np.arange(_entry[f"measurement/{detector}"].shape[0])
                 xsocsh5f._set_array_data(f"{_entry_name}/measurement/imgnr", _imgnr)
