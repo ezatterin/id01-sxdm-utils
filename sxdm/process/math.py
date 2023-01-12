@@ -5,8 +5,105 @@ import os
 import functools
 
 from tqdm.auto import tqdm
+from xsocs.util import project
+from silx.math import fit
+from silx.math.fit import fittheories
+from numpy.linalg import LinAlgError
 
 from ..io.utils import _get_chunk_indexes
+
+
+def _gauss_fit_point(path_qspace, roi_slice, rec_axis, qcoords, mask, dir_idx):
+
+    with h5py.File(path_qspace, "r") as h5f:
+        local_diffr = h5f["Data/qspace"][dir_idx][roi_slice]
+
+    # load profile
+    x, y = qcoords[rec_axis], project(local_diffr)[rec_axis]
+
+    # estimate and subtract background
+    bg = fit.snip1d(y, len(y))
+    y -= bg
+
+    # guess initial params
+    area = y.sum() * (x[-1] - x[0]) / len(x)
+    mu = x[y.argmax()]
+    fwhm = 2.3 * area / (y.max() * np.sqrt(2 * np.pi))
+
+    # area, centroid, fwhm
+    if dir_idx not in np.where(mask.flatten())[0]:
+        try:
+            params, cov, info = fit.leastsq(
+                fit.sum_agauss, x, y, p0=[area, mu, fwhm], full_output=True
+            )
+        except LinAlgError:
+            raise Exception
+    else:
+        return [0, 0, 0]
+
+    return params
+
+
+def gauss_fit_multi_point(path_qspace, roi_slice, rec_axis, qcoords, dir_idx):
+
+    with h5py.File(path_qspace, "r") as h5f:
+        local_diffr = h5f["Data/qspace"][dir_idx][roi_slice]
+
+    # load profile
+    x, y = qcoords[rec_axis], project(local_diffr)[rec_axis]
+
+    fm = fit.FitManager(x=x, y=y, weight_flag=True)
+    fm.loadtheories(fittheories)
+    fm.settheory("Area Gaussians")
+    fm.setbackground("Strip")
+
+    try:
+        fm.estimate()
+        fm.runfit()
+    except (TypeError, LinAlgError):
+        return [0, 0, 0]
+
+    params = []
+    for p in fm.fit_results:
+        if any([s in p["name"] for s in ("Area", "Position", "FWHM")]):
+            params.append(p["fitresult"])
+
+    return params
+
+
+def gauss_fit(path_qspace, mask, multi=False):
+
+    with h5py.File(path_qspace, "r") as h5f:
+        dir_idxs = range(h5f["Data/qspace"].shape[0])
+        qx, qy, qz = [h5f[f"Data/{x}"][...] for x in "qx,qy,qz".split(",")]
+
+    roi_slice = tuple([slice(x.min(), x.max() + 1) for x in np.where(~mask)])
+    roi_qcoords = [q[roi_slice] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
+    qcoords = roi_qcoords[0][:, 0, 0], roi_qcoords[1][0, :, 0], roi_qcoords[2][0, 0, :]
+
+    fits_free = {key: None for key in ("qx", "qy", "qz")}
+    axidx = {0: "qx", 1: "qy", 2: "qz"}
+
+    with mp.Pool(os.cpu_count()) as pool:
+
+        for rec_axis in (0, 1, 2):
+            fitls = []
+            fun = _gauss_fit_point if not multi else gauss_fit_multi_point
+
+            pfun = functools.partial(
+                fun, path_qspace, roi_slice, rec_axis, qcoords, mask
+            )
+
+            for i, res in zip(dir_idxs, pool.imap(pfun, dir_idxs)):
+                fitls.append(res)
+                if i % 500 == 0:
+                    print(
+                        f"\r{axidx[rec_axis]}: {i}/{dir_idxs.stop}", end="", flush=True
+                    )
+            print('\n')
+            fits_free[axidx[rec_axis]] = fitls
+
+    return fits_free
 
 
 def get_nearest_index(arr, val):
@@ -44,6 +141,7 @@ def ang_between(v1, v2):
             out[i, j] = np.degrees(np.arccos(frac))
 
     return out
+
 
 def calc_com_2d(arr, x, y, n_pix=None, std=False):
     """
@@ -91,6 +189,7 @@ def calc_com_2d(arr, x, y, n_pix=None, std=False):
         return cx, cy, stdx, stdy
     else:
         return cx, cy
+
 
 def calc_com_3d(arr, x, y, z, n_pix=None, std=False):
     """

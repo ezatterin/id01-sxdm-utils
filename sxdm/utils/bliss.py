@@ -6,6 +6,8 @@ import xrayutilities as xu
 import re
 
 from xsocs.io import XsocsH5
+from xsocs.util import project
+
 from id01lib.io.bliss import get_detector_aliases
 
 __all__ = ["get_SXDM_info", "parse_scan_commands", "make_xsocs_links"]
@@ -331,3 +333,17 @@ def make_xsocs_links(path_dset, path_out, scan_nums, detector=None, name_outh5=N
             print(f"\r> Linking # {scan_num}/{scan_nums[-1]}", flush=True, end=" ")
 
         print("\n> Done!\n")
+
+
+def get_qspace_proj(path_qspace, dir_idx, rec_ax, qspace_roi=None):
+    rec_ax_idx = {"qx": 0, "qy": 1, "qz": 2}
+    rec_idx = rec_ax_idx[rec_ax]
+
+    if qspace_roi is None:
+        qspace_roi = np.s_[:, :, :]
+
+    with h5py.File(path_qspace, "r") as h5f:
+        local_qspace = h5f["Data/qspace"][dir_idx, ...][qspace_roi]
+        proj = project(local_qspace)[rec_idx]
+
+    return proj
