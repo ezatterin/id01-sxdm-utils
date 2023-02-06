@@ -23,13 +23,13 @@ pip install --pre --find-links https://kmap.gitlab-pages.esrf.fr/xsocs/wheels/ x
 Then `id01lib`:
 
 ```bash
-pip install -e git+https://gitlab.esrf.fr/id01-science/id01-core.git#egg=id01-core
+pip install git+https://gitlab.esrf.fr/id01-science/id01-core.git#egg=id01-core
 ```
 
 Finally this package, `sxdm`:
 
 ```bash
-pip install -e git+https://gitlab.esrf.fr/id01-science/id01-sxdm-utils.git#egg=id01-sxdm-utils
+pip install git+https://gitlab.esrf.fr/id01-science/id01-sxdm-utils.git#egg=id01-sxdm-utils
 ```
 
 These steps are necessary as none of these three packages is currently available from the Python Packaging Index (PyPI), as they are not mature enough to be published.
