@@ -4,16 +4,17 @@ import multiprocessing as mp
 import os
 import functools
 
-from tqdm.auto import tqdm
+from tqdm.notebook import tqdm
 from xsocs.util import project
 from silx.math import fit
 from silx.math.fit import fittheories
 from numpy.linalg import LinAlgError
 
 from ..io.utils import _get_chunk_indexes
+from ..io.bliss import get_detector_aliases
 
 
-def _gauss_fit_point(path_qspace, roi_slice, rec_axis, qcoords, mask, dir_idx):
+def _gauss_fit_point(path_qspace, roi_slice, rec_axis, qcoords, dir_mask, dir_idx):
 
     with h5py.File(path_qspace, "r") as h5f:
         local_diffr = h5f["Data/qspace"][dir_idx][roi_slice]
@@ -31,7 +32,7 @@ def _gauss_fit_point(path_qspace, roi_slice, rec_axis, qcoords, mask, dir_idx):
     fwhm = 2.3 * area / (y.max() * np.sqrt(2 * np.pi))
 
     # area, centroid, fwhm
-    if dir_idx not in np.where(mask.flatten())[0]:
+    if dir_idx not in np.where(dir_mask.flatten())[0]:
         try:
             params, cov, info = fit.leastsq(
                 fit.sum_agauss, x, y, p0=[area, mu, fwhm], full_output=True
@@ -44,7 +45,7 @@ def _gauss_fit_point(path_qspace, roi_slice, rec_axis, qcoords, mask, dir_idx):
     return params
 
 
-def gauss_fit_multi_point(path_qspace, roi_slice, rec_axis, qcoords, dir_idx):
+def _gauss_fit_multi_point(path_qspace, roi_slice, rec_axis, qcoords, mask, dir_idx):
 
     with h5py.File(path_qspace, "r") as h5f:
         local_diffr = h5f["Data/qspace"][dir_idx][roi_slice]
@@ -71,15 +72,17 @@ def gauss_fit_multi_point(path_qspace, roi_slice, rec_axis, qcoords, dir_idx):
     return params
 
 
-def gauss_fit(path_qspace, mask, multi=False):
+def gauss_fit(path_qspace, rec_mask, dir_mask=None, multi=False):
 
     with h5py.File(path_qspace, "r") as h5f:
         dir_idxs = range(h5f["Data/qspace"].shape[0])
         qx, qy, qz = [h5f[f"Data/{x}"][...] for x in "qx,qy,qz".split(",")]
 
-    roi_slice = tuple([slice(x.min(), x.max() + 1) for x in np.where(~mask)])
+    roi_slice = tuple([slice(x.min(), x.max() + 1) for x in np.where(~rec_mask)])
     roi_qcoords = [q[roi_slice] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
     qcoords = roi_qcoords[0][:, 0, 0], roi_qcoords[1][0, :, 0], roi_qcoords[2][0, 0, :]
+
+    dir_mask = dir_mask if dir_mask is not None else np.zeros((dir_idxs.stop,))
 
     fits_free = {key: None for key in ("qx", "qy", "qz")}
     axidx = {0: "qx", 1: "qy", 2: "qz"}
@@ -88,10 +91,10 @@ def gauss_fit(path_qspace, mask, multi=False):
 
         for rec_axis in (0, 1, 2):
             fitls = []
-            fun = _gauss_fit_point if not multi else gauss_fit_multi_point
+            fun = _gauss_fit_point if not multi else _gauss_fit_multi_point
 
             pfun = functools.partial(
-                fun, path_qspace, roi_slice, rec_axis, qcoords, mask
+                fun, path_qspace, roi_slice, rec_axis, qcoords, dir_mask
             )
 
             for i, res in zip(dir_idxs, pool.imap(pfun, dir_idxs)):
@@ -418,3 +421,72 @@ def calc_roi_sum(path_qspace, mask_reciprocal, mask_direct=None, n_proc=None):
             roi_sum_list.append(res)
 
     return np.ma.concatenate(roi_sum_list)
+
+def _calc_com_idx(path_h5, path_in_h5, mask_idxs, qx, qy, qz, idx_list, **kwargs):
+    with h5py.File(path_h5, "r") as h5f:
+        i0, i1 = idx_list
+
+        roi = (slice(i0, i1, None), *mask_idxs)
+        frames = h5f[path_in_h5][roi]
+
+        coms = [calc_com_3d(frame, qx, qy, qz, **kwargs) for frame in frames]
+
+    return coms
+
+
+def calc_coms_qspace2d(
+    path_dset,
+    scan_no,
+    qx,
+    qy,
+    qz,
+    mask_rec=None,
+    n_threads=None,
+    detector="mpx1x4",
+    n_pix=None,
+    std=None,
+):
+
+    detlist = get_detector_aliases(path_dset, scan_no)
+    if detector not in detlist:
+        raise ValueError(
+            f"Detector {detector} not in data file. Available detectors are: {detlist}."
+        )
+    else:
+        path_data_h5 = f"/{scan_no}/instrument/{detector}/data"
+
+        if n_threads is None:
+            ncpu = os.cpu_count()
+        else:
+            ncpu = n_threads
+
+        with h5py.File(path_dset, "r") as h5f:
+            mask_sh = h5f[path_data_h5].shape[1:]
+            
+        idx_list = _get_chunk_indexes(
+            path_dset, path_data_h5, n_threads=n_threads
+        )
+
+        mask = np.invert(mask_rec) if mask_rec is not None else np.ones(mask_sh)
+        mask_idxs = tuple([slice(x.min(), x.max() + 1) for x in np.where(mask)])
+        
+        coms = []
+        pfun = functools.partial(
+            _calc_com_idx,
+            path_dset,
+            path_data_h5,
+            mask_idxs,
+            qx,
+            qy,
+            qz,
+            n_pix=n_pix,
+            std=std,
+        )
+        with mp.Pool(processes=ncpu) as p:
+            for res in tqdm(p.imap(pfun, idx_list), total=len(idx_list)):
+                coms.append(res)
+        
+        coms = [x for y in coms for x in y]        
+        comsarr = np.stack(coms)
+
+        return comsarr
