@@ -71,6 +71,10 @@ class InspectROI(object):
         self.fixed_clims = fixed_clims
         self.roilist = roilist
 
+        init_scan_no = (
+            f"{init_scan_no}.1" if type(init_scan_no) is int else init_scan_no
+        )
+
         # get list of rois + other stuff
         with h5py.File(path_h5, "r") as h5f:
 
@@ -90,10 +94,15 @@ class InspectROI(object):
                 ]
             else:
                 self._scan_nos = [f"{s}.1" for s in scan_nos_int]
+
+            # no meas group in stopped scans in new bliss
+            for s in self._scan_nos:
+                try:
+                    h5f[s]["measurement"]
+                except KeyError:
+                    self._scan_nos.remove(s)
+
             self._commands = {s: h5f[f"{s}/title"][()].decode() for s in self._scan_nos}
-            init_scan_no = (
-                f"{init_scan_no}.1" if type(init_scan_no) is int else init_scan_no
-            )
             self.scan_no = self._scan_nos[0] if init_scan_no is None else init_scan_no
 
             try:
@@ -149,7 +158,7 @@ class InspectROI(object):
             options=self.counters,
             value=self.roiname,
             layout=items_layout,
-            description="ROI:",
+            description="Counter:",
         )
         self.roisel.observe(self._update_roi, names="value")
 
@@ -224,11 +233,17 @@ class InspectROI(object):
 
     def _load_counters(self):
         with h5py.File(self.path_h5, "r") as h5f:
-            self.counters = (
-                list(h5f[f"{self.scan_no}/measurement"].keys())
-                if self.roilist is None
-                else self.roilist
-            )
+            meas = h5f[f"{self.scan_no}/measurement"]
+
+            clist = []
+            for k, v in meas.items():
+                try:
+                    if len(v.shape) == 1:
+                        clist.append(k)
+                except AttributeError:
+                    pass
+
+            self.counters = clist if self.roilist is None else self.roilist
 
     def _on_click(self, event):  # mpl
         with self.figout:
@@ -377,15 +392,18 @@ class InspectROI(object):
         ]
 
         for mot, val in positions.items():
-            if len(val.shape) == 0:
-                _insert = [
-                    "    <tr>",
-                    "      <th>{}</th>".format(mot),
-                    "      <td>{:.5f}</td>".format(val),
-                    "    </tr>",
-                ]
-                _ = [motorspecs.append(x) for x in _insert]
-            else:
+            try:
+                if len(val.shape) == 0:
+                    _insert = [
+                        "    <tr>",
+                        "      <th>{}</th>".format(mot),
+                        "      <td>{:.5f}</td>".format(val),
+                        "    </tr>",
+                    ]
+                    _ = [motorspecs.append(x) for x in _insert]
+                else:
+                    pass
+            except AttributeError:
                 pass
 
         motorspecs += ["  </tbody>", "</table>", "</div>"]

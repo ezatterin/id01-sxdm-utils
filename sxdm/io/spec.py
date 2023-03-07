@@ -12,7 +12,7 @@ import silx.io
 import xrayutilities as xu
 
 from silx.io.specfile import SpecFile, Scan, SfErrColNotFound  # TODO use silx.io
-from tqdm.auto import tqdm
+from tqdm.notebook import tqdm
 
 from id01lib import xrd
 from silx.math import fit

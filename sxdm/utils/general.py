@@ -8,7 +8,7 @@ import os
 
 from skimage import registration
 from scipy.ndimage import median_filter, shift
-from tqdm.auto import tqdm
+from tqdm.notebook import tqdm
 
 from ..io.spec import FastSpecFile
 from ..io.bliss import ioh5, get_roidata

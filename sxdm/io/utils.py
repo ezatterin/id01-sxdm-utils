@@ -1,6 +1,5 @@
 import h5py
 import os
-import numpy as np
 
 from id01lib.io.utils import ioh5
 

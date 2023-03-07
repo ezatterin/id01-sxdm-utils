@@ -335,7 +335,7 @@ def make_xsocs_links(path_dset, path_out, scan_nums, detector=None, name_outh5=N
         print("\n> Done!\n")
 
 
-def get_qspace_proj(path_qspace, dir_idx, rec_ax, qspace_roi=None):
+def get_qspace_proj(path_qspace, dir_idx, rec_ax, qspace_roi=None, bin_norm=False):
     rec_ax_idx = {"qx": 0, "qy": 1, "qz": 2}
     rec_idx = rec_ax_idx[rec_ax]
 
@@ -344,6 +344,7 @@ def get_qspace_proj(path_qspace, dir_idx, rec_ax, qspace_roi=None):
 
     with h5py.File(path_qspace, "r") as h5f:
         local_qspace = h5f["Data/qspace"][dir_idx, ...][qspace_roi]
-        proj = project(local_qspace)[rec_idx]
+        histo = h5f["Data/histo"][qspace_roi] if bin_norm is not False else None
+        proj = project(local_qspace, hits=histo)[rec_idx]
 
     return proj

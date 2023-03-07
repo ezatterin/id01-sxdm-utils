@@ -11,7 +11,7 @@ from ..utils import get_qspace_coords, get_q_extents
 from ..utils.bliss import get_qspace_proj
 
 from silx.math import fit
-
+from xsocs.util import gaussian
 
 class Inspect5DQspace(object):
 
@@ -27,6 +27,7 @@ class Inspect5DQspace(object):
         relim_int=True,
         coms=None,
         gauss_fits=None,
+        xsocs_gauss=False,
     ):
         """
         Inspect intensity(x, y, q_x, q_y, q_z) data output by XSOCS.
@@ -50,6 +51,8 @@ class Inspect5DQspace(object):
             List of x,y,z COM coordinates, each of the same shape as the SXDM map.
         gauss_fits : dict
             TODO
+        xsocs_gauss : bool
+            TODO
         """
 
         self.init_map_name = list(maps_dict.keys())[0]
@@ -65,6 +68,7 @@ class Inspect5DQspace(object):
         self.relim_int = relim_int
         self.coms = coms
         self.gauss_fits = gauss_fits
+        self.xsocs_gauss = xsocs_gauss
 
         self._init_fig()
         self._init_widgets()
@@ -170,6 +174,7 @@ class Inspect5DQspace(object):
             _ = [self.ax.ravel()[i].set_ylabel(r"$q_z~(\AA^{-1})$") for i in (1, 2)]
 
         elif self._proj == "1d":
+            idx = self.row * self._init_darr.shape[1] + self.col
             self.projs, self.fits = [], []
             ax = self.ax.ravel()
 
@@ -179,13 +184,20 @@ class Inspect5DQspace(object):
             ]
 
             for i in range(3):
-                proj = get_qspace_proj(self._h5f, 0, self.rec_ax_idx[i], self.roi)
+                proj = get_qspace_proj(
+                    self._h5f,
+                    idx,
+                    self.rec_ax_idx[i],
+                    self.roi,
+                    bin_norm=self.xsocs_gauss,
+                )
                 (line_exp,) = ax[i + 1].plot(self.qcoords[i], proj, marker="o", mfc="w")
                 self.projs.append(line_exp)
 
                 if self.gauss_fits is not None:
-                    gauss = fit.sum_agauss(
-                        self.qgauss[i], *self.gauss_fits[self.rec_ax_idx[i]][0]
+                    gfun = fit.sum_agauss if not self.xsocs_gauss else gaussian
+                    gauss = gfun(
+                        self.qgauss[i], *self.gauss_fits[self.rec_ax_idx[i]][idx]
                     )
                     (line_fit,) = ax[i + 1].plot(self.qgauss[i], gauss, c="r")
                     self.fits.append(line_fit)
@@ -255,11 +267,18 @@ class Inspect5DQspace(object):
             ax = self.ax.ravel()
 
             for i in range(3):
-                proj = get_qspace_proj(self._h5f, idx, self.rec_ax_idx[i], self.roi)
+                proj = get_qspace_proj(
+                    self._h5f,
+                    idx,
+                    self.rec_ax_idx[i],
+                    self.roi,
+                    bin_norm=self.xsocs_gauss,
+                )
                 self.projs[i].set_ydata(proj)
 
                 if self.gauss_fits is not None:
-                    gfit = fit.sum_agauss(
+                    gfun = fit.sum_agauss if not self.xsocs_gauss else gaussian
+                    gfit = gfun(
                         self.qgauss[i], *self.gauss_fits[self.rec_ax_idx[i]][idx]
                     )
                     self.fits[i].set_ydata(gfit)

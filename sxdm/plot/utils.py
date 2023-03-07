@@ -11,7 +11,6 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
 from matplotlib.patches import FancyArrowPatch, Rectangle, ArrowStyle
-from matplotlib.offsetbox import AuxTransformBox
 
 
 def add_hsv_colorbar(tiltmag, ax, labels, size="20%", pad=0.05):
