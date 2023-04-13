@@ -14,12 +14,14 @@ from IPython import get_ipython
 
 from id01lib.io.bliss import get_positioner
 from ...plot.utils import add_colorbar
+from ...io.utils import list_available_counters
 from ...io.bliss import (
     get_roidata,
     get_command,
     get_datetime,
     get_piezo_motor_positions,
     get_scan_shape,
+    get_detector_aliases,
 )
 
 ipython = get_ipython()
@@ -38,7 +40,7 @@ class InspectROI(object):
     def __init__(
         self,
         path_h5,
-        default_roi="mpx1x4_mpx4int",
+        default_roi=None,
         roilist=None,
         init_scan_no=None,
         fixed_clims=None,
@@ -51,7 +53,7 @@ class InspectROI(object):
         ----------
         path_h5 : str
             Path to the .h5 file containing the dataset.
-        default_roi : str, default "mpx1x4_mpx4int"
+        default_roi : str, optional
             Name of the ROI to be displayed by default.
         roilist : list of str, optional
             List of ROI names to display. Defaults to all of the available BLISS
@@ -66,7 +68,6 @@ class InspectROI(object):
             List of scan numbers to display.
         """
 
-        self.roiname = default_roi
         self.path_h5 = path_h5
         self.fixed_clims = fixed_clims
         self.roilist = roilist
@@ -114,6 +115,15 @@ class InspectROI(object):
                 msg += "- does not exist in the selected dataset \n"
                 print(msg)
                 raise ValueError("Invalid scan number")
+
+        # ROI to be displayed first
+        default_det = get_detector_aliases(self.path_h5, self.scan_no)[0]
+        det_counter_list = [
+            x
+            for x in list_available_counters(self.path_h5, self.scan_no)
+            if f'{default_det}_' in x
+        ]
+        self.roiname = default_roi if default_roi is not None else det_counter_list[0]
 
         # default roi data and motors
         self.roidata = get_roidata(
