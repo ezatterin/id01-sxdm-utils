@@ -151,18 +151,7 @@ def get_shift(
         sxdm_raw = [np.log(map, where=(map > 0)) for map in sxdm_raw]
 
     # shifts
-    shifts = []
-    shifts.insert(0, np.array([0, 0]))
-    for i in tqdm(range(1, len(sxdm_raw))):
-        if med_filt is not None:
-            p, n = [median_filter(s, med_filt) for s in (sxdm_raw[i - 1], sxdm_raw[i])]
-        else:
-            p, n = [s for s in (sxdm_raw[i - 1], sxdm_raw[i])]
-        sh = registration.phase_cross_correlation(
-            p, n, return_error=False, **xcorr_kwargs
-        )
-        shifts.append(sh + shifts[i - 1])
-    shifts = np.array(shifts)  # col0: y shifts. col1: x shifts
+    shifts = _get_shift(sxdm_raw, med_filt=med_filt, **xcorr_kwargs)
 
     # shifted ROIs
     sxdm_shifted = []
@@ -174,6 +163,23 @@ def get_shift(
         return shifts, sxdm_raw, sxdm_shifted
     else:
         return shifts
+
+
+def _get_shift(images, med_filt=None, **xcorr_kwargs):
+    shifts = []
+    shifts.insert(0, np.array([0, 0]))
+    for i in tqdm(range(1, len(images))):
+        if med_filt is not None:
+            p, n = [median_filter(s, med_filt) for s in (images[i - 1], images[i])]
+        else:
+            p, n = [s for s in (images[i - 1], images[i])]
+        sh = registration.phase_cross_correlation(
+            p, n, return_error=False, **xcorr_kwargs
+        )
+        shifts.append(sh + shifts[i - 1])
+    shifts = np.array(shifts)  # col0: y shifts. col1: x shifts
+
+    return shifts
 
 
 def slice_from_mask():
