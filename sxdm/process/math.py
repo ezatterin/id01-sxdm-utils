@@ -254,9 +254,7 @@ def _calc_com_qspace3d(path_qspace, mask_reciprocal, idx, n_pix=None, std=False)
     path_qspace : str
         Path to the XSOCS q-space file.
     mask_reciprocal : numpy.ndarray
-        3D boolean array. True for portions *not* to be considered. NOTE: for the
-        moment this works only for contiguous subarrays of the reciprocal space
-        volume; that is, only "cube-like" masks are supported.
+        3D boolean array. True for portions *not* to be considered. 
     idx : int
         Index of the first dimension of the 4D q-space array, i.e. the index of
         the sample position at which the 3D q-space volume was measured.
@@ -273,20 +271,32 @@ def _calc_com_qspace3d(path_qspace, mask_reciprocal, idx, n_pix=None, std=False)
         Coordinates of the q-space COM at position `idx`.
     """
 
-    # recipocal space slice from mask
+    # indexes of saught data
     roi_rec = np.where(np.invert(mask_reciprocal))
+    
+    # check if mask is cube-like or more complicated,
+    # will determine how array is retrieved from hdf5 file
+    mask_size_cube = np.prod([x.max() + 1 - x.min() for x in roi_rec])
+    mask_size_real = np.count_nonzero(np.invert(mask_reciprocal)) 
+
+    # if mask is cube-like use these
     roi_rec_sl = tuple([slice(x.min(), x.max() + 1) for x in roi_rec])
+    roi = (idx, *roi_rec_sl)
 
     with h5py.File(path_qspace, "r") as h5f:
 
-        roi = (idx, *roi_rec_sl)
-        arr = h5f["Data/qspace"][roi]
+        # data sliced straight from hdf5 OR,
+        # data loaded to mem at idx and then fancy sliced
+        if mask_size_cube == mask_size_real: 
+            arr = h5f["Data/qspace"][roi] 
+        else:
+            arr = h5f["Data/qspace"][idx][roi_rec]
 
-        # coordinates
+        # retrieve q-space coordinates
         qx, qy, qz = [h5f[f"Data/{x}"][...] for x in "qx,qy,qz".split(",")]
-        qxm, qym, qzm = [q[roi_rec_sl] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
+        qxm, qym, qzm = [q[roi_rec] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
 
-        # com
+        # compute COM and standard deviation
         if std is True:
             cx, cy, cz, stdx, stdy, stdz = calc_com_3d(
                 arr, qxm, qym, qzm, n_pix=n_pix, std=True
