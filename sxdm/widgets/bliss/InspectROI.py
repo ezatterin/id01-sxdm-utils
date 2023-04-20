@@ -22,6 +22,7 @@ from ...io.bliss import (
     get_piezo_motor_positions,
     get_scan_shape,
     get_detector_aliases,
+    get_sxdm_scan_numbers,
 )
 
 ipython = get_ipython()
@@ -68,67 +69,45 @@ class InspectROI(object):
             List of scan numbers to display.
         """
 
+        # get list of SXDM or mesh scans contained in dataset file
+        # if user gives list, check all are present
+        scan_nos = get_sxdm_scan_numbers(path_h5, interrupted_scans=False)
+        if show_scan_nos is not None:
+            for s in show_scan_nos[:]:
+                s = f"{s}.1" if type(s) is int else s
+                if s not in scan_nos:
+                    show_scan_nos.remove(s)
+                    msg  = f'Removing {s} from the scan list as this is either not an '
+                    msg += f'SXDM or mesh scan, or it is not in the chosen dataset.'
+                    print(msg)
+            scan_nos = show_scan_nos
+
+        # get commands
+        with h5py.File(path_h5, "r") as h5f:
+            commands = {s: h5f[f"{s}/title"][()].decode() for s in scan_nos}
+
+        # get first scan to show in widget
+        s0 = f"{init_scan_no}.1" if type(init_scan_no) is int else init_scan_no
+        scan_no = scan_nos[0] if s0 is None else s0
+
+        # get ROI to be displayed first
+        default_det = get_detector_aliases(path_h5, scan_no)[0]
+        det_counter_list = [
+            x
+            for x in list_available_counters(path_h5, scan_no)
+            if f'{default_det}_' in x
+        ]
+        
+        # set class variables
+        self.roiname = default_roi if default_roi is not None else det_counter_list[0]
         self.path_h5 = path_h5
         self.fixed_clims = fixed_clims
         self.roilist = roilist
-
-        init_scan_no = (
-            f"{init_scan_no}.1" if type(init_scan_no) is int else init_scan_no
-        )
-
-        # get list of rois + other stuff
-        with h5py.File(path_h5, "r") as h5f:
-
-            scan_nos = list(h5f.keys())
-            commands = [h5f[f"{s}/title"][()].decode() for s in scan_nos]
-
-            scan_nos = [
-                s
-                for s, c in zip(scan_nos, commands)
-                if any([k in c for k in ("sxdm", "mesh", "kmap")])
-            ]
-            scan_nos_int = sorted([int(s.split(".")[0]) for s in scan_nos])
-
-            if show_scan_nos is not None:
-                self._scan_nos = [
-                    f"{x}.1" if type(x) is int else x for x in show_scan_nos
-                ]
-            else:
-                self._scan_nos = [f"{s}.1" for s in scan_nos_int]
-
-            # no meas group in stopped scans in new bliss
-            for s in self._scan_nos:
-                try:
-                    h5f[s]["measurement"]
-                except KeyError:
-                    self._scan_nos.remove(s)
-
-            self._commands = {s: h5f[f"{s}/title"][()].decode() for s in self._scan_nos}
-            self.scan_no = self._scan_nos[0] if init_scan_no is None else init_scan_no
-
-            try:
-                self.command = self._commands[self.scan_no]
-            except KeyError:
-                msg = f"Scan {self.scan_no} is either: \n"
-                msg += "- not a mesh or an SXDM scan \n"
-                msg += "- not in the list of given scans \n"
-                msg += "- does not exist in the selected dataset \n"
-                print(msg)
-                raise ValueError("Invalid scan number")
-
-        # ROI to be displayed first
-        default_det = get_detector_aliases(self.path_h5, self.scan_no)[0]
-        det_counter_list = [
-            x
-            for x in list_available_counters(self.path_h5, self.scan_no)
-            if f'{default_det}_' in x
-        ]
-        self.roiname = default_roi if default_roi is not None else det_counter_list[0]
-
-        # default roi data and motors
-        self.roidata = get_roidata(
-            path_h5, self.scan_no, self.roiname, return_pi_motors=False
-        )
+        self.roidata = get_roidata(path_h5, scan_no, self.roiname)
+        self.scan_no = scan_no
+        self._scan_nos = scan_nos
+        self._commands = commands
+        self.command = commands[scan_no]
 
         self.figout = ipw.Output(layout=dict(border="2px solid grey"))
         self._load_counters()

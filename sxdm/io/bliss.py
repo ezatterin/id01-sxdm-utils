@@ -17,6 +17,25 @@ from id01lib.io.bliss import (
 
 from .utils import _get_chunk_indexes
 
+@ioh5
+def get_sxdm_scan_numbers(h5f, interrupted_scans=False):
+    scan_nos = []
+    for entry in list(h5f.keys()):
+        command = h5f[f'{entry}/title'][()].decode()
+        if any([s in command for s in ("sxdm", "mesh", "kmap")]):
+            if not interrupted_scans:
+                try:
+                    h5f[entry]["measurement"]
+                    scan_nos.append(entry)
+                except KeyError:
+                    pass
+            else:
+                scan_nos.append(entry)
+
+    scan_nos.sort(key=lambda s: int(s.split('.')[0]))
+
+    return scan_nos
+
 
 @ioh5
 def get_scan_shape(h5f, scan_no):
