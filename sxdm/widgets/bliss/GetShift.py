@@ -14,6 +14,8 @@ from sxdm.plot.utils import add_colorbar
 from sxdm.io.bliss import (
     get_roidata,
     get_piezo_motor_names,
+    get_sxdm_scan_numbers,
+    get_detector_aliases,
 )
 
 ipython = get_ipython()
@@ -28,8 +30,8 @@ class GetShift(object):
     def __init__(
         self,
         path_h5,
-        scan_nos,
-        counter_name="mpx1x4_mpx4int",
+        scan_nos=None,
+        counter_name=None,
         fixed_clims=None,
     ):
         """
@@ -39,8 +41,9 @@ class GetShift(object):
         ----------
         path_h5 : str
             Path to the .h5 file containing the dataset.
-        scan_nos : list of str
+        scan_nos : list of str, optional
             List of scan numbers to be treated, of the form ['1.1', '2.1', '3.1'].
+            Defaults to SXDM or mesh scans contained in `path_h5`.
         counter_name : str, default "mpx1x4_mpx4int"
             Name of the counter to be displayed by default.
         fixed_clims : list, optional
@@ -49,21 +52,32 @@ class GetShift(object):
         """
 
         self.path_h5 = path_h5
-        self.scan_nos = scan_nos
-        self.counter_name = counter_name
+        self.scan_nos = (
+            scan_nos if scan_nos is not None else get_sxdm_scan_numbers(path_h5)
+        )
         self.fixed_clims = fixed_clims
         self.dsetname = os.path.basename(path_h5)
         self.figout = ipw.Output(layout=dict(border="2px solid grey"))
+        self.scan_idx = 0
+        self.scan_no = self.scan_nos[self.scan_idx]
 
+        # get ROI to be displayed first
+        default_det = get_detector_aliases(path_h5, self.scan_no)[0]
+        det_counter_list = [
+            x
+            for x in list_available_counters(path_h5, self.scan_no)
+            if f"{default_det}_" in x
+        ]
+        counter_name = counter_name if counter_name is not None else det_counter_list[0]
+
+        self.counter_name = counter_name
         self.data = get_roidata(
             path_h5, self.scan_nos[0], counter_name, return_pi_motors=False
         )
 
         self.shifts = np.zeros((len(self.scan_nos), 2))
-        self.scan_idx = 0
-        self.scan_no = self.scan_nos[self.scan_idx]
-
         self.marks = {s: None for s in self.scan_nos}
+        self._click_counter = 0
 
         self._load_counters_list()
         self._init_fig()
@@ -237,18 +251,18 @@ class GetShift(object):
     def _on_click(self, event):
         with self.figout:
             if event.inaxes == self.ax:
-                x, y = event.xdata, event.ydata
-                m1n, m2n = self.m1name, self.m2name
-
-                msg = f"You clicked: {m1n},{x:.4f}, {m2n},{y:.4f}"
-                print(f"\r {msg}", flush=True, end="")
-
                 if self.fig.canvas.toolbar.mode == "":
+                    x, y = event.xdata, event.ydata
+                    m1n, m2n = self.m1name, self.m2name
+
+                    msg = f"You clicked: {m1n},{x:.4f}, {m2n},{y:.4f}"
+                    print(f"\r {msg}", flush=True, end="")
+
                     self.refmark.set_offsets([x, y])
                     self.marks[self.scan_no] = [x, y]
+                    self._click_counter += 1
                 else:
                     pass
-
             else:
                 pass
 
@@ -274,22 +288,24 @@ class GetShift(object):
 
     def _update_mark(self):
         # when scan idx changed with slider (_update_scan)
-
-        if self.marks[self.scan_no] is None:
-            off = self.marks[self.scan_nos[self.scan_idx - 1]]
-
-            if off is None:  # because you skip scans with slider
-                off = self.marks[self.scan_nos[0]]
-            if self.shiftit.value:
-                off += self.shifts[self.scan_nos.index(self.scan_no)][::-1]
-
-            self.refmark.set_offsets(off)
-            self.marks[self.scan_no] = off
+        if self._click_counter == 0:
+            pass
         else:
-            off = self.marks[self.scan_no]
-            if self.shiftit.value:
-                off += self.shifts[self.scan_nos.index(self.scan_no)][::-1]
-            self.refmark.set_offsets(off)
+            if self.marks[self.scan_no] is None:
+                off = self.marks[self.scan_nos[self.scan_idx - 1]]
+
+                if off is None:  # because you skip scans with slider
+                    off = self.marks[self.scan_nos[0]]
+                if self.shiftit.value:
+                    off += self.shifts[self.scan_nos.index(self.scan_no)][::-1]
+
+                self.refmark.set_offsets(off)
+                self.marks[self.scan_no] = off
+            else:
+                off = self.marks[self.scan_no]
+                if self.shiftit.value:
+                    off += self.shifts[self.scan_nos.index(self.scan_no)][::-1]
+                self.refmark.set_offsets(off)
 
     def _update_scan(self, change):
         # when scan idx changed with slider
