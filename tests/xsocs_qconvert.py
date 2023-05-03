@@ -4,7 +4,7 @@ import time
 from xsocs.process.qspace.helpers import kmap_2_qspace
 
 path_out = "tests/data/test-output"
-path_master = f"{path_out}/sample_0001_master_shifted.h5"  
+path_master_shifted = f"{path_out}/sample_0001_master_shifted.h5"  
 path_qspace = f"{path_out}/qspace_shift.h5"
 
 try:
@@ -12,14 +12,14 @@ try:
 
     t0 = time.time()
     sxdm.process.xsocs.grid_qspace_xsocs(
-        path_qspace, path_master, (10, 10, 10), overwrite=True, offsets=offsets
+        path_qspace, path_master_shifted, (10, 10, 10), overwrite=True, offsets=offsets
     )
     t1 = time.time()
     print("Used xsocs-edo\n")
 
 except (TypeError, ValueError):
     t0 = time.time()
-    kmap_2_qspace(path_master, path_qspace, (10, 10, 10), overwrite=True)
+    kmap_2_qspace(path_master_shifted, path_qspace, (10, 10, 10), overwrite=True)
     t1 = time.time()
     print("Used xsocs-upstream\n")
 
