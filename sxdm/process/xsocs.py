@@ -243,7 +243,7 @@ def _make_shift_master(path_master, path_out):
     with h5py.File(master_shifted, "a") as h5f:
         scan_nos = list(h5f.keys())
         for s in scan_nos:
-            ftolink = f"{path_out}/{xsocs_dset_name[:-7]}_{s}_shifted.h5"
+            ftolink = f"{xsocs_dset_name[:-7]}_{s}_shifted.h5"
             del h5f[s]
             h5f[s] = h5py.ExternalLink(ftolink, f"/{s}")
 
