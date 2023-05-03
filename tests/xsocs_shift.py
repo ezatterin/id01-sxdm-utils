@@ -16,6 +16,7 @@ shifts = np.array([[0.0, 0.0], [4.0, 0.0], [9.0, -1.0], [14.0, -1.0], [17.0, -3.
 os.mkdir(path_out)
 
 sxdm.utils.bliss.make_xsocs_links(path_dset, path_out, None)
+path_master = f"{path_out}/sample_0001_master.h5"
 
 t0 = time.time()
 sxdm.process.xsocs.shift_xsocs_data(path_dset, path_out, shifts)
