@@ -108,36 +108,50 @@ def estimate_n_bins(path_master, offsets=dict()):
     return maxbins
 
 
-def _get_eta_shift(path_dset, shifts):
-    with h5py.File(path_dset, "r") as h5f:
-        scan_nums = [f"{x}.1" for x in range(1, len(list(h5f.keys())) + 1)]
+def _get_motor_dict(path_master, ls, motor_name="eta"):
+    """
+    Match the chosen motor (default: eta) associated with the master or dataset file
+    `path_master` with a list `ls` of something (e.g. shifts). Returns a dict.
+    """
 
-    etashift = dict()
-    for s, shift in zip(scan_nums, shifts):
-        eta = np.round(get_positioner(path_dset, s, "eta"), 4)
-        etashift[str(eta)] = shift
+    motor_dict = dict()
+    with h5py.File(path_master, "r") as h5f:
+        scan_nums = sorted(h5f.keys(), key=lambda s: int(s.split(".")[0]))
 
-    return etashift
+        if len(ls) != len(scan_nums):
+            msg = "The number of scans in `path_master` is different than the length"
+            msg += "of `ls`."
+            raise ValueError(msg)
+
+        for n, s in zip(scan_nums, ls):
+            eta = np.round(h5f[f"{n}/instrument/positioners/{motor_name}"][()], 4)
+            motor_dict[str(eta)] = s
+
+    return motor_dict
 
 
-def _shift_write_data(path_dset, shifts, n_chunks, roi, subh5):
+def _shift_write_data(path_master, shifts, n_chunks, roi, path_subh5, overwrite=False):
+    """
+    Apply one of `shifts` to the chosen `path_subh5` file.
+    """
 
     t_init = time.time()
-    scan_no = subh5.split("_")[-1][:-3]
-    print(f"\nShifting #{scan_no}...")
 
-    etashift = _get_eta_shift(path_dset, shifts)
+    scan_no = path_subh5.split("_")[-1][:-3]
+    etashift = _get_motor_dict(path_master, shifts)
     roi = (
         np.s_[roi[0] : roi[1], roi[2] : roi[3]] if roi is not None else np.s_[...]
-    )  # TODO!
+    )  # TODO not implemented yet
 
-    with h5py.File(subh5, "r", libver="latest") as h5f:
+    with h5py.File(path_subh5, "r", libver="latest") as h5f:
 
+        # get shift in pixels for this eta value
         root = list(h5f.keys())[0]
         data = h5f[f"/{root}/instrument/detector/data"]  # shape: (x*y, detx, dety)
         eta = str(np.round(h5f[f"{root}/instrument/positioners/eta"][()], 4))
         shift = etashift[eta]
 
+        # establish data chunk shape
         sh_map = tuple(
             [h5f[f"{root}/scan/motor_{i}_steps"][()] for i in (0, 1)]
         )  # (x, y)
@@ -146,17 +160,32 @@ def _shift_write_data(path_dset, shifts, n_chunks, roi, subh5):
         except TypeError:  # data is not chunked
             sh_chunk = tuple([x // n_chunks for x in data.shape[1:]])
 
-        fname_subh5_shifted = os.path.abspath(subh5).split(".")[0]
-        fname_subh5_shifted = shutil.copy(subh5, f"{fname_subh5_shifted}.1_shifted.h5")
+        # establish shifted file name and get output directory name
+        _name_base = os.path.abspath(path_subh5).split(".")[0]
+        path_subh5_shift = f"{_name_base}.1_shifted.h5"
+        path_out = os.path.dirname(path_subh5)
+
+        # check if the shifted file exists in the output dir, if yes stop
+        name_subh5_shift = os.path.basename(path_subh5_shift)
+        if name_subh5_shift in os.listdir(path_out) and overwrite is False:
+            print(f"\nNOT overwriting #{scan_no}!")
+            return
+
+        # generate shifted file
+        path_subh5_shift = shutil.copy(path_subh5, path_subh5_shift)
+        print(f"\n>> Shifting #{scan_no}...")
 
         t2 = 0
-        with h5py.File(fname_subh5_shifted, "a", libver="latest") as f:
+        with h5py.File(path_subh5_shift, "a", libver="latest") as f:
+
+            # delete original dataset and its link
             det_shift = f[f"{root}/instrument/detector/"]
             det_shift_link = f[f"{root}/measurement/image/"]
 
             del det_shift["data"]
             del det_shift_link["data"]
 
+            # create empty dataset where the original was
             data_shift = det_shift.create_dataset(
                 "data",
                 shape=data.shape,
@@ -166,7 +195,7 @@ def _shift_write_data(path_dset, shifts, n_chunks, roi, subh5):
             )
             det_shift_link["data"] = data_shift
 
-            # for each chunk of data
+            # for each chunk of original (unshifted) data
             for i1 in range(data.shape[1] // sh_chunk[0]):
                 for i2 in range(data.shape[2] // sh_chunk[1]):
                     sl_chunk = np.s_[
@@ -195,47 +224,54 @@ def _shift_write_data(path_dset, shifts, n_chunks, roi, subh5):
 
     t_tot = time.time() - t_init
     print(
-        f"\n{os.path.basename(subh5)} finished after "
-        f"{t_tot:.2f}s. I/O time: {t2:.2f}s"
+        f"\n{os.path.basename(path_subh5)} finished after "
+        f"{t_tot/60:.2f}m. I/O time: {t2:.2f}s"
     )
 
 
-def _make_shift_master(path_out, path_dset):
+def _make_shift_master(path_master, path_out):
+    """
+    Generate a copy of a master file and link it to the shifted subh5s.
+    """
 
-    namelist = os.path.basename(path_dset).split(".")[0].split("_")
-    name_sample = "_".join(namelist[:-1])
-    name_dset = namelist[-1]
+    xsocs_dset_name = os.path.basename(path_master).split(".")[0]
+    path_master_shifted = f"{path_out}/{xsocs_dset_name}_shifted.h5"
 
-    master_shifted = shutil.copy(
-        f"{path_out}/{name_sample}_{name_dset}_master.h5",
-        f"{path_out}/{name_sample}_{name_dset}_master_shifted.h5",
-    )
+    master_shifted = shutil.copy(path_master, path_master_shifted)
 
     with h5py.File(master_shifted, "a") as h5f:
         scan_nos = list(h5f.keys())
         for s in scan_nos:
-            ftolink = f"{name_sample}_{name_dset}_{s}_shifted.h5"
+            ftolink = f"{xsocs_dset_name}_{s}_shifted.h5"
             del h5f[s]
             h5f[s] = h5py.ExternalLink(ftolink, f"/{s}")
 
 
 # TODO use concurrent.futures instead
 def shift_xsocs_data(
-    path_dset, path_out, shifts, subh5_list=None, n_chunks=3, roi=None
+    path_master,
+    path_out,
+    shifts,
+    subh5_list=None,
+    n_chunks=3,
+    roi=None,
+    overwrite=False,
 ):
+    """
+    TODO
+    """
 
-    name_sample = os.path.basename(path_dset).split("_")[0]
     if subh5_list is None:
-        pattern = f"{path_out}/{name_sample}*.1.h5"
+        pattern = f"{path_out}/{os.path.basename(path_master)[:-10]}*.1.h5"
         subh5_list = glob.glob(pattern)
-        print(f'Using subh5_list=None, shifting file pattern {pattern} !\n')
+        print(f"Using subh5_list=None, shifting file pattern {pattern} !\n")
 
-    subh5_list = sorted(subh5_list, key=lambda x: x.split('_')[-1].split('.1')[-2])
+    subh5_list = sorted(subh5_list, key=lambda x: x.split("_")[-1].split(".1")[-2])
     if len(subh5_list) != len(shifts):
-        raise ValueError('subh5_list and shifts are not the same length!')
+        raise ValueError("subh5_list and shifts are not the same length!")
 
+    pf = partial(_shift_write_data, path_master, shifts, n_chunks, roi)
     with mp.Pool() as pool:
-        pf = partial(_shift_write_data, path_dset, shifts, n_chunks, roi)
         pool.map(pf, subh5_list)
 
-    _make_shift_master(path_out, path_dset)
+    _make_shift_master(path_master, path_out)
