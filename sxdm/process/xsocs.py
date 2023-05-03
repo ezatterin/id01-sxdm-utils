@@ -168,12 +168,12 @@ def _shift_write_data(path_master, shifts, n_chunks, roi, path_subh5, overwrite=
         # check if the shifted file exists in the output dir, if yes stop
         name_subh5_shift = os.path.basename(path_subh5_shift)
         if name_subh5_shift in os.listdir(path_out) and overwrite is False:
-            print(f"\nNOT overwriting #{scan_no}!")
+            print(f"\nNOT overwriting #{scan_no}!", flush=True)
             return
 
         # generate shifted file
         path_subh5_shift = shutil.copy(path_subh5, path_subh5_shift)
-        print(f"\n>> Shifting #{scan_no}...")
+        print(f"\n>> Shifting #{scan_no}...", flush=True)
 
         t2 = 0
         with h5py.File(path_subh5_shift, "a", libver="latest") as f:
@@ -225,7 +225,8 @@ def _shift_write_data(path_master, shifts, n_chunks, roi, path_subh5, overwrite=
     t_tot = time.time() - t_init
     print(
         f"\n{os.path.basename(path_subh5)} finished after "
-        f"{t_tot/60:.2f}m. I/O time: {t2:.2f}s"
+        f"{t_tot/60:.2f}m. I/O time: {t2:.2f}s",
+        flush=True,
     )
 
 
@@ -242,7 +243,7 @@ def _make_shift_master(path_master, path_out):
     with h5py.File(master_shifted, "a") as h5f:
         scan_nos = list(h5f.keys())
         for s in scan_nos:
-            ftolink = f"{xsocs_dset_name}_{s}_shifted.h5"
+            ftolink = f"{path_out}/{xsocs_dset_name[:-7]}_{s}_shifted.h5"
             del h5f[s]
             h5f[s] = h5py.ExternalLink(ftolink, f"/{s}")
 
