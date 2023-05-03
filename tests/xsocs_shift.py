@@ -23,3 +23,7 @@ sxdm.process.xsocs.shift_xsocs_data(path_dset, path_out, shifts)
 t1 = time.time()
 
 print(f"\n\n >> Shifting took {t1-t0:.1f}s")
+
+ls = os.listdir(path_out)
+print('Output directory contents:')
+_ = [print(f'\t > {l}') for l in ls]

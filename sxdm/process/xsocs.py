@@ -191,7 +191,7 @@ def _shift_write_data(path_master, shifts, n_chunks, roi, path_subh5, overwrite=
                 shape=data.shape,
                 dtype=data.dtype,
                 chunks=(1, *sh_chunk),
-                **hdf5plugin.Bitshuffle(nelems=0, lz4=True),
+                **hdf5plugin.Bitshuffle(nelems=0, cname='lz4'),
             )
             det_shift_link["data"] = data_shift
 

@@ -8,7 +8,6 @@ path_master = f"{path_out}/sample_0001_master_shifted.h5"
 path_qspace = f"{path_out}/qspace_shift.h5"
 
 try:
-    print("Using xsocs-edo\n")
     offsets = {"eta": 0, "delta": 0, "phi": 0, "roby": 1, "nu": 0.5}
 
     t0 = time.time()
@@ -16,12 +15,13 @@ try:
         path_qspace, path_master, (10, 10, 10), overwrite=True, offsets=offsets
     )
     t1 = time.time()
+    print("Used xsocs-edo\n")
 
 except (TypeError, ValueError):
-    print("Using xsocs-upstream\n")
     t0 = time.time()
     kmap_2_qspace(path_master, path_qspace, (10, 10, 10), overwrite=True)
     t1 = time.time()
+    print("Used xsocs-upstream\n")
 
 qx, qy, qz = sxdm.utils.get_qspace_coords(path_qspace)
 
