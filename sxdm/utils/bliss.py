@@ -134,7 +134,9 @@ def parse_scan_command(command):
     return cmd_dict
 
 
-def make_xsocs_links(path_dset, path_out, scan_nums, detector=None, name_outh5=None):
+def make_xsocs_links(
+    path_dset, path_out, scan_nums, detector=None, name_outh5=None, stitch_counter=None
+):
     """
     Generates a set of .h5 files to be fed to XSOCS from a 3D-SXDM dataset.
     The files contain *links* to the original data, not the data itself.
@@ -209,10 +211,13 @@ def make_xsocs_links(path_dset, path_out, scan_nums, detector=None, name_outh5=N
             detector = detector
         print(f"> Selecting detector {detector}")
 
-        # generate output master file
         out_h5f_master = f"{path_out}/{name_outh5}_master.h5"
-        with XsocsH5.XsocsH5MasterWriter(out_h5f_master, "w") as master:
-            pass  # overwrite master file
+        if stitch_counter is None:
+            # generate output master file
+            with XsocsH5.XsocsH5MasterWriter(out_h5f_master, "w") as master:
+                pass  # overwrite master file
+        else:
+            pass
 
         # load counters, positioners, and other params for each scan
         for scan_num, command in zip(scan_nums, commands):
@@ -251,7 +256,10 @@ def make_xsocs_links(path_dset, path_out, scan_nums, detector=None, name_outh5=N
             positioners = [x for x in instr["positioners"]]
 
             # more parameters
-            entry_name = scan_num  # <-- ends up in output h5 fname
+            if stitch_counter is not None:
+                entry_name = f'{int(scan_num.split(".")[0]) + stitch_counter}.1'
+            else:
+                entry_name = scan_num  # <-- ends up in output h5 fname
             command_params = parse_scan_command(command)
 
             out_h5f = f"{path_out}/{name_outh5}_{entry_name}.h5"
@@ -333,6 +341,31 @@ def make_xsocs_links(path_dset, path_out, scan_nums, detector=None, name_outh5=N
             print(f"\r> Linking # {scan_num}/{scan_nums[-1]}", flush=True, end=" ")
 
         print("\n> Done!\n")
+
+
+def make_xsocs_links_stitch(
+    dset_path_list, scan_nums_list, path_out, name_outh5, detector=None, 
+):
+
+    if not os.path.isdir(path_out):
+        os.mkdir(path_out)
+
+    # generate output master file
+    out_h5f_master = f"{path_out}/{name_outh5}_master.h5"
+    with XsocsH5.XsocsH5MasterWriter(out_h5f_master, "w") as master:
+        pass  # overwrite master file
+
+    scan_counter = 0
+    for dset, scannos in zip(dset_path_list, scan_nums_list):
+        make_xsocs_links(
+            dset,
+            path_out,
+            scannos,
+            detector,
+            name_outh5=name_outh5,
+            stitch_counter=scan_counter,
+        )
+        scan_counter += int(scannos[-1].split(".")[0])
 
 
 def get_qspace_proj(path_qspace, dir_idx, rec_ax, qspace_roi=None, bin_norm=False):
