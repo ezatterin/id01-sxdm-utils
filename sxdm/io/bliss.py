@@ -44,7 +44,7 @@ def get_scan_shape(h5f, scan_no):
         sh = [h5f[f"{scan_no}/technique/{x}"][()] for x in ("dim0", "dim1")][::-1]
     except KeyError:  # must be a mesh or a scan
         try:  # mesh
-            sh = [int(command_list[x][:-1]) + 1 for x in (4, 8)][::-1]
+            sh = [int(command_list[x]) + 1 for x in (4, 8)][::-1]
         except IndexError:  # scan
             sh = int(command_list[4])
 
