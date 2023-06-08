@@ -79,7 +79,7 @@ def add_scalebar(
         img = ax.get_images()[0]
         ext = img.get_extent()  # left, right, bottom, top
         xsize, ysize = (ext[1] - ext[0], ext[3] - ext[2])
-    except AttributeError:
+    except (AttributeError, IndexError):
         img = [x for x in ax.get_children() if type(x) == mpl.collections.QuadMesh][0]
         xc, yc = img.get_coordinates().T
         xsize, ysize = [c.max() - c.min() for c in (xc, yc)]
