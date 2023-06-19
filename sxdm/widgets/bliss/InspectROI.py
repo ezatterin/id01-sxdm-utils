@@ -108,6 +108,7 @@ class InspectROI(object):
         self._scan_nos = scan_nos
         self._commands = commands
         self.command = commands[scan_no]
+        self.dsetname = os.path.basename(self.path_h5)
 
         self.figout = ipw.Output(layout=dict(border="2px solid grey"))
         self._load_counters()
@@ -132,7 +133,7 @@ class InspectROI(object):
         _ = add_colorbar(ax, self.img)
         _ = ax.set_xlabel(f"{self.m1name} (um)")
         _ = ax.set_ylabel(f"{self.m2name} (um)")
-        _ = ax.set_title(f"#{self.scan_no} - {self.roiname}")
+        _ = ax.set_title(f"{self.dsetname}\n#{self.scan_no} - {self.roiname}")
 
         # connect to mpl event manager
         self.fig.canvas.mpl_connect("button_press_event", self._on_click)
@@ -263,11 +264,10 @@ class InspectROI(object):
         roi = change["new"]
 
         roidata = get_roidata(self.path_h5, self.scan_no, roi)
-        dsetname = os.path.basename(self.path_h5)
 
         img = self.img
         img.set_data(roidata)
-        img.axes.set_title(f"{dsetname}\n#{self.scan_no} - {roi}")
+        img.axes.set_title(f"{self.dsetname}\n#{self.scan_no} - {roi}")
         try:
             img.set_clim(roidata.min(), roidata.max())
         except ValueError:
@@ -339,6 +339,9 @@ class InspectROI(object):
             self.img.set_extent([m1m, m1M, m2m, m2M])
         else:
             self.img.set_extent([m1.min(), m1.max(), m2.min(), m2.max()])
+            
+        _ = self.ax.set_xlabel(f"{self.m1name} (um)")
+        _ = self.ax.set_ylabel(f"{self.m2name} (um)")
 
     @retry()
     def _update_specs(self):
