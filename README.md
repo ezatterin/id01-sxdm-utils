@@ -17,7 +17,7 @@
 First install `xsocs`:
 
 ```bash
-pip install --pre --find-links https://kmap.gitlab-pages.esrf.fr/xsocs/wheels/ xsocs
+pip install git+https://gitlab.esrf.fr/zatterin/xsocs.git#egg=xsocs-edo
 ```
 
 Then `id01lib`:
