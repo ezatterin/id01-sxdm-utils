@@ -108,7 +108,7 @@ def parse_scan_command(command):
     file structure.
     """
 
-    _COMMAND_LINE_PATTERN = (
+    _COMMAND_LINE_PATTERN_BLISS = (
         "^(?P<command>[^ ]*)\( "
         "(?P<motor_0>[^ ]*), "
         "(?P<motor_0_start>[^ ]*), "
@@ -122,14 +122,37 @@ def parse_scan_command(command):
         ".*"
         "$"
     )
-    cmd_rgx = re.compile(_COMMAND_LINE_PATTERN)
-    cmd_match = cmd_rgx.match(command)
 
-    if cmd_match is None:
-        raise ValueError('Failed to parse command line : "{0}".' "".format(command))
+    _COMMAND_LINE_PATTERN_SPEC = (
+        "^(?P<command>[^ ]*)"
+        "(?:\s+(?P<motor_0>[^ ]*)"
+        "\s+(?P<motor_0_start>[^ ]*)"
+        "\s+(?P<motor_0_end>[^ ]*)"
+        "\s+(?P<motor_0_steps>[^ ]*)"
+        "\s+(?P<motor_1>[^ ]*)"
+        "\s+(?P<motor_1_start>[^ ]*)"
+        "\s+(?P<motor_1_end>[^ ]*)"
+        "\s+(?P<motor_1_steps>[^ ]*)"
+        "\s+(?P<delay>[^ ]*))"
+        ".*"
+        "$"
+    )
 
-    cmd_dict = cmd_match.groupdict()
-    cmd_dict.update(full=command)
+    try:
+        cmd_rgx = re.compile(_COMMAND_LINE_PATTERN_BLISS)
+        cmd_match = cmd_rgx.match(command)
+
+        cmd_dict = cmd_match.groupdict()
+        cmd_dict.update(full=command)
+    except AttributeError:
+        try:
+            cmd_rgx = re.compile(_COMMAND_LINE_PATTERN_SPEC)
+            cmd_match = cmd_rgx.match(command)
+
+            cmd_dict = cmd_match.groupdict()
+            cmd_dict.update(full=command)
+        except AttributeError:
+            raise ValueError('Failed to parse command line : "{0}".' "".format(command))
 
     return cmd_dict
 
