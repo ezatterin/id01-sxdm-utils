@@ -76,10 +76,10 @@ def get_detcalib(h5f, scan_no):
 
 def get_piezo_motor_names(h5f, scan_no):
     command = get_command(h5f, scan_no)
-    if "mesh" in command:  # this has a spec syntax for now!
+    if any([x in command for x in ("sxdm", "kmap", "mesh")]): 
         m1_name, m2_name = [command.split(" ")[x] for x in (1, 5)]
-    elif any([x in command for x in ("sxdm", "kmap")]):
-        m1_name, m2_name = [command.split(" ")[x] for x in (1, 5)]
+        if ',' in m1_name:
+            m1_name, m2_name = m1_name[:-1], m2_name[:-1]
     else:
         fname = os.path.basename(h5f)
         msg = f"Scan {scan_no} in {fname} is not a mesh or an sxdm scan!"
