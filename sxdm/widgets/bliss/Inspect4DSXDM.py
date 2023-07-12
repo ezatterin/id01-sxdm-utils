@@ -3,6 +3,8 @@ import h5py
 import ipywidgets as ipw
 import matplotlib as mpl
 
+from tqdm.notebook import tqdm
+
 from sxdm.widgets import Inspect4DArray
 from ...io.bliss import (
     get_detector_aliases,
@@ -14,11 +16,6 @@ from ...io.bliss import (
 from ...io.utils import list_available_counters
 
 from id01lib.xrd.detectors import MaxiPix, MaxiPixGaAs, Eiger2M
-
-from tqdm.notebook import tqdm
-from functools import partialmethod
-
-tqdm.__init__ = partialmethod(tqdm.__init__, disable=True)
 
 _det_aliases = dict(mpx1x4=MaxiPix(), mpxgaas=MaxiPixGaAs(), eiger2M=Eiger2M())
 
@@ -36,9 +33,11 @@ class Inspect4DSXDM(Inspect4DArray):
         self.det_shape = _det_aliases[detector].pixnum
 
         self.lower_data = get_sxdm_pos_sum(
-            path_dset, scan_no, detector=detector
+            path_dset, scan_no, detector=detector, pbar=False
         ).reshape(self.scan_shape)
-        self.higher_data = get_sxdm_frame_sum(path_dset, scan_no, detector=detector)
+        self.higher_data = get_sxdm_frame_sum(
+            path_dset, scan_no, detector=detector, pbar=False
+        )
 
         self.path_dset = path_dset
         self.scan_no = scan_no
@@ -55,7 +54,14 @@ class Inspect4DSXDM(Inspect4DArray):
         self._show_rois.observe(self._add_rois, names="value")
         self._show_rois.layout = ipw.Layout(width="auto")
         self._show_rois.indent = False
-        self.widgets.children = tuple(list(self.widgets.children) + [self._show_rois])
+
+        self._pbar01 = tqdm(display=False)
+        self._pbar23 = tqdm(display=False)
+
+        self.widgets.children = tuple(
+            list(self.widgets.children)
+            + [self._show_rois, self._pbar01.container, self._pbar23.container]
+        )
 
     def _custom_roi_callback(self, eclick, erelease):
         with self.figout:
@@ -130,16 +136,16 @@ class Inspect4DSXDM(Inspect4DArray):
                     mask = np.ones(self.scan_shape, dtype="bool")
                     mask[self.row0 : self.row1, self.col0 : self.col1] = False
 
-                    print("\rLoading...", flush=True, end="")
                     self.higher_data = get_sxdm_frame_sum(
                         self.path_dset,
                         self.scan_no,
                         mask_direct=mask,
                         detector=self.detector,
+                        pbar=self._pbar01,
                     )
-                    print("\rDone!      ", flush=True, end="")
                     self.higher_img.set_data(self.higher_data)
                     self.mask_direct = mask
+                    self._pbar01.refresh()
 
                 elif self.idx == 1:
                     mask = np.ones(self.det_shape, dtype="bool")
@@ -150,9 +156,11 @@ class Inspect4DSXDM(Inspect4DArray):
                         self.scan_no,
                         mask_reciprocal=mask,
                         detector=self.detector,
+                        pbar=self._pbar23,
                     )
                     self.lower_img.set_data(self.lower_data.reshape(self.scan_shape))
                     self.mask_reciprocal = mask
+                    self._pbar23.refresh()
 
                 self.ax[self.idx].set_title(
                     "Indexes: [{}:{}, {}:{}]".format(
@@ -190,7 +198,7 @@ class Inspect4DSXDM(Inspect4DArray):
                     name,
                     size="small",
                     c=c,
-                    )
+                )
 
                 self._texts.append(_text)
                 self._patches.append(_rect)
