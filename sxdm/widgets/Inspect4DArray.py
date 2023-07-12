@@ -38,8 +38,8 @@ class Inspect4DArray(object):
         with self.figout:
             display(fig.canvas)
 
-        self.lower_img = ax[0].imshow(self.lower_data, origin='lower')
-        self.higher_img = ax[1].imshow(self.higher_data, origin='lower')
+        self.lower_img = ax[0].imshow(self.lower_data, origin="lower")
+        self.higher_img = ax[1].imshow(self.higher_data, origin="lower")
 
         self.lower_curpos = ax[0].scatter(0, 0, marker="x", c="r")
         self.higher_curpos = ax[1].scatter(100, 100, marker="x", c="r")
@@ -110,10 +110,10 @@ class Inspect4DArray(object):
             self.col -= 1
             self._update_plots()
         elif event.key in ["40", "down"]:
-            self.row += 1
+            self.row -= 1
             self._update_plots()
         elif event.key in ["38", "up"]:
-            self.row -= 1
+            self.row += 1
             self._update_plots()
 
     def _is_d01_roi(self, change):
