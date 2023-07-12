@@ -2,6 +2,7 @@ import numpy as np
 import multiprocessing as mp
 import os
 import h5py
+import ipywidgets as ipw
 
 from tqdm.notebook import tqdm
 from functools import partial
@@ -17,11 +18,12 @@ from id01lib.io.bliss import (
 
 from .utils import _get_chunk_indexes
 
+
 @ioh5
 def get_sxdm_scan_numbers(h5f, interrupted_scans=False):
     scan_nos = []
     for entry in list(h5f.keys()):
-        command = h5f[f'{entry}/title'][()].decode()
+        command = h5f[f"{entry}/title"][()].decode()
         if any([s in command for s in ("sxdm", "mesh", "kmap")]):
             if not interrupted_scans:
                 try:
@@ -32,7 +34,7 @@ def get_sxdm_scan_numbers(h5f, interrupted_scans=False):
             else:
                 scan_nos.append(entry)
 
-    scan_nos.sort(key=lambda s: int(s.split('.')[0]))
+    scan_nos.sort(key=lambda s: int(s.split(".")[0]))
 
     return scan_nos
 
@@ -76,9 +78,9 @@ def get_detcalib(h5f, scan_no):
 
 def get_piezo_motor_names(h5f, scan_no):
     command = get_command(h5f, scan_no)
-    if any([x in command for x in ("sxdm", "kmap", "mesh")]): 
+    if any([x in command for x in ("sxdm", "kmap", "mesh")]):
         m1_name, m2_name = [command.split(" ")[x] for x in (1, 5)]
-        if ',' in m1_name:
+        if "," in m1_name:
             m1_name, m2_name = m1_name[:-1], m2_name[:-1]
     else:
         fname = os.path.basename(h5f)
@@ -137,6 +139,7 @@ def get_sxdm_frame_sum(
     mask_direct=None,
     detector="mpx1x4",
     n_proc=None,
+    pbar=True
 ):
     """
     Return the sum of all detector frames collected within an SXDM scan.
@@ -166,10 +169,30 @@ def get_sxdm_frame_sum(
             roi_dir_idxs = np.indices((sh,))[0]
 
         pfun = partial(_get_frames_chunk, path_dset, path_data_h5, roi_dir_idxs)
+
+        # set progress bar
+        if pbar is True:
+            pbar = tqdm()
+        elif isinstance(pbar, tqdm):
+            pbar.total = len(indexes)
+            pbar.refresh()
+    
+        # apply partial function multi process, with an index range per process
         frame_sum_list = []
+        try: 
+            pbar.reset(total=len(indexes))
+        except AttributeError:
+            pass
         with mp.Pool(processes=n_proc) as p:
-            for res in tqdm(p.imap(pfun, indexes), total=len(indexes)):
+            for res in p.imap(pfun, indexes):
                 frame_sum_list.append(res)
+                try:
+                    pbar.update()
+                except AttributeError: # pbar=False
+                    pass
+        
+        if pbar is True: 
+            pbar.close()
 
         return np.stack(frame_sum_list).sum(0)
 
@@ -198,8 +221,9 @@ def get_sxdm_pos_sum(
     mask_reciprocal=None,
     detector="mpx1x4",
     n_proc=None,
+    pbar=True,
 ):
-
+    
     detlist = get_detector_aliases(path_dset, scan_no)
     if detector not in detlist:
         raise ValueError(
@@ -225,12 +249,30 @@ def get_sxdm_pos_sum(
     # the function returns a direct space map
     pfun = partial(_calc_pos_sum_chunk, path_dset, path_h5_data, roi_rec_sl)
 
+    # set progress bar
+    if pbar is True:
+        pbar = tqdm()
+    elif isinstance(pbar, tqdm):
+        pbar.total = len(idxs_list)
+        pbar.refresh()
+ 
     # apply partial function multi process, with an index range per process
     roi_sum_list = []
+    try: 
+        pbar.reset(total=len(idxs_list))
+    except AttributeError:
+        pass
     with mp.Pool(processes=n_proc) as p:
-        for res in tqdm(p.imap(pfun, idxs_list), total=len(idxs_list)):
+        for res in p.imap(pfun, idxs_list):
             roi_sum_list.append(res)
-
+            try:
+                pbar.update()
+            except AttributeError: # pbar=False
+                pass
+    
+    if pbar is True: 
+        pbar.close()
+ 
     return np.ma.concatenate(roi_sum_list)
 
 
@@ -249,3 +291,37 @@ def get_roi_pos(h5f, scan_no, roi_names_list, detector="mpx1x4"):
         ]
 
     return roi_params
+
+
+def get_scan_table(path_dset):
+    table = [
+        "<div>",
+        '<table class="specs rendered_html output_html" style="font-size: small">',
+        "  <tbody>",
+        "    <tr>",
+        "      <th>Scan</th>",
+        "      <th>Command</th>",
+        "      <th>Date | Time</th>",
+        "    </tr>",
+    ]
+
+    with h5py.File(path_dset, "r") as h5f:
+        for s in sorted(h5f.keys(), key=lambda s: int(s.split(".")[0])):
+            title = h5f[f"{s}/title"][()].decode()
+
+            dtime = h5f[f"{s}/start_time"][()].decode()
+            dtime = datetime.fromisoformat(dtime).strftime("%b %d | %H:%M:%S")
+
+            row = [
+                "    <tr>",
+                f"      <th>{s}</th>",
+                f"      <td>{title}</td>",
+                f"      <td>{dtime}</td>",
+                "    </tr>",
+            ]
+            _ = [table.append(x) for x in row]
+
+    table += ["  </tbody>", "</table>", "</div>"]
+    table = "\n".join(table)
+
+    return ipw.HTML(table)
