@@ -274,7 +274,7 @@ class InspectROI(object):
             img.set_clim(0.1, roidata.max())
 
         self.roidata = roidata
-        self._update_norm({"new": False})
+        self._update_norm({"new": self.iflog.value})
 
     def _update_norm(self, change):  # mpl
         islog = change["new"]
