@@ -42,7 +42,7 @@ class Inspect4DArray(object):
         self.higher_img = ax[1].imshow(self.higher_data, origin="lower")
 
         self.lower_curpos = ax[0].scatter(0, 0, marker="x", c="r")
-        self.higher_curpos = ax[1].scatter(100, 100, marker="x", c="r")
+        self.higher_curpos = ax[1].scatter(0, 0, marker="x", c="r")
 
         for a in ax:
             add_colorbar(a, a.get_images()[0])
