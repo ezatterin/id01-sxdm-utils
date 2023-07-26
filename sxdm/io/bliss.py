@@ -35,6 +35,7 @@ def get_sxdm_scan_numbers(h5f, interrupted_scans=False):
                 scan_nos.append(entry)
 
     scan_nos.sort(key=lambda s: int(s.split(".")[0]))
+    scan_nos = [s for s in scan_nos if not s.endswith('.2')] 
 
     return scan_nos
 
