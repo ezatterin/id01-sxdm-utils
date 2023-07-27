@@ -17,7 +17,7 @@
 First install `xsocs`:
 
 ```bash
-pip install git+https://gitlab.esrf.fr/zatterin/xsocs.git#egg=xsocs-edo
+pip install git+https://gitlab.esrf.fr/zatterin/xsocs.git#egg=xsocs
 ```
 
 Then `id01lib`:
