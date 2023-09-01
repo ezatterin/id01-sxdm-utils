@@ -285,11 +285,18 @@ def get_roi_pos(h5f, scan_no, roi_names_list, detector="mpx1x4"):
     """
 
     roi_params = {key: None for key in roi_names_list}
+    badrois = []
     for r in roi_params.keys():
-        roi_params[r] = [
-            h5f[f"/{scan_no}/instrument/{detector}_{r}/selection/{m}"][()]
-            for m in "x,y,width,height".split(",")
-        ]
+        try:
+            roi_params[r] = [
+                h5f[f"/{scan_no}/instrument/{detector}_{r}/selection/{m}"][()]
+                for m in "x,y,width,height".split(",")
+            ]
+        except KeyError:
+            badrois.append(r)
+            
+    for r in badrois:
+        del roi_params[r]
 
     return roi_params
 
