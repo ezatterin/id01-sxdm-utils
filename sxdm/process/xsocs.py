@@ -6,6 +6,7 @@ import glob
 import h5py
 import hdf5plugin
 import time
+import concurrent.futures
 
 from functools import partial
 import scipy.ndimage as ndi
@@ -68,7 +69,13 @@ def grid_qspace_xsocs(
         )
 
 
-def get_qspace_vals_xsocs(path_master, offsets=dict()):
+def get_qspace_vals_xsocs(
+    path_master,
+    offsets=dict(),
+    center_chan=None,
+    chan_per_deg=None,
+    beam_energy=None,
+):
 
     h5f = XsocsH5(path_master)
     entry0 = h5f.get_entry_name(entry_idx=0)
@@ -82,9 +89,20 @@ def get_qspace_vals_xsocs(path_master, offsets=dict()):
         angles[a] = np.sort(np.array([h5f.positioner(e, a) for e in h5f.entries()]))
 
     nrj, cen_pix, cpd = h5f.acquisition_params().values()
+    if center_chan is None:
+        center_chan = cen_pix[::-1]
+    if chan_per_deg is None:
+        chan_per_deg = cpd
+    if beam_energy is None:
+        beam_energy = nrj
 
     q_array = qspace_conversion(
-        det.pixnum, cen_pix[::-1], cpd, nrj, *angles.values(), offsets=offsets
+        det.pixnum,
+        center_chan,
+        chan_per_deg,
+        beam_energy,
+        *angles.values(),
+        offsets=offsets,
     )
 
     qx, qy, qz = q_array.transpose(3, 0, 1, 2)
@@ -92,9 +110,21 @@ def get_qspace_vals_xsocs(path_master, offsets=dict()):
     return qx, qy, qz
 
 
-def estimate_n_bins(path_master, offsets=dict()):
+def estimate_n_bins(
+    path_master,
+    offsets=dict(),
+    center_chan=None,
+    chan_per_deg=None,
+    beam_energy=None,
+):
 
-    qx, qy, qz = get_qspace_vals_xsocs(path_master, offsets=offsets)
+    qx, qy, qz = get_qspace_vals_xsocs(
+        path_master,
+        offsets=offsets,
+        center_chan=center_chan,
+        chan_per_deg=chan_per_deg,
+        beam_energy=beam_energy,
+    )
 
     maxbins = []
     for dim in (qx, qy, qz):
@@ -155,11 +185,17 @@ def _shift_write_data(path_master, shifts, n_chunks, roi, path_subh5, overwrite=
         sh_map = tuple(
             [h5f[f"{root}/scan/motor_{i}_steps"][()] for i in (0, 1)]
         )  # (x, y)
-        try:
-            sh_chunk = data.chunks[1:]
-        except TypeError:  # data is not chunked
+        if n_chunks is None:
+            try:
+                sh_chunk = data.chunks[1:]
+                raw_chunk = True
+            except TypeError:  # data is not chunked
+                sh_chunk = tuple([x // 3 for x in data.shape[1:]])
+                raw_chunk = False
+        else:
             sh_chunk = tuple([x // n_chunks for x in data.shape[1:]])
-
+            raw_chunk = False
+            
         # establish shifted file name and get output directory name
         _name_base = os.path.abspath(path_subh5).split(".")[0]
         path_subh5_shift = f"{_name_base}.1_shifted.h5"
@@ -173,7 +209,8 @@ def _shift_write_data(path_master, shifts, n_chunks, roi, path_subh5, overwrite=
 
         # generate shifted file
         path_subh5_shift = shutil.copy(path_subh5, path_subh5_shift)
-        print(f"\n>> Shifting #{scan_no}...", flush=True)
+        chsize = data.chunks if raw_chunk else tuple([n_chunks, *sh_chunk])
+        print(f"\n>> Shifting #{scan_no}... chunk size {chsize}", flush=True)
 
         t2 = 0
         with h5py.File(path_subh5_shift, "a", libver="latest") as f:
@@ -191,7 +228,7 @@ def _shift_write_data(path_master, shifts, n_chunks, roi, path_subh5, overwrite=
                 shape=data.shape,
                 dtype=data.dtype,
                 chunks=(1, *sh_chunk),
-                **hdf5plugin.Bitshuffle(nelems=0, cname='lz4'),
+                **hdf5plugin.Bitshuffle(nelems=0, cname="lz4"),
             )
             det_shift_link["data"] = data_shift
 
@@ -203,7 +240,6 @@ def _shift_write_data(path_master, shifts, n_chunks, roi, path_subh5, overwrite=
                         i1 * sh_chunk[0] : (i1 + 1) * sh_chunk[0],
                         i2 * sh_chunk[1] : (i2 + 1) * sh_chunk[1],
                     ]
-
                     # read the chunk
                     _t2 = time.time()
                     chunk = data[sl_chunk].reshape(sh_map[::-1] + (-1,)).copy()
@@ -248,13 +284,13 @@ def _make_shift_master(path_master, path_out):
             h5f[s] = h5py.ExternalLink(ftolink, f"/{s}")
 
 
-# TODO use concurrent.futures instead
+# TODO catch the memory error in _shift_write_data somehow
 def shift_xsocs_data(
     path_master,
     path_out,
     shifts,
     subh5_list=None,
-    n_chunks=3,
+    n_chunks=None,
     roi=None,
     overwrite=False,
 ):
@@ -271,8 +307,21 @@ def shift_xsocs_data(
     if len(subh5_list) != len(shifts):
         raise ValueError("subh5_list and shifts are not the same length!")
 
-    pf = partial(_shift_write_data, path_master, shifts, n_chunks, roi)
-    with mp.Pool() as pool:
-        pool.map(pf, subh5_list)
+    pf = partial(
+        _shift_write_data, path_master, shifts, n_chunks, roi, overwrite=overwrite
+    )
+
+    with concurrent.futures.ProcessPoolExecutor() as exec:
+        try:
+            for result in exec.map(pf, subh5_list):
+                print(result)
+        except concurrent.futures.process.BrokenProcessPool:
+            print(
+                "\n >> You are probably out of memory! Try running the function "
+                "again with n_chunks=N with N greater than what was used here.\n"
+            )
+
+    # with mp.Pool() as pool:
+    #     pool.map(pf, subh5_list)
 
     _make_shift_master(path_master, path_out)
