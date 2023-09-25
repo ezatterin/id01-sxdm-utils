@@ -236,18 +236,6 @@ class GetShift(object):
         else:
             _ = im.set_norm(mpl.colors.Normalize(*_clims))
 
-    def show(self):
-        """
-        Displays widget.
-        """
-
-        display(
-            ipw.HBox(
-                [self.selector, self.figout],
-                layout={"justify-content": "space-between"},
-            )
-        )
-
     def _on_click(self, event):
         with self.figout:
             if event.inaxes == self.ax:
@@ -327,7 +315,7 @@ class GetShift(object):
                 get_roidata(self.path_h5, s, self.counter_name) for s in self.scan_nos
             ]
             self.dmaps_shifted = {
-                n: ndi.shift(x, s, order=0)
+                n: ndi.shift(x, s, order=0, cval=np.nan)
                 for n, x, s in zip(self.scan_nos, self.dmaps, self.shifts)
             }
             self.idxsel.value = 0
@@ -372,6 +360,18 @@ class GetShift(object):
         ]
 
         self.shifts_widget.value = "\n".join(shifts_tab)
+
+    def show(self):
+        """
+        Displays widget.
+        """
+
+        display(
+            ipw.HBox(
+                [self.selector, self.figout],
+                layout={"justify-content": "space-between"},
+            )
+        )
 
 
 class GetShiftCustom(object):
