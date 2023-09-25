@@ -1,4 +1,5 @@
 from . import bliss
+from . import nanomax
 from .general import (
     get_detector_roilist,
     get_filelist,
