@@ -298,11 +298,7 @@ class InspectROI(object):
 
     @retry()
     def _get_piezo_motor_names(self):
-        if "mesh" in self.command:
-            m1name, m2name = [self.command.split(" ")[x] for x in (1, 5)]
-        else:
-            m1name, m2name = [self.command.split(" ")[x][:-1] for x in (1, 5)]
-        self.m1name, self.m2name = m1name, m2name
+        self.m1name, self.m2name = [self.command.split(" ")[x] for x in (1, 5)]
 
     def _get_piezo_coordinates(self):
         self._get_piezo_motor_names()
