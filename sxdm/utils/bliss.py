@@ -7,6 +7,7 @@ import re
 
 from xsocs.io import XsocsH5
 from xsocs.util import project
+from ..io.bliss import get_positioner
 
 from id01lib.io.bliss import get_detector_aliases
 
@@ -158,7 +159,13 @@ def parse_scan_command(command):
 
 
 def make_xsocs_links(
-    path_dset, path_out, scan_nums, detector=None, name_outh5=None, stitch_counter=None
+    path_dset,
+    path_out,
+    scan_nums,
+    detector=None,
+    name_outh5=None,
+    stitch_counter=None,
+    roi=None,
 ):
     """
     Generates a set of .h5 files to be fed to XSOCS from a 3D-SXDM dataset.
@@ -244,7 +251,6 @@ def make_xsocs_links(
 
         # load counters, positioners, and other params for each scan
         for scan_num, command in zip(scan_nums, commands):
-
             entry = h5f[scan_num]
             instr = entry["instrument/"]
 
@@ -289,7 +295,6 @@ def make_xsocs_links(
 
             # write links to individual XSOCS-compatible files
             with XsocsH5.XsocsH5Writer(out_h5f, "w") as xsocsh5f:  # overwrite
-
                 """
                 XsocsH5Writer methods
                 --> make links to scan parameters
@@ -325,18 +330,19 @@ def make_xsocs_links(
                             f"{scan_num}/measurement/{c}",
                         )
                 for p in positioners:
-                    if p == "delta":
-                        xsocsh5f.add_file_link(
-                            f"{entry_name}/instrument/positioners/del",
-                            path_dset,
-                            f"{scan_num}/instrument/positioners/{p}",
+                    pval = get_positioner(path_dset, scan_num, p)
+                    pw = p if p != "delta" else "del"
+
+                    try:
+                        xsocsh5f._set_array_data(
+                            f"{entry_name}/instrument/positioners/{pw}", pval
                         )
-                    else:
-                        xsocsh5f.add_file_link(
-                            f"{entry_name}/instrument/positioners/{p}",
-                            path_dset,
-                            f"{scan_num}/instrument/positioners/{p}",
+                    except ValueError:
+                        xsocsh5f._set_scalar_data(
+                            f"{entry_name}/instrument/positioners/{pw}", pval
                         )
+                    except AttributeError:  # failed pos
+                        pass
 
                 for pp in pi_positioners:
                     try:
@@ -367,9 +373,12 @@ def make_xsocs_links(
 
 
 def make_xsocs_links_stitch(
-    dset_path_list, scan_nums_list, path_out, name_outh5, detector=None, 
+    dset_path_list,
+    scan_nums_list,
+    path_out,
+    name_outh5,
+    detector=None,
 ):
-
     if not os.path.isdir(path_out):
         os.mkdir(path_out)
 
