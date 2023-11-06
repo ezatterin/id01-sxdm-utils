@@ -18,6 +18,8 @@ from xsocs.process.qspace import QSpaceConverter
 from id01lib.io.bliss import get_positioner
 from id01lib.xrd.qspace.bliss import _det_aliases
 
+from ..io.utils import list_available_counters, _get_chunk_indexes_detector
+
 
 def grid_qspace_xsocs(
     path_qconv,
@@ -34,6 +36,12 @@ def grid_qspace_xsocs(
     center_chan=None,
     chan_per_deg=None,
     beam_energy=None,
+    qconv=None,
+    sample_ip=[1, 0, 0],
+    sample_oop=[0, 0, 1],
+    det_ip="y+",
+    det_oop="z-",
+    sampleor='det'
 ):
 
     converter = QSpaceConverter(
@@ -43,6 +51,12 @@ def grid_qspace_xsocs(
         medfilt_dims=medfilt_dims,
         output_f=path_qconv,
         offsets=offsets,
+        qconv=qconv,
+        sample_ip=sample_ip,
+        sample_oop=sample_oop,
+        det_ip=det_ip,
+        det_oop=det_oop,
+        sampleor=sampleor,
     )
 
     converter.maxipix_correction = correct_mpx_gaps
@@ -75,15 +89,36 @@ def get_qspace_vals_xsocs(
     center_chan=None,
     chan_per_deg=None,
     beam_energy=None,
+    qconv=None,
+    roi=None,
+    sample_ip=[1, 0, 0],
+    sample_oop=[0, 0, 1],
+    det_ip="y+",
+    det_oop="z-",
+    sampleor='det',
 ):
 
     h5f = XsocsH5(path_master)
     entry0 = h5f.get_entry_name(entry_idx=0)
     with h5f:
         detpath = h5f._XsocsH5Base__file[f"/{entry0}/measurement/image/data"].name
-        detalias = detpath.split("/")[-1]
+        detpath_list = detpath.split("/")
+        try:
+            det = _det_aliases[detpath_list[-1]]
+        except KeyError:  # nanomax syntax, Merlin/data
+            try:
+                det = _det_aliases[detpath_list[-2]]
+            except KeyError:  # no recognisible det name, xsocs file
+                counters = list_available_counters(path_master, entry0)
 
-    det = _det_aliases[detalias]
+                for d in _det_aliases.keys():
+                    matches = []
+                    for c in counters:
+                        matches.append(d in c)
+                    if any(matches):
+                        det = _det_aliases[d]
+                        break
+
     angles = {key: None for key in "phi,eta,nu,del".split(",")}
     for a in angles:
         angles[a] = np.sort(np.array([h5f.positioner(e, a) for e in h5f.entries()]))
@@ -96,13 +131,24 @@ def get_qspace_vals_xsocs(
     if beam_energy is None:
         beam_energy = nrj
 
+    if roi == None:
+        img_size = det.pixnum
+    else:
+        img_size = (roi[1] - roi[0], roi[3] - roi[2])
+
     q_array = qspace_conversion(
-        det.pixnum,
+        img_size,
         center_chan,
         chan_per_deg,
         beam_energy,
         *angles.values(),
         offsets=offsets,
+        qconv=qconv,
+        sample_ip=sample_ip,
+        sample_oop=sample_oop,
+        det_ip=det_ip,
+        det_oop=det_oop,
+        sampleor=sampleor,
     )
 
     qx, qy, qz = q_array.transpose(3, 0, 1, 2)
@@ -116,6 +162,8 @@ def estimate_n_bins(
     center_chan=None,
     chan_per_deg=None,
     beam_energy=None,
+    qconv=None,
+    roi=None,
 ):
 
     qx, qy, qz = get_qspace_vals_xsocs(
@@ -124,6 +172,8 @@ def estimate_n_bins(
         center_chan=center_chan,
         chan_per_deg=chan_per_deg,
         beam_energy=beam_energy,
+        qconv=qconv,
+        roi=roi,
     )
 
     maxbins = []
@@ -169,9 +219,6 @@ def _shift_write_data(path_master, shifts, n_chunks, roi, path_subh5, overwrite=
 
     scan_no = path_subh5.split("_")[-1][:-3]
     etashift = _get_motor_dict(path_master, shifts)
-    roi = (
-        np.s_[roi[0] : roi[1], roi[2] : roi[3]] if roi is not None else np.s_[...]
-    )  # TODO not implemented yet
 
     with h5py.File(path_subh5, "r", libver="latest") as h5f:
 
@@ -181,21 +228,21 @@ def _shift_write_data(path_master, shifts, n_chunks, roi, path_subh5, overwrite=
         eta = str(np.round(h5f[f"{root}/instrument/positioners/eta"][()], 4))
         shift = etashift[eta]
 
-        # establish data chunk shape
+        # shapes
+        if roi is None:
+            sh_data = data.shape
+        else:
+            sh_data = (data.shape[0], roi[1] - roi[0], roi[3] - roi[2])
+        
         sh_map = tuple(
             [h5f[f"{root}/scan/motor_{i}_steps"][()] for i in (0, 1)]
         )  # (x, y)
-        if n_chunks is None:
-            try:
-                sh_chunk = data.chunks[1:]
-                raw_chunk = True
-            except TypeError:  # data is not chunked
-                sh_chunk = tuple([x // 3 for x in data.shape[1:]])
-                raw_chunk = False
-        else:
-            sh_chunk = tuple([x // n_chunks for x in data.shape[1:]])
-            raw_chunk = False
-            
+
+        # chunk indexes for two detector dimensions
+        idx0, idx1 = _get_chunk_indexes_detector(
+            path_subh5, data.name, n_chunks=n_chunks, roi=roi
+        )
+
         # establish shifted file name and get output directory name
         _name_base = os.path.abspath(path_subh5).split(".")[0]
         path_subh5_shift = f"{_name_base}.1_shifted.h5"
@@ -209,7 +256,10 @@ def _shift_write_data(path_master, shifts, n_chunks, roi, path_subh5, overwrite=
 
         # generate shifted file
         path_subh5_shift = shutil.copy(path_subh5, path_subh5_shift)
-        chsize = data.chunks if raw_chunk else tuple([n_chunks, *sh_chunk])
+
+        # chunk size
+        sh_chunk = np.diff(idx0)[0, 0], np.diff(idx1)[0, 0]
+        chsize = (n_chunks, *sh_chunk)
         print(f"\n>> Shifting #{scan_no}... chunk size {chsize}", flush=True)
 
         t2 = 0
@@ -225,24 +275,24 @@ def _shift_write_data(path_master, shifts, n_chunks, roi, path_subh5, overwrite=
             # create empty dataset where the original was
             data_shift = det_shift.create_dataset(
                 "data",
-                shape=data.shape,
-                dtype=data.dtype,
+                shape=sh_data,
+                dtype=np.uint16,
+                # dtype=data.dtype,
                 chunks=(1, *sh_chunk),
                 **hdf5plugin.Bitshuffle(nelems=0, cname="lz4"),
             )
             det_shift_link["data"] = data_shift
 
             # for each chunk of original (unshifted) data
-            for i1 in range(data.shape[1] // sh_chunk[0]):
-                for i2 in range(data.shape[2] // sh_chunk[1]):
-                    sl_chunk = np.s_[
-                        :,
-                        i1 * sh_chunk[0] : (i1 + 1) * sh_chunk[0],
-                        i2 * sh_chunk[1] : (i2 + 1) * sh_chunk[1],
-                    ]
+            for (ir0, ir1) in idx0:
+                for (ic0, ic1) in idx1:
+                    sl_chunk = np.s_[:, ir0:ir1, ic0:ic1]
+
                     # read the chunk
                     _t2 = time.time()
-                    chunk = data[sl_chunk].reshape(sh_map[::-1] + (-1,)).copy()
+                    chunk = (
+                        data[sl_chunk].reshape(sh_map[::-1] + (-1,)).copy()
+                    )  # x,y,detx*dety
                     t2 += time.time() - _t2
 
                     # if shifts are non-zero within tolerance
@@ -253,15 +303,22 @@ def _shift_write_data(path_master, shifts, n_chunks, roi, path_subh5, overwrite=
 
                     # write the shifted chunks to the shift file
                     _t2 = time.time()
+                    sh_chunk = (
+                        ir1 - ir0,
+                        ic1 - ic0,
+                    )  # need it because last chunk may be different
                     chunk.resize((np.prod(sh_map),) + sh_chunk)
-                    data_shift[sl_chunk] = chunk
+
+                    irs, ics = idx0[0][0], idx1[0][0]
+                    sl_chunk_roi = np.s_[:,ir0-irs:ir1-irs, ic0-ics:ic1-ics]
+                    data_shift[sl_chunk_roi] = chunk
                     t2 += time.time() - _t2
                     del chunk
 
     t_tot = time.time() - t_init
     print(
         f"\n{os.path.basename(path_subh5)} finished after "
-        f"{t_tot/60:.2f}m. I/O time: {t2:.2f}s",
+        f"{t_tot/60:.2f}m. I/O time: {t2/60:.2f}m",
         flush=True,
     )
 
@@ -284,13 +341,12 @@ def _make_shift_master(path_master, path_out):
             h5f[s] = h5py.ExternalLink(ftolink, f"/{s}")
 
 
-# TODO catch the memory error in _shift_write_data somehow
 def shift_xsocs_data(
     path_master,
     path_out,
     shifts,
     subh5_list=None,
-    n_chunks=None,
+    n_chunks=3,
     roi=None,
     overwrite=False,
 ):
@@ -314,14 +370,11 @@ def shift_xsocs_data(
     with concurrent.futures.ProcessPoolExecutor() as exec:
         try:
             for result in exec.map(pf, subh5_list):
-                print(result)
+                pass
         except concurrent.futures.process.BrokenProcessPool:
             print(
                 "\n >> You are probably out of memory! Try running the function "
                 "again with n_chunks=N with N greater than what was used here.\n"
             )
-
-    # with mp.Pool() as pool:
-    #     pool.map(pf, subh5_list)
 
     _make_shift_master(path_master, path_out)
