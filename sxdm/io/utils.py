@@ -1,7 +1,7 @@
 import h5py
 import os
 
-from id01lib.io.utils import ioh5
+from id01lib.io.bliss import ioh5
 
 
 @ioh5
@@ -37,6 +37,40 @@ def _get_chunk_indexes(path_h5, path_in_h5, n_threads=None):
     indexes = list(zip(c0, c1))
 
     return indexes
+
+
+def _get_chunk_indexes_detector(path_h5, path_in_h5, n_chunks=3, roi=None):
+    """
+    Return a list of indexes. Each range is a range of integer indexes
+    corresponding to a portion of the first dimension of `Data/qspace`
+    in `path_h5`. Such portion computed based on `n_threads` for
+    efficient parallel computation.
+    """
+
+    with h5py.File(path_h5, "r") as h5f:
+        if roi is None:
+            det_shape = h5f[path_in_h5].shape[1:]
+            roi = [0, det_shape[0], 0, det_shape[1]]
+        else:
+            det_shape = (roi[1] - roi[0], roi[3] - roi[2])
+
+    if n_chunks is None:
+        n_chunks = os.cpu_count()
+    elif n_chunks == 1:
+        return [(0, det_shape[0], det_shape[1])]
+
+    chunk_size = [d // n_chunks for d in det_shape]
+
+    idxs = []
+    for c, d, r in zip(chunk_size, det_shape, [roi[:2], roi[2:]]):
+        c0 = [x for x in range(r[0], r[1] - c + 1, c)]
+        c1 = [x for x in c0.copy()[1:]]
+        c1.append(c1[-1] + (c + d % c))
+
+        indexes = list(zip(c0, c1))
+        idxs.append(indexes)
+
+    return idxs
 
 
 def _get_qspace_avg_chunk(path_h5, path_in_h5, idx_mask, idx_range):
