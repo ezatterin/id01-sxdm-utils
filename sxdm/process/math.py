@@ -15,7 +15,6 @@ from ..io.bliss import get_detector_aliases
 
 
 def _gauss_fit_point(path_qspace, roi_slice, rec_axis, qcoords, dir_mask, dir_idx):
-
     with h5py.File(path_qspace, "r") as h5f:
         local_diffr = h5f["Data/qspace"][dir_idx][roi_slice]
 
@@ -46,7 +45,6 @@ def _gauss_fit_point(path_qspace, roi_slice, rec_axis, qcoords, dir_mask, dir_id
 
 
 def _gauss_fit_multi_point(path_qspace, roi_slice, rec_axis, qcoords, mask, dir_idx):
-
     with h5py.File(path_qspace, "r") as h5f:
         local_diffr = h5f["Data/qspace"][dir_idx][roi_slice]
 
@@ -73,7 +71,6 @@ def _gauss_fit_multi_point(path_qspace, roi_slice, rec_axis, qcoords, mask, dir_
 
 
 def gauss_fit(path_qspace, rec_mask, dir_mask=None, multi=False):
-
     with h5py.File(path_qspace, "r") as h5f:
         dir_idxs = range(h5f["Data/qspace"].shape[0])
         qx, qy, qz = [h5f[f"Data/{x}"][...] for x in "qx,qy,qz".split(",")]
@@ -88,7 +85,6 @@ def gauss_fit(path_qspace, rec_mask, dir_mask=None, multi=False):
     axidx = {0: "qx", 1: "qy", 2: "qz"}
 
     with mp.Pool(os.cpu_count()) as pool:
-
         for rec_axis in (0, 1, 2):
             fitls = []
             fun = _gauss_fit_point if not multi else _gauss_fit_multi_point
@@ -103,7 +99,7 @@ def gauss_fit(path_qspace, rec_mask, dir_mask=None, multi=False):
                     print(
                         f"\r{axidx[rec_axis]}: {i}/{dir_idxs.stop}", end="", flush=True
                     )
-            print('\n')
+            print("\n")
             fits_free[axidx[rec_axis]] = fitls
 
     return fits_free
@@ -254,7 +250,7 @@ def _calc_com_qspace3d(path_qspace, mask_reciprocal, idx, n_pix=None, std=False)
     path_qspace : str
         Path to the XSOCS q-space file.
     mask_reciprocal : numpy.ndarray
-        3D boolean array. True for portions *not* to be considered. 
+        3D boolean array. True for portions *not* to be considered.
     idx : int
         Index of the first dimension of the 4D q-space array, i.e. the index of
         the sample position at which the 3D q-space volume was measured.
@@ -273,23 +269,24 @@ def _calc_com_qspace3d(path_qspace, mask_reciprocal, idx, n_pix=None, std=False)
 
     # indexes of saught data
     roi_rec = np.where(np.invert(mask_reciprocal))
-    
+
     # check if mask is cube-like or more complicated,
     # will determine how array is retrieved from hdf5 file
     mask_size_cube = np.prod([x.max() + 1 - x.min() for x in roi_rec])
-    mask_size_real = np.count_nonzero(np.invert(mask_reciprocal)) 
+    mask_size_real = np.count_nonzero(np.invert(mask_reciprocal))
 
     # if mask is cube-like use these
     roi_rec_sl = tuple([slice(x.min(), x.max() + 1) for x in roi_rec])
     roi = (idx, *roi_rec_sl)
 
     with h5py.File(path_qspace, "r") as h5f:
-
         # data sliced straight from hdf5 OR,
         # data loaded to mem at idx and then fancy sliced
-        if mask_size_cube == mask_size_real: 
-            arr = h5f["Data/qspace"][roi] 
-        else:
+        if mask_size_cube == mask_size_real:
+            arr = h5f["Data/qspace"][roi]
+        # NOTE this will fail if the smallest rec space dimensions is not the 
+        # first one!
+        else: 
             arr = h5f["Data/qspace"][idx][roi_rec]
 
         # retrieve q-space coordinates
@@ -297,7 +294,7 @@ def _calc_com_qspace3d(path_qspace, mask_reciprocal, idx, n_pix=None, std=False)
         qxm, qym, qzm = [q[roi_rec] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
 
         # compute COM and standard deviation
-        if std is True:
+        if std is True: 
             cx, cy, cz, stdx, stdy, stdz = calc_com_3d(
                 arr, qxm, qym, qzm, n_pix=n_pix, std=True
             )
@@ -364,7 +361,7 @@ def calc_coms_qspace3d(path_qspace, mask_reciprocal, n_pix=None, std=False):
         return cx, cy, cz
 
 
-def _calc_roi_sum_chunk(path_qspace, roi_rec_sl, mask_direct, idx_range):
+def _calc_roi_sum_chunk(path_qspace, mask_reciprocal, mask_direct, idx_range):
     """
     Calculate the intensity of a 5D qspace dataset:
     * for the direct space indexes in the range `idx_range`;
@@ -374,14 +371,32 @@ def _calc_roi_sum_chunk(path_qspace, roi_rec_sl, mask_direct, idx_range):
     Returns a `numpy.masked_array`.
     """
     i0, i1 = idx_range
+    sh0 = i1 - i0
+    
+    # indexes of saught data 
+    roi_rec_idxs = np.where(np.invert(mask_reciprocal))
+    roi_idxs = np.where(np.invert(np.stack([mask_reciprocal.flatten()]*sh0, axis=0)))
 
-    roi_slice = (slice(i0, i1, None), *roi_rec_sl)
-    mask_dir_range = mask_direct[i0:i1]
-
+    # slices of saught data
+    roi_rec_sl = tuple([slice(x.min(), x.max() + 1) for x in roi_rec_idxs])
+    roi_sl = (slice(i0, i1, None), *roi_rec_sl)
+    
+    # check if mask is cube-like or more complicated,
+    # will determine how array is retrieved from hdf5 file
+    mask_size_cube = np.prod([x.max() + 1 - x.min() for x in roi_rec_idxs])
+    mask_size_real = np.count_nonzero(np.invert(mask_reciprocal))
+    
     with h5py.File(path_qspace, "r") as h5f:
-        arr = h5f["Data/qspace"][roi_slice].sum(axis=(1, 2, 3))
+        # slice full 4D array directly
+        if mask_size_cube == mask_size_real:
+            arr = h5f["Data/qspace"][roi_sl].sum(axis=(1, 2, 3))
+        # first send sub array to memory, then index flattened 3D
+        else:
+            arr = h5f["Data/qspace"][i0:i1,...]
+            arr = arr.reshape(sh0, mask_reciprocal.size)[roi_idxs]
+            arr = arr.reshape(sh0, roi_rec_idxs[0].shape[0]).sum(1)
 
-    return np.ma.masked_where(mask_dir_range, arr)
+    return np.ma.masked_where(mask_direct[i0:i1], arr)
 
 
 def calc_roi_sum(path_qspace, mask_reciprocal, mask_direct=None, n_proc=None):
@@ -417,20 +432,19 @@ def calc_roi_sum(path_qspace, mask_reciprocal, mask_direct=None, n_proc=None):
     # list of idx ranges [(i0, i1), (i0, i1), ...]
     idxs_list = _get_chunk_indexes(path_qspace, "Data/qspace", n_threads=n_proc)
 
-    # recipocal space slice from mask
-    roi_rec = np.where(np.invert(mask_reciprocal))
-    roi_rec_sl = tuple([slice(x.min(), x.max() + 1) for x in roi_rec])
-
     # direct space mask
     mask_dir = mask_direct.flatten() if mask_direct is not None else np.zeros(sh)
 
-    pfun = functools.partial(_calc_roi_sum_chunk, path_qspace, roi_rec_sl, mask_dir)
+    pfun = functools.partial(
+        _calc_roi_sum_chunk, path_qspace, mask_reciprocal, mask_dir
+    )
     roi_sum_list = []
     with mp.Pool(processes=n_proc) as p:
         for res in tqdm(p.imap(pfun, idxs_list), total=len(idxs_list)):
             roi_sum_list.append(res)
 
     return np.ma.concatenate(roi_sum_list)
+
 
 def _calc_com_idx(path_h5, path_in_h5, mask_idxs, qx, qy, qz, idx_list, **kwargs):
     with h5py.File(path_h5, "r") as h5f:
@@ -456,7 +470,6 @@ def calc_coms_qspace2d(
     n_pix=None,
     std=None,
 ):
-
     detlist = get_detector_aliases(path_dset, scan_no)
     if detector not in detlist:
         raise ValueError(
@@ -472,14 +485,12 @@ def calc_coms_qspace2d(
 
         with h5py.File(path_dset, "r") as h5f:
             mask_sh = h5f[path_data_h5].shape[1:]
-            
-        idx_list = _get_chunk_indexes(
-            path_dset, path_data_h5, n_threads=n_threads
-        )
+
+        idx_list = _get_chunk_indexes(path_dset, path_data_h5, n_threads=n_threads)
 
         mask = np.invert(mask_rec) if mask_rec is not None else np.ones(mask_sh)
         mask_idxs = tuple([slice(x.min(), x.max() + 1) for x in np.where(mask)])
-        
+
         coms = []
         pfun = functools.partial(
             _calc_com_idx,
@@ -495,8 +506,8 @@ def calc_coms_qspace2d(
         with mp.Pool(processes=ncpu) as p:
             for res in tqdm(p.imap(pfun, idx_list), total=len(idx_list)):
                 coms.append(res)
-        
-        coms = [x for y in coms for x in y]        
+
+        coms = [x for y in coms for x in y]
         comsarr = np.stack(coms)
 
         return comsarr
