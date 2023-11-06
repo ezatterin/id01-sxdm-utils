@@ -77,12 +77,13 @@ class GetShift(object):
 
         self.shifts = np.zeros((len(self.scan_nos), 2))
         self.marks = {s: None for s in self.scan_nos}
+        self.marked = {s: False for s in self.scan_nos}
         self._click_counter = 0
 
         self._load_counters_list()
         self._init_fig()
-        self._update_norm({"new": False})
         self._init_widgets()
+        self._update_norm({"new": False})
         self._update_counter({"new": counter_name})
         self._calc_shifts()
 
@@ -93,7 +94,6 @@ class GetShift(object):
         self.m1name, self.m2name = get_piezo_motor_names(self.path_h5, self.scan_no)
 
     def _init_fig(self):
-
         with plt.ioff():
             fig, ax = plt.subplots(1, 1, figsize=(4, 4), layout="tight")
         with self.figout:
@@ -106,7 +106,10 @@ class GetShift(object):
 
         # init scatter
         dim0, dim1 = self.data.shape
-        self.refmark = ax.scatter(dim1 // 2, dim0 // 2, marker="x", color="red")
+        self.refmark = [
+            m(d // 2, c="r", lw=0.7)
+            for m, d in zip([ax.axhline, ax.axvline], [dim0, dim1])
+        ]
         self.marks[self.scan_no] = [dim1 // 2, dim0 // 2]
 
         # labels etc
@@ -117,9 +120,9 @@ class GetShift(object):
 
         # connect to mpl event manager
         self.fig.canvas.mpl_connect("button_press_event", self._on_click)
+        self.fig.canvas.mpl_connect("key_press_event", self._onkey)
 
     def _init_widgets(self):
-
         # layout of individual items - css properties
         items_layout = ipw.Layout(width="auto")
 
@@ -157,6 +160,14 @@ class GetShift(object):
             layout={"width": "100%"},
         )
         self.shiftit.observe(self._apply_shift_counter)
+        
+        # save shifts
+        self.saveshifts = ipw.Button(
+            description="Save shifts",
+            tooltip="Save shifts",
+            layout={"width": "100%"},
+        )
+        self.saveshifts.on_click(self._save_shifts)
 
         # incr or decr scan idx
         self.fwd = ipw.Button(description=">>")
@@ -183,6 +194,7 @@ class GetShift(object):
                 ipw.HBox([self.iflog], layout=cblayout),
                 ipw.HBox([self.bkw, self.fwd], layout=cblayout),
                 ipw.HBox([self.shiftit], layout=cblayout),
+                ipw.HBox([self.saveshifts], layout=cblayout),
                 view_shifts,
             ]
         )
@@ -195,6 +207,9 @@ class GetShift(object):
             "padding": "2px",
             "align-items": "stretch",
         }
+        
+    def _save_shifts(self, change):
+        np.save('_shifts.npy', self.shifts)
 
     def _scan_idx_fwd(self, widget):
         try:
@@ -205,7 +220,6 @@ class GetShift(object):
         self.idxsel.value = self.scan_idx
 
     def _scan_idx_bkw(self, widget):
-
         if self.scan_idx > 0:
             self.scan_idx -= 1
             self._update_scan({"new": self.scan_idx})
@@ -216,7 +230,7 @@ class GetShift(object):
     def _update_norm(self, change):
         # when scan idx changed with slider (_update_scan)
 
-        islog = change["new"]
+        islog = self.iflog.value
 
         im = self.img
         data = im.get_array()
@@ -236,6 +250,14 @@ class GetShift(object):
         else:
             _ = im.set_norm(mpl.colors.Normalize(*_clims))
 
+    def _update_ref(self, x, y):
+        coords = [([0,1], [y,y]), ([x,x], [0,1])]
+        for m, c in zip(self.refmark, coords):
+            m.set_data(c)
+
+        self.marks[self.scan_no] = [x, y]
+        self.marked[self.scan_no] = True
+
     def _on_click(self, event):
         with self.figout:
             if event.inaxes == self.ax:
@@ -245,14 +267,28 @@ class GetShift(object):
 
                     msg = f"You clicked: {m1n},{x:.4f}, {m2n},{y:.4f}"
                     print(f"\r {msg}", flush=True, end="")
+                    self.x, self.y = x, y
 
-                    self.refmark.set_offsets([x, y])
-                    self.marks[self.scan_no] = [x, y]
-                    self._click_counter += 1
+                    self._update_ref(x, y)
+
                 else:
                     pass
             else:
                 pass
+
+    def _onkey(self, event):
+        if event.key in ["39", "right"]:
+            self.x += 1
+            self._update_ref(self.x, self.y)
+        elif event.key in ["37", "left"]:
+            self.x -= 1
+            self._update_ref(self.x, self.y)
+        elif event.key in ["40", "down"]:
+            self.y -= 1
+            self._update_ref(self.x, self.y)
+        elif event.key in ["38", "up"]:
+            self.y += 1
+            self._update_ref(self.x, self.y)
 
     def _update_counter(self, change):
         # when counter changed in drop-down menu
@@ -276,24 +312,23 @@ class GetShift(object):
 
     def _update_mark(self):
         # when scan idx changed with slider (_update_scan)
-        if self._click_counter == 0:
-            pass
+
+        if self.marked[self.scan_no] is False:
+            off = self.marks[self.scan_nos[self.scan_idx - 1]]
+
+            if off is None:  # because you skip scans with slider
+                off = self.marks[self.scan_nos[0]]
+            if self.shiftit.value:
+                off += self.shifts[self.scan_nos.index(self.scan_no)][::-1]
+
+            self._update_ref(*off)
+            self.marks[self.scan_no] = off
+            self.marked[self.scan_no] = False
         else:
-            if self.marks[self.scan_no] is None:
-                off = self.marks[self.scan_nos[self.scan_idx - 1]]
-
-                if off is None:  # because you skip scans with slider
-                    off = self.marks[self.scan_nos[0]]
-                if self.shiftit.value:
-                    off += self.shifts[self.scan_nos.index(self.scan_no)][::-1]
-
-                self.refmark.set_offsets(off)
-                self.marks[self.scan_no] = off
-            else:
-                off = self.marks[self.scan_no]
-                if self.shiftit.value:
-                    off += self.shifts[self.scan_nos.index(self.scan_no)][::-1]
-                self.refmark.set_offsets(off)
+            off = self.marks[self.scan_no]
+            if self.shiftit.value:
+                off += self.shifts[self.scan_nos.index(self.scan_no)][::-1]
+            self._update_ref(*off)
 
     def _update_scan(self, change):
         # when scan idx changed with slider
@@ -308,14 +343,13 @@ class GetShift(object):
         self._calc_shifts()
 
     def _apply_shift_counter(self, change):
-
         if self.shiftit.value:
             self._calc_shifts()
             self.dmaps = [
                 get_roidata(self.path_h5, s, self.counter_name) for s in self.scan_nos
             ]
             self.dmaps_shifted = {
-                n: ndi.shift(x, s, order=0, cval=np.nan)
+                n: ndi.shift(x, s, order=0, cval=0)
                 for n, x, s in zip(self.scan_nos, self.dmaps, self.shifts)
             }
             self.idxsel.value = 0
@@ -414,7 +448,6 @@ class GetShiftCustom(object):
         self._calc_shifts()
 
     def _init_fig(self):
-
         with plt.ioff():
             fig, ax = plt.subplots(1, 1, figsize=(4, 4), layout="tight")
         with self.figout:
@@ -437,7 +470,6 @@ class GetShiftCustom(object):
         self.fig.canvas.mpl_connect("button_press_event", self._on_click)
 
     def _init_widgets(self):
-
         # layout of individual items - css properties
         items_layout = ipw.Layout(width="auto")
 
@@ -514,7 +546,6 @@ class GetShiftCustom(object):
         self.idxsel.value = self.img_idx
 
     def _img_idx_bkw(self, widget):
-
         if self.img_idx > 0:
             self.img_idx -= 1
             self._update_scan({"new": self.img_idx})
@@ -608,7 +639,6 @@ class GetShiftCustom(object):
         self._calc_shifts()
 
     def _apply_shift_counter(self, change):
-
         if self.shiftit.value:
             self._calc_shifts()
             self.img_list_shifted = {
@@ -622,7 +652,6 @@ class GetShiftCustom(object):
             self.idxsel.value = 0
 
     def _calc_shifts(self):
-
         if self.shifts.any() is True and self.init is True:
             for x in range(1, len(self.img_list)):
                 self.marks[x] = list(np.array(self.marks[0]) - self.shifts[x][::-1])
