@@ -47,11 +47,11 @@ class Inspect4DSXDM(Inspect4DArray):
 
         with h5py.File(self.path_dset, "r") as h5f:
             arr = h5f[f"{self.scan_no}/measurement/{self.detector}"]
-            
+
             super().__init__(arr)
 
             self.higher_curpos.remove()
-            self.lower_curpos.set_offsets([s//2 for s in self.lower_data.shape])
+            self.lower_curpos.set_offsets([s // 2 for s in self.lower_data.shape])
 
         self.ax[1].invert_yaxis()
 
@@ -90,9 +90,9 @@ class Inspect4DSXDM(Inspect4DArray):
     def _onclick_callback(self, event):
         with self.figout:
             self.custom_roi = False
-            
+
             # does not fire if zooming, panning etc.
-            if self.fig.canvas.manager.toolbar.mode.name == 'NONE':
+            if self.fig.canvas.manager.toolbar.mode.name == "NONE":
                 if event.inaxes == self.ax[0] and self.if01roi.value is False:
                     self.idx = 0
                     x, y = event.xdata, event.ydata
@@ -127,7 +127,7 @@ class Inspect4DSXDM(Inspect4DArray):
                             "Intensity @ [{}, {}]".format(self.row, self.col)
                         )
 
-                    elif self.idx == 1: # not used at the moment, see _onclick_callback
+                    elif self.idx == 1:  # not used at the moment, see _onclick_callback
                         self.lower_data = arr[:, self.row, self.col]
                         self.lower_img.set_data(
                             self.lower_data.reshape(self.scan_shape)
@@ -154,9 +154,9 @@ class Inspect4DSXDM(Inspect4DArray):
                             detector=self.detector,
                             pbar=self._pbar01,
                         )
-                    except ValueError: # mask is empty
+                    except ValueError:  # mask is empty
                         return
-                    
+
                     self.higher_img.set_data(self.higher_data)
                     self.mask_direct = mask
                     self._pbar01.refresh()
@@ -164,7 +164,7 @@ class Inspect4DSXDM(Inspect4DArray):
                 elif self.idx == 1:
                     mask = np.ones(self.det_shape, dtype="bool")
                     mask[self.row0 : self.row1, self.col0 : self.col1] = False
-                    
+
                     try:
                         self.lower_data = get_sxdm_pos_sum(
                             self.path_dset,
@@ -173,9 +173,9 @@ class Inspect4DSXDM(Inspect4DArray):
                             detector=self.detector,
                             pbar=self._pbar23,
                         )
-                    except ValueError: # mask is empty
+                    except ValueError:  # mask is empty
                         return
-                    
+
                     self.lower_img.set_data(self.lower_data.reshape(self.scan_shape))
                     self.mask_reciprocal = mask
                     self._pbar23.refresh()
@@ -201,6 +201,7 @@ class Inspect4DSXDM(Inspect4DArray):
         ]
         roi_names = [x.split("_")[-1] for x in roi_names]
         roi_names.remove(self.detector)
+        
         roipos = get_roi_pos(
             self.path_dset, self.scan_no, roi_names, detector=self.detector
         )
