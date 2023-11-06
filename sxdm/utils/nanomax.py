@@ -55,11 +55,9 @@ def make_xsocs_links_nanomax(
     path_out_master = f"{path_out}/{name_out}_master.h5"
 
     for scan_idx, scan_num in enumerate(scan_nums):
-
         path_dset = f"{path_exp}/{scan_num:06d}.h5"
 
         with h5py.File(path_dset, "r") as h5f:
-
             # expt parameters
             direct_beam = [250, 250]
             det_distance = h5f["/entry/snapshots/pre_scan/radius"][()][0] / 1e3
@@ -68,7 +66,7 @@ def make_xsocs_links_nanomax(
                 np.round(np.tan(np.radians(1)) * det_distance / pxs, 2)
                 for pxs in pix_sizes
             ]
-            energy = h5f["/entry/snapshots/pre_scan/energy_raw"][()]
+            energy = h5f["/entry/snapshots/pre_scan/energy_raw"][0]
 
             # positioners
             positioners = [p for p in h5f["/entry/snapshots/pre_scan/"]]
@@ -91,7 +89,6 @@ def make_xsocs_links_nanomax(
             # write links to individual XSOCS-compatible files
             path_out_file = f"{path_out}/{name_out}_{entry_name}.h5"
             with XsocsH5.XsocsH5Writer(path_out_file, "w") as xsocsh5f:  # overwrite
-
                 """
                 XsocsH5Writer methods
                 --> make links to scan parameters
