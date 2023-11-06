@@ -8,12 +8,13 @@ from tqdm.notebook import tqdm
 from functools import partial
 from datetime import datetime
 
-from id01lib.io.utils import ioh5
+from id01lib.io.bliss import ioh5
 from id01lib.io.bliss import (
     get_command,
     get_counter,
     get_positioner,
     get_detector_aliases,
+    get_scan_shape,
 )
 
 from .utils import _get_chunk_indexes
@@ -35,23 +36,9 @@ def get_sxdm_scan_numbers(h5f, interrupted_scans=False):
                 scan_nos.append(entry)
 
     scan_nos.sort(key=lambda s: int(s.split(".")[0]))
-    scan_nos = [s for s in scan_nos if not s.endswith('.2')] 
+    scan_nos = [s for s in scan_nos if not s.endswith(".2")]
 
     return scan_nos
-
-
-@ioh5
-def get_scan_shape(h5f, scan_no):
-    command_list = h5f[f"{scan_no}/title"][()].decode().split(" ")
-    try:
-        sh = [h5f[f"{scan_no}/technique/{x}"][()] for x in ("dim0", "dim1")][::-1]
-    except KeyError:  # must be a mesh or a scan
-        try:  # mesh
-            sh = [int(command_list[x]) + 1 for x in (4, 8)][::-1]
-        except IndexError:  # scan
-            sh = int(command_list[4])
-
-    return sh
 
 
 @ioh5
@@ -122,14 +109,19 @@ def get_roidata(h5f, scan_no, roi_name, return_pi_motors=False):
         return data
 
 
-def _get_frames_chunk(path_dset, path_in_h5, roi_dir_idxs, idx_range):
+def _get_frames_chunk(path_dset, path_in_h5, roi_dir_idxs, roi, idx_range):
     """
     Return the q-space intensity array summed over the (flattened) sample positons
     given by `idx_range`, which is a list of tuples.
     """
     idx_list = [x for x in range(*idx_range, 1) if x in roi_dir_idxs]
+    if roi is not None:
+        roi_sl = np.s_[idx_list, roi[0] : roi[1], roi[2] : roi[3]]
+    else:
+        roi_sl = np.s_[idx_list, ...]
+
     with h5py.File(path_dset, "r") as h5f:
-        arr = h5f[path_in_h5][idx_list, ...].sum(0)
+        arr = h5f[path_in_h5][roi_sl].sum(0)
 
     return arr
 
@@ -140,7 +132,9 @@ def get_sxdm_frame_sum(
     mask_direct=None,
     detector="mpx1x4",
     n_proc=None,
-    pbar=True
+    pbar=True,
+    path_data_h5="/{scan_no}/instrument/{detector}/data",
+    roi=None,
 ):
     """
     Return the sum of all detector frames collected within an SXDM scan.
@@ -151,7 +145,7 @@ def get_sxdm_frame_sum(
             f"Detector {detector} not in data file. Available detectors are: {detlist}."
         )
     else:
-        path_data_h5 = f"/{scan_no}/instrument/{detector}/data"
+        path_data_h5 = path_data_h5.format(scan_no=scan_no, detector=detector)
 
         if n_proc is None:
             n_proc = os.cpu_count()
@@ -169,7 +163,7 @@ def get_sxdm_frame_sum(
         else:
             roi_dir_idxs = np.indices((sh,))[0]
 
-        pfun = partial(_get_frames_chunk, path_dset, path_data_h5, roi_dir_idxs)
+        pfun = partial(_get_frames_chunk, path_dset, path_data_h5, roi_dir_idxs, roi)
 
         # set progress bar
         if pbar is True:
@@ -177,10 +171,10 @@ def get_sxdm_frame_sum(
         elif isinstance(pbar, tqdm):
             pbar.total = len(indexes)
             pbar.refresh()
-    
+
         # apply partial function multi process, with an index range per process
         frame_sum_list = []
-        try: 
+        try:
             pbar.reset(total=len(indexes))
         except AttributeError:
             pass
@@ -189,10 +183,11 @@ def get_sxdm_frame_sum(
                 frame_sum_list.append(res)
                 try:
                     pbar.update()
-                except AttributeError: # pbar=False
+                    pbar.refresh()
+                except AttributeError:  # pbar=False
                     pass
-        
-        if pbar is True: 
+
+        if pbar:
             pbar.close()
 
         return np.stack(frame_sum_list).sum(0)
@@ -223,32 +218,32 @@ def get_sxdm_pos_sum(
     detector="mpx1x4",
     n_proc=None,
     pbar=True,
+    path_data_h5="/{scan_no}/instrument/{detector}/data",
 ):
-    
     detlist = get_detector_aliases(path_dset, scan_no)
     if detector not in detlist:
         raise ValueError(
             f"Detector {detector} not in data file. Available detectors are: {detlist}."
         )
     else:
-        path_h5_data = f"{scan_no}/measurement/{detector}"
+        path_data_h5 = path_data_h5.format(scan_no=scan_no, detector=detector)
 
     if n_proc is None:
         n_proc = os.cpu_count()
 
     # list of idx ranges [(i0, i1), (i0, i1), ...]
-    idxs_list = _get_chunk_indexes(path_dset, path_h5_data, n_threads=n_proc)
+    idxs_list = _get_chunk_indexes(path_dset, path_data_h5, n_threads=n_proc)
 
     # recipocal space slice from mask
     if mask_reciprocal is not None:
-        roi_rec = np.where(np.invert(mask_reciprocal))
+        roi_rec = np.where(mask_reciprocal.astype("bool"))
         roi_rec_sl = tuple([slice(x.min(), x.max() + 1) for x in roi_rec])
     else:
         roi_rec_sl = np.s_[:, :]
 
     # call function with everything except the index ranges
     # the function returns a direct space map
-    pfun = partial(_calc_pos_sum_chunk, path_dset, path_h5_data, roi_rec_sl)
+    pfun = partial(_calc_pos_sum_chunk, path_dset, path_data_h5, roi_rec_sl)
 
     # set progress bar
     if pbar is True:
@@ -256,10 +251,10 @@ def get_sxdm_pos_sum(
     elif isinstance(pbar, tqdm):
         pbar.total = len(idxs_list)
         pbar.refresh()
- 
+
     # apply partial function multi process, with an index range per process
     roi_sum_list = []
-    try: 
+    try:
         pbar.reset(total=len(idxs_list))
     except AttributeError:
         pass
@@ -268,12 +263,13 @@ def get_sxdm_pos_sum(
             roi_sum_list.append(res)
             try:
                 pbar.update()
-            except AttributeError: # pbar=False
+                pbar.refresh()
+            except AttributeError:  # pbar=False
                 pass
-    
-    if pbar is True: 
+
+    if pbar:
         pbar.close()
- 
+
     return np.ma.concatenate(roi_sum_list)
 
 
@@ -294,7 +290,7 @@ def get_roi_pos(h5f, scan_no, roi_names_list, detector="mpx1x4"):
             ]
         except KeyError:
             badrois.append(r)
-            
+
     for r in badrois:
         del roi_params[r]
 
