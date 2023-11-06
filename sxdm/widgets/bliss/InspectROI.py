@@ -143,7 +143,7 @@ class InspectROI(object):
         # layout of individual items - css properties
         items_layout = ipw.Layout(width="auto")
 
-        # menu to select left ROI
+        # menu to select ROI
         self.roisel = ipw.Dropdown(
             options=self.counters,
             value=self.roiname,
@@ -233,7 +233,7 @@ class InspectROI(object):
                 except AttributeError:
                     pass
 
-            self.counters = clist if self.roilist is None else self.roilist
+        self.counters = clist if self.roilist is None else self.roilist
 
     def _on_click(self, event):  # mpl
         with self.figout:
@@ -413,8 +413,14 @@ class InspectROI(object):
         self.scan_no = self._scan_nos[scan_idx]
         self.command = self._commands[self.scan_no]
 
-        self._load_counters()
+        self._load_counters()        
+        
+        _selected = self.roisel.value
+        self.roisel.options = self.counters
+        self.roisel.value = _selected
+        
         self._update_roi({"new": self.roisel.value})
+        
         self._get_piezo_motor_names()
         self._update_specs()
 
