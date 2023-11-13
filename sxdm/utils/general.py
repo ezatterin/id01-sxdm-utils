@@ -91,7 +91,7 @@ def get_detector_roilist(pscan, detector):
     return rois, roi_init
 
 
-def get_shift(
+def get_shift_dset(
     path_dset,
     roi,
     scan_nums,
@@ -151,7 +151,7 @@ def get_shift(
         sxdm_raw = [np.log(map, where=(map > 0)) for map in sxdm_raw]
 
     # shifts
-    shifts = _get_shift(sxdm_raw, med_filt=med_filt, **xcorr_kwargs)
+    shifts = get_shift(sxdm_raw, med_filt=med_filt, **xcorr_kwargs)
 
     # shifted ROIs
     sxdm_shifted = []
@@ -165,7 +165,29 @@ def get_shift(
         return shifts
 
 
-def _get_shift(images, med_filt=None, **xcorr_kwargs):
+def get_shift(images, med_filt=None, **xcorr_kwargs):
+    """
+    Calculate the cumulative shifts between consecutive images in a sequence.
+
+    Parameters
+    ----------
+    images : List[np.ndarray]
+        A list of 2D arrays representing consecutive images.
+    med_filt : int, optional
+        The size of the median filter to be applied to each image before
+        cross-correlation. If None, no median filter is applied. Default is None.
+    **xcorr_kwargs : dict
+        Additional keyword arguments to be passed to
+        `registration.phase_cross_correlation`.
+
+    Returns
+    -------
+    np.ndarray
+        A 2D array where each row corresponds to the cumulative shift (y, x) for
+        each image. The first row represents the base case with no shift.
+        Column 0 corresponds to y-shifts, and column 1 corresponds to x-shifts.
+    """
+
     shifts = []
     shifts.insert(0, np.array([0, 0]))
     for i in tqdm(range(1, len(images))):

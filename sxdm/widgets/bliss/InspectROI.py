@@ -48,7 +48,7 @@ class InspectROI(object):
         show_scan_nos=None,
     ):
         """
-        Plot ROI data acquired during a BLISS experiment.
+        Plot ROI data acquired during a BLISS experiment. Call with .show().
 
         Parameters
         ----------

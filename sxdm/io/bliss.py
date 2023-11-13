@@ -92,8 +92,43 @@ def get_piezo_motor_positions(h5f, scan_no):
 
 
 def get_roidata(h5f, scan_no, roi_name, return_pi_motors=False):
+    """
+    DEPRECATED. Use get_counter_sxdm instead.
+    """
+    return get_counter_sxdm(h5f, scan_no, roi_name, return_pi_motors=return_pi_motors)
+
+def get_counter_sxdm(h5f, scan_no, counter, return_pi_motors=False):
+    """
+    Retrieve counter data for a specific counter from an SXDM scan.
+
+    Parameters
+    ----------
+    h5f : str
+        Path to the HDF5 BLISS dataset containing the SXDM data.
+    scan_no : str
+        The scan number for the SXDM scan, e.g. 1.1.
+    counter : str
+        The name of the counter for which the data is retrieved.
+    return_pi_motors : bool, optional
+        If True, also return the positions of the piezo motors (m1, m2) associated 
+        with the scan. Default is False.
+
+    Returns
+    -------
+    np.ndarray or Tuple[np.ndarray, float, float]
+        If return_pi_motors is False:
+            The counter data for the specified counter, reshaped to match the 
+            scan shape.
+        If return_pi_motors is True:
+            A tuple containing:
+            - The counter data for the specified counter, reshaped to match the 
+                scan shape.
+            - The position of piezo motor m1.
+            - The position of piezo motor m2.
+    """
+    
     sh = get_scan_shape(h5f, scan_no)
-    data = get_counter(h5f, scan_no, roi_name)
+    data = get_counter(h5f, scan_no, counter)
 
     if data.size == sh[0] * sh[1]:
         data = data.reshape(*sh)
@@ -218,7 +253,7 @@ def get_sxdm_pos_sum(
     detector="mpx1x4",
     n_proc=None,
     pbar=True,
-    path_data_h5="/{scan_no}/instrument/{detector}/data",
+    path_data_h5="/{scan_no}/measurement/{detector}/data",
 ):
     detlist = get_detector_aliases(path_dset, scan_no)
     if detector not in detlist:
