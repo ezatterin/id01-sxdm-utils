@@ -253,7 +253,7 @@ def get_sxdm_pos_sum(
     detector="mpx1x4",
     n_proc=None,
     pbar=True,
-    path_data_h5="/{scan_no}/measurement/{detector}/data",
+    path_data_h5="/{scan_no}/instrument/{detector}/data",
 ):
     detlist = get_detector_aliases(path_dset, scan_no)
     if detector not in detlist:
