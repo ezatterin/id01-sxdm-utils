@@ -15,6 +15,8 @@ from id01lib.io.bliss import (
     get_positioner,
     get_detector_aliases,
     get_scan_shape,
+    get_roi_names,
+    _check_detector,
 )
 
 from .utils import _get_chunk_indexes
@@ -165,7 +167,7 @@ def get_sxdm_frame_sum(
     path_dset,
     scan_no,
     mask_direct=None,
-    detector="mpx1x4",
+    detector=None,
     n_proc=None,
     pbar=True,
     path_data_h5="/{scan_no}/instrument/{detector}/data",
@@ -175,6 +177,8 @@ def get_sxdm_frame_sum(
     Return the sum of all detector frames collected within an SXDM scan.
     """
     detlist = get_detector_aliases(path_dset, scan_no)
+    if detector is None:
+        detector = detlist[0]
     if detector not in detlist:
         raise ValueError(
             f"Detector {detector} not in data file. Available detectors are: {detlist}."
@@ -271,7 +275,7 @@ def get_sxdm_pos_sum(
 
     # recipocal space slice from mask
     if mask_reciprocal is not None:
-        roi_rec = np.where(mask_reciprocal.astype("bool"))
+        roi_rec = np.where(np.invert(mask_reciprocal.astype("bool")))
         roi_rec_sl = tuple([slice(x.min(), x.max() + 1) for x in roi_rec])
     else:
         roi_rec_sl = np.s_[:, :]
@@ -308,6 +312,8 @@ def get_sxdm_pos_sum(
     return np.ma.concatenate(roi_sum_list)
 
 
+# TODO
+# replace with new funtion
 @ioh5
 def get_roi_pos(h5f, scan_no, roi_names_list, detector="mpx1x4"):
     """
@@ -330,6 +336,32 @@ def get_roi_pos(h5f, scan_no, roi_names_list, detector="mpx1x4"):
         del roi_params[r]
 
     return roi_params
+
+@ioh5
+def _get_roi_pos_new(h5f, scan_no, detector=None):
+    """
+    TBD
+    """
+
+    detector = _check_detector(h5f.filename, scan_no, detector)
+    roi_names = get_roi_names(h5f.filename, scan_no, only_sum=True)
+    
+    roi_params = {key: None for key in roi_names}
+    badrois = []
+    for r in roi_params.keys():
+        try:
+            roi_params[r] = [
+                h5f[f"/{scan_no}/instrument/{r}/selection/{m}"][()]
+                for m in "x,y,width,height".split(",")
+            ]
+        except KeyError:
+            badrois.append(r)
+
+    for r in badrois:
+        del roi_params[r]
+
+    return roi_params
+
 
 
 def get_scan_table(path_dset):
