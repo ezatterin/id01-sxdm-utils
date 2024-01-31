@@ -19,8 +19,8 @@ class Inspect4DArray(object):
         self.d1 = 30
 
         if not self.ish5:
-            self.lower_data = self.data.sum(axis=(2, 3))
-            self.higher_data = self.data.sum(axis=(0, 1))
+            self.dir_space_data = self.data.sum(axis=(2, 3))
+            self.rec_space_data = self.data.sum(axis=(0, 1))
 
         self.fixed_clims = fixed_clims
 
@@ -28,7 +28,6 @@ class Inspect4DArray(object):
         self._init_widgets()
 
     def _init_fig(self):
-
         self.figout = ipw.Output(
             layout=dict(border="2px solid grey", flex="4 1 0%", width="auto")
         )
@@ -38,17 +37,17 @@ class Inspect4DArray(object):
         with self.figout:
             display(fig.canvas)
 
-        self.lower_img = ax[0].imshow(self.lower_data, origin="lower")
-        self.higher_img = ax[1].imshow(self.higher_data, origin="lower")
+        self.lower_img = ax[0].imshow(self.dir_space_data, origin="lower")
+        self.higher_img = ax[1].imshow(self.rec_space_data, origin="lower")
 
-        self.lower_curpos = ax[0].scatter(0, 0, marker="x", c="r")
-        self.higher_curpos = ax[1].scatter(0, 0, marker="x", c="r")
+        self.dir_space_curpos = ax[0].scatter(0, 0, marker="x", c="r")
+        self.rec_space_curpos = ax[1].scatter(0, 0, marker="x", c="r")
 
         for a in ax:
             add_colorbar(a, a.get_images()[0])
 
-        ax[0].set_title("Sum over d2, d3")
-        ax[1].set_title("Sum over d0, d1")
+        ax[0].set_title("Sum over full detector space")
+        ax[1].set_title("Sum over full sample space")
 
         fig.subplots_adjust(left=0.05, right=0.9, wspace=0.4)
         fig.canvas.mpl_connect("button_press_event", self._onclick_callback)
@@ -57,7 +56,6 @@ class Inspect4DArray(object):
         self.fig, self.ax = fig, ax
 
     def _init_widgets(self):
-
         # ROI selectors
         self.custom_roi_selectors = []
         for i in range(2):
@@ -79,12 +77,14 @@ class Inspect4DArray(object):
         self.iflog = ipw.Checkbox(value=False, description="Log Intensity")
         self.iflog.observe(self._update_norm, names="value")
 
-        # custom (d0, d1) roi?
-        self.if01roi = ipw.Checkbox(value=False, description="Define new (d0, d1) ROI")
+        # custom sample space roi?
+        self.if01roi = ipw.Checkbox(value=False, description="Define sample space ROI")
         self.if01roi.observe(self._is_d01_roi, names="value")
 
-        # custom (d2, d3) roi?
-        self.if23roi = ipw.Checkbox(value=False, description="Define new (d2, d3) ROI")
+        # custom detector space roi?
+        self.if23roi = ipw.Checkbox(
+            value=False, description="Define detector space ROI"
+        )
         self.if23roi.observe(self._is_d23_roi, names="value")
 
         for w in (self.iflog, self.if01roi, self.if23roi):
@@ -137,10 +137,10 @@ class Inspect4DArray(object):
 
         if eclick.inaxes == self.ax[0]:
             sel = self.custom_roi_selectors[0]
-            self.idx = 0
+            self.sel_ax_idx = 0
         elif eclick.inaxes == self.ax[1]:
             sel = self.custom_roi_selectors[1]
-            self.idx = 1
+            self.sel_ax_idx = 1
 
         x, y = sel.corners
         x = [int(np.round(m, 0)) for m in x]
@@ -154,10 +154,10 @@ class Inspect4DArray(object):
         self.custom_roi = False
 
         if event.inaxes == self.ax[0] and self.if01roi.value is False:
-            self.idx = 0
+            self.sel_ax_idx = 0
             x, y = event.xdata, event.ydata
         elif event.inaxes == self.ax[1] and self.if23roi.value is False:
-            self.idx = 1
+            self.sel_ax_idx = 1
             x, y = event.xdata, event.ydata
         else:
             return
@@ -166,37 +166,36 @@ class Inspect4DArray(object):
         self._update_plots()
 
     def _update_plots(self):
-
         if not self.custom_roi:
-            if self.idx == 0:
-                self.higher_data = self.data[self.row, self.col, :, :]
-                self.higher_img.set_data(self.higher_data)
-                self.lower_curpos.set_offsets([self.col, self.row])
+            if self.sel_ax_idx == 0:
+                self.rec_space_data = self.data[self.row, self.col, :, :]
+                self.higher_img.set_data(self.rec_space_data)
+                self.dir_space_curpos.set_offsets([self.col, self.row])
 
                 self.ax[0].set_title("Index: [{}, {}]".format(self.row, self.col))
                 self.ax[1].set_title("Intensity @ [{}, {}]".format(self.row, self.col))
 
-            elif self.idx == 1:
-                self.lower_data = self.data[:, :, self.row, self.col]
-                self.lower_img.set_data(self.lower_data)
-                self.higher_curpos.set_offsets([self.col, self.row])
+            elif self.sel_ax_idx == 1:
+                self.dir_space_data = self.data[:, :, self.row, self.col]
+                self.lower_img.set_data(self.dir_space_data)
+                self.rec_space_curpos.set_offsets([self.col, self.row])
 
                 self.ax[1].set_title("Index: [{}, {}]".format(self.row, self.col))
                 self.ax[0].set_title("Features @ [{}, {}]".format(self.row, self.col))
 
         else:
-            if self.idx == 0:
-                self.higher_data = self.data[
+            if self.sel_ax_idx == 0:
+                self.rec_space_data = self.data[
                     self.row0 : self.row1, self.col0 : self.col1, :, :
                 ].sum(axis=(0, 1))
-                self.higher_img.set_data(self.higher_data)
-            elif self.idx == 1:
-                self.lower_data = self.data[
+                self.higher_img.set_data(self.rec_space_data)
+            elif self.sel_ax_idx == 1:
+                self.dir_space_data = self.data[
                     :, :, self.row0 : self.row1, self.col0 : self.col1
                 ].sum(axis=(2, 3))
-                self.lower_img.set_data(self.lower_data)
+                self.lower_img.set_data(self.dir_space_data)
 
-            self.ax[self.idx].set_title(
+            self.ax[self.sel_ax_idx].set_title(
                 "Indexes: [{}:{}, {}:{}]".format(
                     self.row0, self.row1, self.col0, self.col1
                 )
@@ -205,7 +204,6 @@ class Inspect4DArray(object):
         self._update_norm({"new": self.iflog.value})
 
     def _update_norm(self, change):
-
         islog = change["new"]
         for im in [a.get_images()[0] for a in self.ax]:
             data = im.get_array()
