@@ -12,6 +12,7 @@ from ...io.bliss import (
     get_sxdm_frame_sum,
     get_sxdm_pos_sum,
     get_roi_pos,
+    get_piezo_motor_names,
 )
 from ...io.utils import list_available_counters
 
@@ -21,9 +22,26 @@ _det_aliases = dict(mpx1x4=MaxiPix(), mpxgaas=MaxiPixGaAs(), eiger2M=Eiger2M())
 
 
 class Inspect4DSXDM(Inspect4DArray):
-    def __init__(self, path_dset, scan_no, detector="mpx1x4", q_coords=None, coms=None):
+    """
+    Plot SXDM data acquired during a BLISS experiment on ID01. Call with .show().
+    """
+
+    def __init__(self, path_dset, scan_no, detector=None):
+        """
+        Parameters
+        ----------
+        path_dset : str
+            Path to the BLISS dataset .h5 file.
+        scan_no : str
+            The scan number of the SXDM scan, e.g. 1.1.
+        detector : str, optional
+            The alias of the detector used. If None it is automatically selected from
+            the dataset file.
+        """
 
         detlist = get_detector_aliases(path_dset, scan_no)
+        if detector is None:
+            detector = detlist[0]
         if detector not in detlist:
             raise ValueError(
                 f"Detector {detector} not in data file. Available detectors are: {detlist}."
@@ -32,36 +50,46 @@ class Inspect4DSXDM(Inspect4DArray):
         self.scan_shape = get_scan_shape(path_dset, scan_no)
         self.det_shape = _det_aliases[detector].pixnum
 
-        self.lower_data = get_sxdm_pos_sum(
+        self.dir_space_data = get_sxdm_pos_sum(
             path_dset, scan_no, detector=detector, pbar=False
         ).reshape(self.scan_shape)
-        self.higher_data = get_sxdm_frame_sum(
+        self.rec_space_data = get_sxdm_frame_sum(
             path_dset, scan_no, detector=detector, pbar=False
         )
 
         self.path_dset = path_dset
         self.scan_no = scan_no
         self.detector = detector
-        self.qcoords = q_coords
-        self.coms = coms
 
         with h5py.File(self.path_dset, "r") as h5f:
             arr = h5f[f"{self.scan_no}/measurement/{self.detector}"]
 
             super().__init__(arr)
 
-            self.higher_curpos.remove()
-            self.lower_curpos.set_offsets([s // 2 for s in self.lower_data.shape])
+            self.rec_space_curpos.remove()
+            self.dir_space_curpos.set_offsets(
+                [s // 2 for s in self.dir_space_data.shape]
+            )
 
+        m0n, m1n = get_piezo_motor_names(path_dset, scan_no)
+        
+        self.ax[0].set_xlabel(f"{m0n} (pixels)")
+        self.ax[0].set_ylabel(f"{m1n} (pixels)")
+        
         self.ax[1].invert_yaxis()
-
-        self._show_rois = ipw.Checkbox(value=False, description="Show ROIs")
+        
+        self.ax[1].set_xlabel(f"detector x (pixels)")
+        self.ax[1].set_ylabel(f"detector y (pixels)")
+        
+        self._show_rois = ipw.Checkbox(value=False, description="Show experiment ROIs")
         self._show_rois.observe(self._add_rois, names="value")
         self._show_rois.layout = ipw.Layout(width="auto")
         self._show_rois.indent = False
 
         self._pbar01 = tqdm(display=False)
         self._pbar23 = tqdm(display=False)
+
+        self.iflog.value = True
 
         self.widgets.children = tuple(
             list(self.widgets.children)
@@ -74,10 +102,10 @@ class Inspect4DSXDM(Inspect4DArray):
 
             if eclick.inaxes == self.ax[0]:
                 sel = self.custom_roi_selectors[0]
-                self.idx = 0
+                self.sel_ax_idx = 0
             elif eclick.inaxes == self.ax[1]:
                 sel = self.custom_roi_selectors[1]
-                self.idx = 1
+                self.sel_ax_idx = 1
 
             x, y = sel.corners
             x = [int(np.round(m, 0)) for m in x]
@@ -94,10 +122,12 @@ class Inspect4DSXDM(Inspect4DArray):
             # does not fire if zooming, panning etc.
             if self.fig.canvas.manager.toolbar.mode.name == "NONE":
                 if event.inaxes == self.ax[0] and self.if01roi.value is False:
-                    self.idx = 0
+                    self.sel_ax_idx = 0
                     x, y = event.xdata, event.ydata
                 elif event.inaxes == self.ax[1] and self.if23roi.value is False:
-                    # self.idx = 1
+                    # not doing anything for the moment as a single pixel on the
+                    # detector does not really correspond to much on the sample
+                    # self.sel_ax_idx = 1
                     # x, y = event.xdata, event.ydata
                     return
                 else:
@@ -110,15 +140,16 @@ class Inspect4DSXDM(Inspect4DArray):
 
     def _update_plots(self):
         with self.figout:
+            # single click?
             if not self.custom_roi:
                 with h5py.File(self.path_dset, "r") as h5f:
                     arr = h5f[f"{self.scan_no}/measurement/{self.detector}"]
-                    if self.idx == 0:
+                    if self.sel_ax_idx == 0:
                         idx = self.row * self.scan_shape[1] + self.col
 
-                        self.higher_data = arr[idx, :, :]
-                        self.higher_img.set_data(self.higher_data)
-                        self.lower_curpos.set_offsets([self.col, self.row])
+                        self.rec_space_data = arr[idx, :, :]
+                        self.higher_img.set_data(self.rec_space_data)
+                        self.dir_space_curpos.set_offsets([self.col, self.row])
 
                         self.ax[0].set_title(
                             "Index: [{}, {}]".format(self.row, self.col)
@@ -127,12 +158,15 @@ class Inspect4DSXDM(Inspect4DArray):
                             "Intensity @ [{}, {}]".format(self.row, self.col)
                         )
 
-                    elif self.idx == 1:  # not used at the moment, see _onclick_callback
-                        self.lower_data = arr[:, self.row, self.col]
-                        self.lower_img.set_data(
-                            self.lower_data.reshape(self.scan_shape)
+                    # the following is never firing for the moment,
+                    # see _onclick_callback. self.sel_ax_idx is never set to 1
+                    # when self.custom_roi=False
+                    elif self.sel_ax_idx == 1:
+                        self.dir_space_data = arr[:, self.row, self.col].reshape(
+                            self.scan_shape
                         )
-                        self.higher_curpos.set_offsets([self.col, self.row])
+                        self.lower_img.set_data(self.dir_space_data)
+                        self.rec_space_curpos.set_offsets([self.col, self.row])
 
                         self.ax[1].set_title(
                             "Index: [{}, {}]".format(self.row, self.col)
@@ -141,46 +175,47 @@ class Inspect4DSXDM(Inspect4DArray):
                             "Features @ [{}, {}]".format(self.row, self.col)
                         )
 
+            # using the roi widget?
             else:
-                if self.idx == 0:
+                if self.sel_ax_idx == 0:
                     mask = np.ones(self.scan_shape, dtype="bool")
                     mask[self.row0 : self.row1, self.col0 : self.col1] = False
 
                     try:
-                        self.higher_data = get_sxdm_frame_sum(
+                        self.rec_space_data = get_sxdm_frame_sum(
                             self.path_dset,
                             self.scan_no,
-                            mask_direct=mask,
+                            mask_sample=mask,
                             detector=self.detector,
                             pbar=self._pbar01,
                         )
                     except ValueError:  # mask is empty
                         return
 
-                    self.higher_img.set_data(self.higher_data)
-                    self.mask_direct = mask
-                    self._pbar01.refresh()
+                    self.higher_img.set_data(self.rec_space_data)
+                    self.mask_sample = mask
+                    self._pbar01.reset()  # TODO not working!
 
-                elif self.idx == 1:
+                elif self.sel_ax_idx == 1:
                     mask = np.ones(self.det_shape, dtype="bool")
                     mask[self.row0 : self.row1, self.col0 : self.col1] = False
 
                     try:
-                        self.lower_data = get_sxdm_pos_sum(
+                        self.dir_space_data = get_sxdm_pos_sum(
                             self.path_dset,
                             self.scan_no,
-                            mask_reciprocal=mask,
+                            mask_detector=mask,
                             detector=self.detector,
                             pbar=self._pbar23,
-                        )
+                        ).reshape(self.scan_shape)
                     except ValueError:  # mask is empty
                         return
 
-                    self.lower_img.set_data(self.lower_data.reshape(self.scan_shape))
-                    self.mask_reciprocal = mask
-                    self._pbar23.refresh()
+                    self.lower_img.set_data(self.dir_space_data)
+                    self.mask_detector = mask
+                    self._pbar23.reset()  # TODO not working!
 
-                self.ax[self.idx].set_title(
+                self.ax[self.sel_ax_idx].set_title(
                     "Indexes: [{}:{}, {}:{}]".format(
                         self.row0, self.row1, self.col0, self.col1
                     )
@@ -201,7 +236,7 @@ class Inspect4DSXDM(Inspect4DArray):
         ]
         roi_names = [x.split("_")[-1] for x in roi_names]
         roi_names.remove(self.detector)
-        
+
         roipos = get_roi_pos(
             self.path_dset, self.scan_no, roi_names, detector=self.detector
         )
