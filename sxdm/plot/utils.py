@@ -13,7 +13,8 @@ from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 from matplotlib.patches import FancyArrowPatch, Rectangle, ArrowStyle
 
 
-def add_hsv_colorbar(tiltmag, ax, labels, size="20%", pad=0.05):
+def add_hsv_colorbar(tiltmag, ax, labels, size="20%", pad=0.05, magnitude_precision=2):
+    prec = magnitude_precision
     a, b = np.meshgrid(np.linspace(0, 1, 100), np.linspace(180, -180, 100))
     cmap = make_hsv(a, b)
 
@@ -29,7 +30,9 @@ def add_hsv_colorbar(tiltmag, ax, labels, size="20%", pad=0.05):
     cax.set_yticklabels(labels)
 
     cax.set_xticks([0, 99])
-    cax.set_xticklabels([f"{tiltmag.min():.2f}", f"{tiltmag.max():.2f}"], rotation=40)
+    cax.set_xticklabels(
+        [f"{tiltmag.min():.{prec}f}", f"{tiltmag.max():.{prec}f}"], rotation=40
+    )
 
     cax.yaxis.set_label_position("right")
     cax.set_ylabel(r"Direction", labelpad=3, fontsize="small")
@@ -39,7 +42,6 @@ def add_hsv_colorbar(tiltmag, ax, labels, size="20%", pad=0.05):
 
 
 def make_hsv(tiltmag, azimuth, stretch=False, v2s=False):
-
     # hue is the azimuth - normalised [0,1] - needed for HSV
     h = (azimuth % 360) / (360)
 
@@ -64,8 +66,8 @@ def make_hsv(tiltmag, azimuth, stretch=False, v2s=False):
 
 def add_scalebar(
     ax,
-    x_scale=3,
-    y_scale=100,
+    h_size=None,
+    v_size=None,
     label=None,
     color="black",
     loc="lower right",
@@ -73,7 +75,6 @@ def add_scalebar(
     sep=5,
     **font_kwargs,
 ):
-
     # size of the img in data coords
     try:
         img = ax.get_images()[0]
@@ -85,12 +86,14 @@ def add_scalebar(
         xsize, ysize = [c.max() - c.min() for c in (xc, yc)]
 
     # size of the scalebar wrt the image size in um or nm
-    h_size = xsize / x_scale
-    v_size = ysize / y_scale
+    if h_size is None:
+        h_size = xsize // 4
+    if v_size is None:
+        v_size = ysize // 100
 
     # label
     if label is None:
-        label = f"{h_size:.3f}"
+        label = f"{h_size:.0f}"
 
     # the scale bar object
     fontprops = fm.FontProperties(**font_kwargs)
@@ -112,13 +115,23 @@ def add_scalebar(
 
 
 def add_colorbar(
-    ax, mappable, loc="right", size="3%", pad=0.05, label_size="small", **kwargs
+    ax,
+    mappable,
+    loc="right",
+    size="3%",
+    pad=0.05,
+    label_size="small",
+    scientific_notation=False,
+    **kwargs,
 ):
-
     fig = ax.get_figure()
     cax = make_axes_locatable(ax).append_axes(loc, size=size, pad=pad)
     cax.tick_params(labelsize=label_size)
     cbar = fig.colorbar(mappable, cax=cax, **kwargs)
+    if scientific_notation:
+        cax.ticklabel_format(
+            axis="y", style="scientific", scilimits=(0, 0), useMathText=True
+        )
 
     return cbar
 
@@ -129,7 +142,6 @@ def add_roi_box(ax, roi, **kwargs):
 
 
 def add_letter(ax, letter, x=0.03, y=0.92, fs="large", fw="bold", **kwargs):
-
     txt = ax.text(
         x, y, letter, transform=ax.transAxes, fontweight=fw, fontsize=fs, **kwargs
     )
@@ -137,7 +149,6 @@ def add_letter(ax, letter, x=0.03, y=0.92, fs="large", fw="bold", **kwargs):
 
 
 def add_roilabel(ax, roi, loc="upper left", frameon=False, pad=0.05, prop=None):
-
     if prop is None:
         prop = dict(
             color="black",
@@ -172,7 +183,6 @@ def add_directions(
     frameon=False,
     **obox_kwargs,
 ):
-
     ## arrows
 
     alx = length
