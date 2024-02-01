@@ -42,6 +42,7 @@ def make_xsocs_links_nanomax(
     path_out,
     name_out,
     scan_nums,
+    raw_nums=False,
 ):
     if not os.path.isdir(path_out):
         os.mkdir(path_out)
@@ -83,7 +84,10 @@ def make_xsocs_links_nanomax(
                 )
 
             # output parameters
-            entry_name = f"{scan_idx}.1"
+            if raw_nums:
+                entry_name = f"{scan_num}.1"
+            else:
+                entry_name = f"{scan_idx}.1"
             start_time = "unknown"
 
             # write links to individual XSOCS-compatible files
