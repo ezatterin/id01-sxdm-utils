@@ -166,7 +166,7 @@ def _get_frames_chunk(path_dset, path_in_h5, roi_dir_idxs, roi, idx_range):
 def get_sxdm_frame_sum(
     path_dset,
     scan_no,
-    mask_direct=None,
+    mask_sample=None,
     detector=None,
     n_proc=None,
     pbar=True,
@@ -197,8 +197,8 @@ def get_sxdm_frame_sum(
             sh = h5f[path_data_h5].shape[0]
 
         # direct space slice from mask
-        if mask_direct is not None:
-            roi_dir_idxs = np.where(np.invert(mask_direct).flatten())[0]
+        if mask_sample is not None:
+            roi_dir_idxs = np.where(np.invert(mask_sample).flatten())[0]
         else:
             roi_dir_idxs = np.indices((sh,))[0]
 
