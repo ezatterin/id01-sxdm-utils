@@ -15,7 +15,6 @@ from xsocs.io.XsocsH5 import XsocsH5
 from xsocs.process.qspace import qspace_conversion
 from xsocs.process.qspace import QSpaceConverter
 
-from id01lib.io.bliss import get_positioner
 from id01lib.xrd.qspace.bliss import _det_aliases
 
 from ..io.utils import list_available_counters, _get_chunk_indexes_detector
@@ -41,9 +40,9 @@ def grid_qspace_xsocs(
     sample_oop=[0, 0, 1],
     det_ip="y+",
     det_oop="z-",
-    sampleor='det'
+    sampleor="det",
+    det_roi=None,
 ):
-
     converter = QSpaceConverter(
         path_master,
         nbins,
@@ -57,6 +56,7 @@ def grid_qspace_xsocs(
         det_ip=det_ip,
         det_oop=det_oop,
         sampleor=sampleor,
+        det_roi=det_roi,
     )
 
     converter.maxipix_correction = correct_mpx_gaps
@@ -70,7 +70,7 @@ def grid_qspace_xsocs(
         converter.channels_per_degree = chan_per_deg
     if beam_energy is not None:
         converter.beam_energy = beam_energy
-
+        
     converter.convert(overwrite=overwrite)
 
     rc = converter.status
@@ -90,14 +90,13 @@ def get_qspace_vals_xsocs(
     chan_per_deg=None,
     beam_energy=None,
     qconv=None,
-    roi=None,
+    det_roi=None,
     sample_ip=[1, 0, 0],
     sample_oop=[0, 0, 1],
     det_ip="y+",
     det_oop="z-",
-    sampleor='det',
+    sampleor="det",
 ):
-
     h5f = XsocsH5(path_master)
     entry0 = h5f.get_entry_name(entry_idx=0)
     with h5f:
@@ -125,16 +124,22 @@ def get_qspace_vals_xsocs(
 
     nrj, cen_pix, cpd = h5f.acquisition_params().values()
     if center_chan is None:
-        center_chan = cen_pix[::-1]
+        center_chan = cen_pix
     if chan_per_deg is None:
         chan_per_deg = cpd
     if beam_energy is None:
         beam_energy = nrj
+        
+    print(f"Using cen_pix: row/y={center_chan[0]:.3f}, col/x={center_chan[1]:.3f}")
+    detdist = chan_per_deg[0] * det.pixsize[0] / np.tan(np.radians(1))
+    print(f"Using det_dist = {detdist:.5f} m")
+    print(f"Using energy = {nrj/1e3:.5f} keV")
 
-    if roi == None:
+
+    if det_roi == None:
         img_size = det.pixnum
     else:
-        img_size = (roi[1] - roi[0], roi[3] - roi[2])
+        img_size = (det_roi[1] - det_roi[0], det_roi[3] - det_roi[2])
 
     q_array = qspace_conversion(
         img_size,
@@ -165,7 +170,6 @@ def estimate_n_bins(
     qconv=None,
     roi=None,
 ):
-
     qx, qy, qz = get_qspace_vals_xsocs(
         path_master,
         offsets=offsets,
@@ -173,7 +177,7 @@ def estimate_n_bins(
         chan_per_deg=chan_per_deg,
         beam_energy=beam_energy,
         qconv=qconv,
-        roi=roi,
+        det_roi=roi,
     )
 
     maxbins = []
@@ -221,7 +225,6 @@ def _shift_write_data(path_master, shifts, n_chunks, roi, path_subh5, overwrite=
     etashift = _get_motor_dict(path_master, shifts)
 
     with h5py.File(path_subh5, "r", libver="latest") as h5f:
-
         # get shift in pixels for this eta value
         root = list(h5f.keys())[0]
         data = h5f[f"/{root}/instrument/detector/data"]  # shape: (x*y, detx, dety)
@@ -233,7 +236,7 @@ def _shift_write_data(path_master, shifts, n_chunks, roi, path_subh5, overwrite=
             sh_data = data.shape
         else:
             sh_data = (data.shape[0], roi[1] - roi[0], roi[3] - roi[2])
-        
+
         sh_map = tuple(
             [h5f[f"{root}/scan/motor_{i}_steps"][()] for i in (0, 1)]
         )  # (x, y)
@@ -264,7 +267,16 @@ def _shift_write_data(path_master, shifts, n_chunks, roi, path_subh5, overwrite=
 
         t2 = 0
         with h5py.File(path_subh5_shift, "a", libver="latest") as f:
-
+            
+            # if ROI modify values of central pixel
+            if roi is not None:
+                
+                cpy, cpx = [
+                    f[f"/{root}/instrument/detector/center_chan_dim{i}"] for i in (0, 1)
+                ]
+                cpy[...] = cpy[()] - roi[0]
+                cpx[...] = cpx[()] - roi[2]
+                
             # delete original dataset and its link
             det_shift = f[f"{root}/instrument/detector/"]
             det_shift_link = f[f"{root}/measurement/image/"]
@@ -284,8 +296,8 @@ def _shift_write_data(path_master, shifts, n_chunks, roi, path_subh5, overwrite=
             det_shift_link["data"] = data_shift
 
             # for each chunk of original (unshifted) data
-            for (ir0, ir1) in idx0:
-                for (ic0, ic1) in idx1:
+            for ir0, ir1 in idx0:
+                for ic0, ic1 in idx1:
                     sl_chunk = np.s_[:, ir0:ir1, ic0:ic1]
 
                     # read the chunk
@@ -310,7 +322,9 @@ def _shift_write_data(path_master, shifts, n_chunks, roi, path_subh5, overwrite=
                     chunk.resize((np.prod(sh_map),) + sh_chunk)
 
                     irs, ics = idx0[0][0], idx1[0][0]
-                    sl_chunk_roi = np.s_[:,ir0-irs:ir1-irs, ic0-ics:ic1-ics]
+                    sl_chunk_roi = np.s_[
+                        :, ir0 - irs : ir1 - irs, ic0 - ics : ic1 - ics
+                    ]
                     data_shift[sl_chunk_roi] = chunk
                     t2 += time.time() - _t2
                     del chunk
