@@ -253,7 +253,7 @@ def _calc_pos_sum_chunk(path_dset, path_in_h5, roi_rec_sl, idx_range):
 def get_sxdm_pos_sum(
     path_dset,
     scan_no,
-    mask_reciprocal=None,
+    mask_detector=None,
     detector="mpx1x4",
     n_proc=None,
     pbar=True,
@@ -274,8 +274,8 @@ def get_sxdm_pos_sum(
     idxs_list = _get_chunk_indexes(path_dset, path_data_h5, n_threads=n_proc)
 
     # recipocal space slice from mask
-    if mask_reciprocal is not None:
-        roi_rec = np.where(np.invert(mask_reciprocal.astype("bool")))
+    if mask_detector is not None:
+        roi_rec = np.where(np.invert(mask_detector.astype("bool")))
         roi_rec_sl = tuple([slice(x.min(), x.max() + 1) for x in roi_rec])
     else:
         roi_rec_sl = np.s_[:, :]
