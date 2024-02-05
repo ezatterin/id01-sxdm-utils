@@ -5,7 +5,7 @@ import time
 
 # weirdly it seems the GL pipeline sees the root dir
 path_dset = "examples/data/MA1234/id01/20230710/sample/sample_0001"
-path_out = "tests/data/test-output/"
+path_out = "examples/data/MA1234/id01/20230710/sample_analysis/"
 
 shifts = np.array([[0.0, 0.0], [4.0, 0.0], [9.0, -1.0], [14.0, -1.0], [17.0, -3.0]])
 
