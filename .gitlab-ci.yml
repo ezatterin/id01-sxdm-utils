@@ -9,7 +9,7 @@
 #     paths:
 #       - public
 
-image: python:3.8
+image: python:3.8-bullseye
 
 before_script:
   - export no_proxy='esrf.fr' 
