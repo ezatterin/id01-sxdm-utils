@@ -23,6 +23,7 @@ setup(
         "numpy",
         "matplotlib",
         "ipywidgets",
+        "gif",
         "tqdm",
         "silx>=1.0.0",
         "pandas",
