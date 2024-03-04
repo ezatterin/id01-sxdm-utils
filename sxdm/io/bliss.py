@@ -119,12 +119,12 @@ def get_counter_sxdm(h5f, scan_no, counter, return_pi_motors=False):
     -------
     np.ndarray or Tuple[np.ndarray, float, float]
         If return_pi_motors is False:
-            The counter data for the specified counter, reshaped to match the 
+            The counter data for the specified counter, reshaped to match the
             scan shape.
         If return_pi_motors is True:
             A tuple containing:
             - The counter data for the specified counter, reshaped to match the 
-                scan shape.
+            scan shape.
             - The position of piezo motor m1.
             - The position of piezo motor m2.
     """
