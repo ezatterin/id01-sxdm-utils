@@ -28,7 +28,7 @@ test:
 
 pages:
   script:
-    - pip install sphinx sphinx-rtd-theme myst-parser furo
+    - pip install sphinx sphinx-rtd-theme myst-parser furo nbsphinx
     - cd doc
     - make html
     - mv build/html/ ../public/
