@@ -124,6 +124,34 @@ def add_colorbar(
     scientific_notation=False,
     **kwargs,
 ):
+    """
+    Add a colorbar to the given axes.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The axes to which the colorbar will be added.
+    mappable : matplotlib.cm.ScalarMappable
+        The mappable object that the colorbar will be based on.
+    loc : str, optional
+        The location where the colorbar will be placed. Default is "right".
+    size : str or float, optional
+        The size of the colorbar. Default is "3%".
+    pad : float, optional
+        The padding between the colorbar and the axes. Default is 0.05.
+    label_size : str or int, optional
+        The size of the colorbar labels. Default is "small".
+    scientific_notation : bool, optional
+        Whether to use scientific notation for colorbar labels. Default is False.
+    **kwargs
+        Additional keyword arguments to be passed to matplotlib.colorbar.Colorbar.
+
+    Returns
+    -------
+    matplotlib.colorbar.Colorbar
+        The colorbar object.
+    """
+
     fig = ax.get_figure()
     cax = make_axes_locatable(ax).append_axes(loc, size=size, pad=pad)
     cax.tick_params(labelsize=label_size)

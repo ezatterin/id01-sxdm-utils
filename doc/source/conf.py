@@ -34,6 +34,7 @@ release = "0.1.0"
 extensions = [
     "myst_parser",
     "sphinx.ext.autodoc",
+    # "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
     "nbsphinx",
     "sphinx.ext.viewcode",
@@ -58,8 +59,14 @@ exclude_patterns = []
 # a list of builtin themes.
 #
 html_theme = "furo"
+# html_theme = "pydata_sphinx_theme"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
+# html_static_path = ["_static"]
+
+# get __init__ docstrings under the class
+autoclass_content = 'both' 
+
+# autosummary_generate = True  # Turn on sphinx.ext.autosummary

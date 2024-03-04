@@ -470,6 +470,11 @@ def calc_coms_qspace2d(
     n_pix=None,
     std=None,
 ):
+    
+    """
+    Calculate center of masses (COMs) in reciprocal space for a 4D SXDM scan.
+    """
+ 
     detlist = get_detector_aliases(path_dset, scan_no)
     if detector not in detlist:
         raise ValueError(
