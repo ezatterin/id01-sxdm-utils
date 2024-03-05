@@ -25,7 +25,9 @@ test:
     - pip install .
     - python tests/xsocs_shift.py
     - python tests/xsocs_qconvert.py
-
+  rules:
+    - if: $CI_COMMIT_MESSAGE =~ /^.*\[run_tests\].*$/s
+    - when: always
 pages:
   script:
     - pip install sphinx sphinx-rtd-theme myst-parser furo nbsphinx
@@ -37,3 +39,5 @@ pages:
       - public
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_MESSAGE =~ /^.*\[build_doc\].*$/s
+    - when: always
