@@ -469,50 +469,85 @@ def calc_coms_qspace2d(
     detector="mpx1x4",
     n_pix=None,
     std=None,
+    path_data_h5="/{scan_no}/instrument/{detector}/data",
+
 ):
     
     """
     Calculate center of masses (COMs) in reciprocal space for a 4D SXDM scan.
+
+    Parameters
+    ----------
+    path_dset : str
+        Path to the .hdf5 BLISS dataset containing the scan data.
+    scan_no : str
+        The scan number, e.g. 1.1.
+    qx : numpy.ndarray
+        Array containing q-space values along the qx direction.
+    qy : numpy.ndarray
+        Array containing q-space values along the qy direction.
+    qz : numpy.ndarray
+        Array containing q-space values along the qz direction.
+    mask_rec : numpy.ndarray or None, optional
+        Mask for the data. Defaults to None.
+    n_threads : int or None, optional
+        Number of threads to use. Defaults to None.
+    detector : str, optional
+        Detector alias. Defaults to "mpx1x4".
+    n_pix : int or None, optional
+        Number of pixels. Defaults to None.
+    std : float or None, optional
+        Standard deviation. Defaults to None.
+    path_data_h5 : str, optional
+        Path within the .hdf5 BLISS dataset where to look for the raw data,
+        by default "/{scan_no}/instrument/{detector}/data"
+
+    Returns
+    -------
+    numpy.ndarray
+        Array containing center of masses (COMs) in reciprocal space.
     """
  
     detlist = get_detector_aliases(path_dset, scan_no)
+    if detector is None:
+        detector = detlist[0]
     if detector not in detlist:
         raise ValueError(
             f"Detector {detector} not in data file. Available detectors are: {detlist}."
         )
     else:
-        path_data_h5 = f"/{scan_no}/instrument/{detector}/data"
+        path_data_h5 = path_data_h5.format(scan_no=scan_no, detector=detector)
 
-        if n_threads is None:
-            ncpu = os.cpu_count()
-        else:
-            ncpu = n_threads
+    if n_threads is None:
+        ncpu = os.cpu_count()
+    else:
+        ncpu = n_threads
 
-        with h5py.File(path_dset, "r") as h5f:
-            mask_sh = h5f[path_data_h5].shape[1:]
+    with h5py.File(path_dset, "r") as h5f:
+        mask_sh = h5f[path_data_h5].shape[1:]
 
-        idx_list = _get_chunk_indexes(path_dset, path_data_h5, n_threads=n_threads)
+    idx_list = _get_chunk_indexes(path_dset, path_data_h5, n_threads=n_threads)
 
-        mask = np.invert(mask_rec) if mask_rec is not None else np.ones(mask_sh)
-        mask_idxs = tuple([slice(x.min(), x.max() + 1) for x in np.where(mask)])
+    mask = np.invert(mask_rec) if mask_rec is not None else np.ones(mask_sh)
+    mask_idxs = tuple([slice(x.min(), x.max() + 1) for x in np.where(mask)])
 
-        coms = []
-        pfun = functools.partial(
-            _calc_com_idx,
-            path_dset,
-            path_data_h5,
-            mask_idxs,
-            qx,
-            qy,
-            qz,
-            n_pix=n_pix,
-            std=std,
-        )
-        with mp.Pool(processes=ncpu) as p:
-            for res in tqdm(p.imap(pfun, idx_list), total=len(idx_list)):
-                coms.append(res)
+    coms = []
+    pfun = functools.partial(
+        _calc_com_idx,
+        path_dset,
+        path_data_h5,
+        mask_idxs,
+        qx,
+        qy,
+        qz,
+        n_pix=n_pix,
+        std=std,
+    )
+    with mp.Pool(processes=ncpu) as p:
+        for res in tqdm(p.imap(pfun, idx_list), total=len(idx_list)):
+            coms.append(res)
 
-        coms = [x for y in coms for x in y]
-        comsarr = np.stack(coms)
+    coms = [x for y in coms for x in y]
+    comsarr = np.stack(coms)
 
-        return comsarr
+    return comsarr

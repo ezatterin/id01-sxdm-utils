@@ -251,9 +251,9 @@ def calc_refl_id01(
     """
 
     # check material is xu.materials instance or CIF file
-    if isinstance(material, xu.materials.material.Crystal):
+    if not isinstance(material, xu.materials.material.Crystal):
         if ".cif" in os.path.splitext(material):
-            mat = xu.materials.CIFFile(material)
+            mat = xu.materials.Crystal.fromCIF(material)
         else:
             msg = f"{material} is not a valid xrayutilities.materials instance"
             msg += "nor a valid CIF file."

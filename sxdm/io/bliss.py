@@ -303,15 +303,48 @@ def get_sxdm_pos_sum(
     path_dset,
     scan_no,
     mask_detector=None,
-    detector="mpx1x4",
+    detector=None,
     n_proc=None,
     pbar=True,
     path_data_h5="/{scan_no}/instrument/{detector}/data",
 ):
-    """Return the sum of all sample positions.
+    """Obtain the sum of scattered intensity integrated over the detector space for
+    an SXDM scan.
+
+    Parameters
+    ----------
+    path_dset : str
+        Path to the .hdf5 BLISS dataset file
+    scan_no : str
+        Number of the SXDM scan, e.g. 4.1.
+    mask_detector : np.ndarray, optional
+        Array of the same shape as a detector frame whose True values indicate where
+        to perform the sum, by default None (the full detector area is considered for 
+        the computation)
+    detector : str, optional
+        Alias of the detector used for the SXDM scan, by default None
+    n_proc : int, optional
+        Number of processes to spawn for parallel computation, by default None
+    pbar : bool, optional
+        Spawn a process bar, by default True
+    path_data_h5 : str, optional
+        Path within the .hdf5 BLISS dataset where to look for the raw data,
+        by default "/{scan_no}/instrument/{detector}/data"
+
+    Returns
+    -------
+    np.ndarray
+        Sum of scattered intensity over the detector dimensions.
+
+    Raises
+    ------
+    ValueError
+        The specified detector alias does not exist.
     """
 
     detlist = get_detector_aliases(path_dset, scan_no)
+    if detector is None:
+        detector = detlist[0]
     if detector not in detlist:
         raise ValueError(
             f"Detector {detector} not in data file. Available detectors are: {detlist}."
