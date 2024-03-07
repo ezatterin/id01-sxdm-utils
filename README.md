@@ -3,12 +3,13 @@
 > [!CAUTION]  
 > This readme is a work in progress! Send me an email if needed.
 
+[Documentation](https://id01-science.gitlab-pages.esrf.fr/id01-sxdm-utils)
+
 # Quick access to tutorials
 
 A Jupyter-SLURM instance is automatically spawned.
 
 * [4D-SXDM](https://jupyter-slurm.esrf.fr/hub/spawn?partition=jupyter-nice&jupyterlab=False&nprocs=10&runtime=00:10:00&root_dir=/&default_url=/tree/data/id01/inhouse/zatterin/shared/id01-sxdm-utils/examples/4D-SXDM_tutorial-BLISS.ipynb&environment_path=/data/id01/inhouse/data_analysis/software/pyenvs/sxdm.slurm/bin)
- 
 * [5D-SXDM](https://jupyter-slurm.esrf.fr/hub/spawn?partition=jupyter-nice&jupyterlab=False&nprocs=10&runtime=00:10:00&root_dir=/&default_url=/tree/data/id01/inhouse/zatterin/shared/id01-sxdm-utils/examples/5D-SXDM_tutorial-BLISS.ipynb&environment_path=/data/id01/inhouse/data_analysis/software/pyenvs/sxdm.slurm/bin)
 
 
