@@ -1,4 +1,4 @@
-https://jupyter-slurm.esrf.fr/hub/spawn?partition=jupyter-nice&jupyterlab=False&nprocs=10&runtime=00:10:00&root_dir=/&default_url=/tree/data/id01/inhouse/zatterin/shared/id01-sxdm-utils/examples/4D-SXDM_tutorial-BLISS.ipynb&environment_path=/data/id01/inhouse/data_analysis/software/pyenvs/sxdm.slurm/bin
+https://jupyter-slurm.esrf.fr/hub/spawn?partition=jupyter-nice&jupyterlab=False&nprocs=10&runtime=01:00:00&options=--export=JUPYTER_PREFER_ENV_PATH=1&root_dir=/&default_url=/tree/data/id01/inhouse/zatterin/shared/id01-sxdm-utils/examples/4D-SXDM_tutorial-BLISS.ipynb&environment_path=/data/id01/inhouse/data_analysis/software/pyenvs/sxdm.slurm/bin
 
 
 https://jupyter-slurm.esrf.fr/hub/spawn?partition=jupyter-nice&jupyterlab=False&nprocs=10&runtime=00:10:00&root_dir=/&default_url=/tree/data/id01/inhouse/zatterin/shared/id01-sxdm-utils/examples/4D-SXDM_tutorial-BLISS.ipynb&environment_path=/data/id01/inhouse/data_analysis/software/pyenvs/sxdm.slurm/bin

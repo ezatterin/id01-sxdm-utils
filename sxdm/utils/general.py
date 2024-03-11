@@ -5,6 +5,7 @@ Various functions to aid the analysis of SXDM data.
 import numpy as np
 import pandas as pd
 import os
+import xrayutilities as xu
 
 from skimage import registration
 from scipy.ndimage import median_filter, shift
@@ -12,6 +13,8 @@ from tqdm.notebook import tqdm
 
 from ..io.spec import FastSpecFile
 from ..io.bliss import ioh5, get_roidata
+
+from id01lib.xrd.geometries import ID01psic
 
 
 @ioh5
@@ -202,6 +205,89 @@ def get_shift(images, med_filt=None, **xcorr_kwargs):
     shifts = np.array(shifts)  # col0: y shifts. col1: x shifts
 
     return shifts
+
+
+def calc_refl_id01(
+    hkl,
+    material,
+    ip_dir,
+    oop_dir,
+    nrj,
+    bounds={"eta": (-2, 120), "phi": (-180, 180), "nu": 0, "delta": (-2, 130)},
+):
+    """
+    Calculate the ID01 diffractometer angles for a given reflection hkl.
+
+    Parameters
+    ----------
+    hkl : array_like
+        Miller indices of the reflection.
+    material : xu.materials.material.Crystal or str
+        Crystal object from xrayutilities.materials or path to a CIF file.
+    ip_dir : array_like
+        Crystal direction parallel to the incident beam, expressed as a list or array
+        of length 3.
+    oop_dir : array_like
+        Crystal direction parallel to the z laboratory axis and perpedincular to the
+        incident beam expressed, as a list or array of length 3.
+    nrj : float
+        X-ray energy in keV.
+    bounds : dict, optional
+        Dictionary specifying the bounds for diffractometer angles. A single value
+        denotes a fixed angle. A maximum of three non-fixed angles is allowed.
+        Default is {"eta": (-2, 120), "phi": (-180, 180), "nu": 0, "delta": (-2, 130)}.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the diffractometer angles.
+
+    Raises
+    ------
+    ValueError
+        If the material is not a valid xrayutilities.materials instance nor a valid
+        CIF file, if ip_dir or oop_dir is not a list or array of length 3,
+        or if the reflection hkl is not a list or array of length 3.
+    """
+
+    # check material is xu.materials instance or CIF file
+    if not isinstance(material, xu.materials.material.Crystal):
+        if ".cif" in os.path.splitext(material):
+            mat = xu.materials.Crystal.fromCIF(material)
+        else:
+            msg = f"{material} is not a valid xrayutilities.materials instance"
+            msg += "nor a valid CIF file."
+            raise ValueError(msg)
+    else:
+        mat = material
+
+    # check directions are expressed correctly
+    for d, dn in zip([ip_dir, oop_dir], ["ip_dir", "oop_dir"]):
+        if len(d) != 3:
+            raise ValueError(f"{dn} must be a list or array of lenght 3.")
+
+    # angles to lab
+    qconv = xu.QConversion(
+        (ID01psic.sample_rot["eta"], ID01psic.sample_rot["phi"]),
+        (ID01psic.detector_rot["nu"], ID01psic.detector_rot["delta"]),
+        (1, 0, 0),
+    )
+
+    # crystal to lab
+    hxrd = xu.FourC(mat.Q(ip_dir), mat.Q(oop_dir), en=nrj, qconv=qconv)
+
+    # q-space lab coordinates of hkl
+    if len(hkl) != 3:
+        raise ValueError(f"Reflection hkl must be a list or array of lenght 3.")
+    q_cryst = mat.Q(hkl)
+    q_lab = hxrd.Transform(q_cryst)
+
+    # compute diffractometer angles from q-space coords
+    ang, qerror, errcode = xu.Q2AngFit(q_lab, hxrd, bounds.values())
+
+    ang_dict = {key: np.round(val, 4) for key, val in zip(bounds.keys(), ang)}
+
+    return ang_dict
 
 
 def slice_from_mask():

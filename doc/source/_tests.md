@@ -12,7 +12,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   io.md
+   install.md
 ```
 
 <!-- Here instead the directive does something itself -->

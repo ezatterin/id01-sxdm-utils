@@ -81,6 +81,21 @@ def get_piezo_motor_names(h5f, scan_no):
 
 
 def get_piezo_motor_positions(h5f, scan_no):
+    """Retrieve the sample coordinates of an SXDM scan.
+
+    Parameters
+    ----------
+    h5f : str
+        Path to the .hdf5 BLISS dataset.
+    scan_no : str
+        Number of the SXDM scan, e.g. 4.1.
+
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray]
+        The coordinates of the two motors of the piezoelectric stage as 2D NumPy
+        arrays.
+    """
     sh = get_scan_shape(h5f, scan_no)
     m1n, m2n = get_piezo_motor_names(h5f, scan_no)
 
@@ -99,6 +114,7 @@ def get_roidata(h5f, scan_no, roi_name, return_pi_motors=False):
     """
     return get_counter_sxdm(h5f, scan_no, roi_name, return_pi_motors=return_pi_motors)
 
+
 def get_counter_sxdm(h5f, scan_no, counter, return_pi_motors=False):
     """
     Retrieve counter data for a specific counter from an SXDM scan.
@@ -112,23 +128,23 @@ def get_counter_sxdm(h5f, scan_no, counter, return_pi_motors=False):
     counter : str
         The name of the counter for which the data is retrieved.
     return_pi_motors : bool, optional
-        If True, also return the positions of the piezo motors (m1, m2) associated 
+        If True, also return the positions of the piezo motors (m1, m2) associated
         with the scan. Default is False.
 
     Returns
     -------
     np.ndarray or Tuple[np.ndarray, float, float]
         If return_pi_motors is False:
-            The counter data for the specified counter, reshaped to match the 
+            The counter data for the specified counter, reshaped to match the
             scan shape.
         If return_pi_motors is True:
             A tuple containing:
-            - The counter data for the specified counter, reshaped to match the 
-                scan shape.
+            - The counter data for the specified counter, reshaped to match the
+            scan shape.
             - The position of piezo motor m1.
             - The position of piezo motor m2.
     """
-    
+
     sh = get_scan_shape(h5f, scan_no)
     data = get_counter(h5f, scan_no, counter)
 
@@ -173,9 +189,42 @@ def get_sxdm_frame_sum(
     path_data_h5="/{scan_no}/instrument/{detector}/data",
     roi=None,
 ):
+    """Return the sum of all detector frames collected within an SXDM scan.
+
+
+    Parameters
+    ----------
+    path_dset : str
+        Path to the .hdf5 BLISS dataset.
+    scan_no : str
+        Number of the SXDM scan, e.g. 4.1.
+    mask_sample : np.ndarray, optional
+        Array of the same shape as the SXDM scan whose True values indicate
+        where to perform the frame sum, by default None (all the scanned area is
+        considered in the computation)
+    detector : str, optional
+        The detector used for the SXDM scan, by default None
+    n_proc : int, optional
+        Number of processes to spawn for parallel computation, by default None
+    pbar : bool, optional
+        Spawn a process bar, by default True
+    path_data_h5 : str, optional
+        Path within the .hdf5 BLISS dataset where to look for the raw data,
+        by default "/{scan_no}/instrument/{detector}/data"
+    roi : list, optional
+        List of [row_min, row_max, col_min, col_max], by default None
+
+    Returns
+    -------
+    np.ndarray
+        Sum of all detector frames collected as part of a single SXDM scan.
+
+    Raises
+    ------
+    ValueError
+        The specified detector is not contained in the .hdf5 dataset.
     """
-    Return the sum of all detector frames collected within an SXDM scan.
-    """
+
     detlist = get_detector_aliases(path_dset, scan_no)
     if detector is None:
         detector = detlist[0]
@@ -254,12 +303,48 @@ def get_sxdm_pos_sum(
     path_dset,
     scan_no,
     mask_detector=None,
-    detector="mpx1x4",
+    detector=None,
     n_proc=None,
     pbar=True,
     path_data_h5="/{scan_no}/instrument/{detector}/data",
 ):
+    """Obtain the sum of scattered intensity integrated over the detector space for
+    an SXDM scan.
+
+    Parameters
+    ----------
+    path_dset : str
+        Path to the .hdf5 BLISS dataset file
+    scan_no : str
+        Number of the SXDM scan, e.g. 4.1.
+    mask_detector : np.ndarray, optional
+        Array of the same shape as a detector frame whose True values indicate where
+        to perform the sum, by default None (the full detector area is considered for 
+        the computation)
+    detector : str, optional
+        Alias of the detector used for the SXDM scan, by default None
+    n_proc : int, optional
+        Number of processes to spawn for parallel computation, by default None
+    pbar : bool, optional
+        Spawn a process bar, by default True
+    path_data_h5 : str, optional
+        Path within the .hdf5 BLISS dataset where to look for the raw data,
+        by default "/{scan_no}/instrument/{detector}/data"
+
+    Returns
+    -------
+    np.ndarray
+        Sum of scattered intensity over the detector dimensions.
+
+    Raises
+    ------
+    ValueError
+        The specified detector alias does not exist.
+    """
+
     detlist = get_detector_aliases(path_dset, scan_no)
+    if detector is None:
+        detector = detlist[0]
     if detector not in detlist:
         raise ValueError(
             f"Detector {detector} not in data file. Available detectors are: {detlist}."
@@ -337,6 +422,7 @@ def get_roi_pos(h5f, scan_no, roi_names_list, detector="mpx1x4"):
 
     return roi_params
 
+
 @ioh5
 def _get_roi_pos_new(h5f, scan_no, detector=None):
     """
@@ -345,7 +431,7 @@ def _get_roi_pos_new(h5f, scan_no, detector=None):
 
     detector = _check_detector(h5f.filename, scan_no, detector)
     roi_names = get_roi_names(h5f.filename, scan_no, only_sum=True)
-    
+
     roi_params = {key: None for key in roi_names}
     badrois = []
     for r in roi_params.keys():
@@ -363,8 +449,20 @@ def _get_roi_pos_new(h5f, scan_no, detector=None):
     return roi_params
 
 
-
 def get_scan_table(path_dset):
+    """Get an HTML table of scans contained within a BLISS dataset.
+
+    Parameters
+    ----------
+    path_dset : str
+        Path to the .hdf5 BLISS dataset.
+
+    Returns
+    -------
+    ipywidgets.HTML
+        Scan table.
+    """
+
     table = [
         "<div>",
         '<table class="specs rendered_html output_html" style="font-size: small">',
