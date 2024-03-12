@@ -2,7 +2,7 @@
 
 [[_TOC_]]
 
-> [!info]
+> **NOTE**
 > This readme is a work in progress! Send me an email if needed.
 
 
