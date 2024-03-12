@@ -1,8 +1,10 @@
 [![pipeline status](https://gitlab.esrf.fr/id01-science/id01-sxdm-utils/badges/main/pipeline.svg)](https://gitlab.esrf.fr/id01-science/id01-sxdm-utils/-/commits/main) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10777666.svg)](https://doi.org/10.5281/zenodo.10777666)
 
+[[_TOC_]]
 
-> [!CAUTION]  
-> This readme is a work in progress! Send me an email if needed.
+<div class="alert alert-block alert-warning"> 
+This readme is a work in progress! Send me an email if needed.
+</div>
 
 [Documentation](https://id01-science.gitlab-pages.esrf.fr/id01-sxdm-utils)
 
