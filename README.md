@@ -2,7 +2,7 @@
 
 [[_TOC_]]
 
-> **NOTE**
+> **NOTE** \
 > This readme is a work in progress! Send me an email if needed.
 
 
