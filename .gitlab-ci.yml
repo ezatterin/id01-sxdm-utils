@@ -17,19 +17,21 @@ before_script:
   - pip install virtualenv
   - virtualenv venv
   - source venv/bin/activate
+  - pip install --pre --find-links https://kmap.gitlab-pages.esrf.fr/xsocs/wheels/ xsocs
+  - pip install -e git+https://gitlab.esrf.fr/id01-science/id01-core.git#egg=id01-core
+  - pip install .
 
 test:
   script:
-    - pip install --pre --find-links https://kmap.gitlab-pages.esrf.fr/xsocs/wheels/ xsocs
-    - pip install -e git+https://gitlab.esrf.fr/id01-science/id01-core.git#egg=id01-core
-    - pip install .
     - python tests/xsocs_shift.py
     - python tests/xsocs_qconvert.py
   rules:
     - if: $CI_COMMIT_MESSAGE =~ /^.*\[run_tests\].*$/s
     - when: always
+
 pages:
   script:
+    - apt-get install -y --no-install-recommends pandoc
     - pip install sphinx sphinx-rtd-theme myst-parser furo nbsphinx
     - cd doc
     - make html
