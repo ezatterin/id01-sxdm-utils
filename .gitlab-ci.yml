@@ -30,7 +30,6 @@ test:
 
 pages:
   script:
-    - apt-get install -y --no-install-recommends pandoc
     - pip install sphinx sphinx-rtd-theme myst-parser furo nbsphinx
     - cd doc
     - make html
@@ -40,5 +39,4 @@ pages:
       - public
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    - if: $CI_COMMIT_MESSAGE =~ /^.*\[build_doc\].*$/s
-    - when: on_success
+    - if: $CI_COMMIT_MESSAGE =~ /build_doc/
