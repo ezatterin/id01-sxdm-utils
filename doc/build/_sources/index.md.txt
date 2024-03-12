@@ -4,10 +4,12 @@ Contents:
 
 ```{eval-rst}
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
 
    install.md
-   examples.md
    api.md
+   examples/4D-SXDM_tutorial-BLISS.ipynb
+   examples/5D-SXDM_tutorial-BLISS.ipynb
+   notebook_templates/experiment_live_inspect.ipynb
 ``` 
 

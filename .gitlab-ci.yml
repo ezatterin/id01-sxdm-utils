@@ -28,8 +28,10 @@ test:
   rules:
     - if: $CI_COMMIT_MESSAGE =~ /^.*\[run_tests\].*$/s
     - when: always
+
 pages:
   script:
+    - apt-get install -y --no-install-recommends pandoc
     - pip install sphinx sphinx-rtd-theme myst-parser furo nbsphinx
     - cd doc
     - make html
