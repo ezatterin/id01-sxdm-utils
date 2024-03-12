@@ -2,9 +2,9 @@
 
 [[_TOC_]]
 
-<div class="alert alert-block alert-warning"> 
-This readme is a work in progress! Send me an email if needed.
-</div>
+> [!info]
+> This readme is a work in progress! Send me an email if needed.
+
 
 [Documentation](https://id01-science.gitlab-pages.esrf.fr/id01-sxdm-utils)
 
