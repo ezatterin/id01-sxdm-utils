@@ -38,7 +38,6 @@ extensions = [
     "sphinx.ext.napoleon",
     "nbsphinx",
     "sphinx.ext.viewcode",
-    "nbsphinx_link",
 ]
 
 napoleon_google_docstring = False
