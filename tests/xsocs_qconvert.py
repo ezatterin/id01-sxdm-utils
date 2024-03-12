@@ -3,7 +3,7 @@ import time
 
 from xsocs.process.qspace.helpers import kmap_2_qspace
 
-path_out = "doc/examples/data/MA1234/id01/20230710/sample_analysis"
+path_out = "doc/source/examples/data/MA1234/id01/20230710/sample_analysis"
 path_master = f"{path_out}/sample_0001_master_shifted.h5"  
 path_qspace = f"{path_out}/qspace_shift.h5"
 
