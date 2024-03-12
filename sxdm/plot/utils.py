@@ -2,10 +2,10 @@
 Helper functions useful to plot SXDM maps.
 """
 
-
 import numpy as np
 import matplotlib.font_manager as fm
 import matplotlib as mpl
+import gif
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
@@ -276,3 +276,75 @@ def add_directions(
     )
 
     ax.add_artist(abox)
+
+
+def gif_sxdm_sums(
+    path_dset,
+    scan_nos,
+    gif_duration=5,
+    moving_motor="eta",
+    clim_sample=None,
+    clim_detector=None,
+    detector=None,
+):
+
+    if detector is None:
+        det = sxdm.io.bliss.get_detector_aliases(path_dset, scan_nos[0])[0]
+    else:
+        det = detector
+
+    @gif.frame
+    def plot_sxdm_sums(scan_no):
+
+        fint = sxdm.io.bliss.get_sxdm_frame_sum(
+            path_dset, scan_no, detector=det, pbar=False
+        )
+        try:
+            dint = sxdm.io.bliss.get_roidata(path_dset, scan_no, f"{det}_int")
+        except KeyError:
+            dint = sxdm.io.bliss.get_sxdm_pos_sum(
+                path_dset, scan_no, detector=det, pbar=False
+            )
+
+        fig, ax = plt.subplots(1, 2, figsize=(6, 3), layout="tight", dpi=120)
+
+        m0name, m1name = sxdm.io.bliss.get_piezo_motor_names(path_dset, scan_no)
+        m0, m1 = [
+            sxdm.io.bliss.get_counter(path_dset, scan_no, f"{m}_position")
+            for m in (m0name, m1name)
+        ]
+        pi_ext = [m0.min(), m0.max(), m1.min(), m1.max()]
+
+        dmap = ax[0].imshow(dint, cmap="viridis", extent=pi_ext, norm=LogNorm(100, 5e2))
+        fsum = ax[1].imshow(
+            fint, norm=mpl.colors.LogNorm(5, 5e3), origin="upper", cmap="inferno"
+        )
+
+        for a in ax:
+            cbar = sxdm.plot.add_colorbar(a, a.get_images()[0])
+
+        ax[0].set_title("Sum over (detx, dety)")
+        ax[0].set_xlabel(f"{m0name} (um)")
+        ax[0].set_ylabel(f"{m1name} (um)")
+
+        ax[1].set_title(f"Sum over ({m0name}, {m1name})")
+        ax[1].set_xlabel("detx (pix)")
+        ax[1].set_ylabel("dety (pix)")
+
+        moving_mot = sxdm.io.bliss.get_positioner(path_dset, scan_no, moving_motor)
+        title = f"{os.path.basename(path_dset)} #{scan_no} @ {moving_motor}$={moving_mot:.3f}$"
+
+        fig.subplots_adjust(hspace=-0.5)
+        fig.suptitle(title, y=0.94)
+
+    frames = []
+    for s in tqdm(scan_nos):
+        frames.append(plot_sxdm_sums(s))
+
+    gif.save(
+        frames,
+        f"macro_{os.path.basename(path_dset)}_framesums.gif",
+        duration=gif_duration,
+        unit="seconds",
+        between="startend",
+    )

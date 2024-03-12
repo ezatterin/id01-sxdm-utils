@@ -8,4 +8,5 @@ from .utils import (
     add_roilabel,
     add_letter,
     make_hsv,
+    gif_sxdm_sums,
 )
