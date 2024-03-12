@@ -26,8 +26,7 @@ test:
     - python tests/xsocs_shift.py
     - python tests/xsocs_qconvert.py
   rules:
-    - if: $CI_COMMIT_MESSAGE =~ /^.*\[run_tests\].*$/s
-    - when: on_success
+    - if: $CI_COMMIT_MESSAGE =~ /run_tests/
 
 pages:
   script:
