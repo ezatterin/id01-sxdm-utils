@@ -27,7 +27,7 @@ test:
     - python tests/xsocs_qconvert.py
   rules:
     - if: $CI_COMMIT_MESSAGE =~ /^.*\[run_tests\].*$/s
-    - when: always
+    - when: on_success
 
 pages:
   script:
@@ -42,4 +42,4 @@ pages:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_COMMIT_MESSAGE =~ /^.*\[build_doc\].*$/s
-    - when: always
+    - when: on_success
