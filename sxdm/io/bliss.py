@@ -356,7 +356,7 @@ def get_sxdm_pos_sum(
         n_proc = os.cpu_count()
 
     # list of idx ranges [(i0, i1), (i0, i1), ...]
-    idxs_list = _get_chunk_indexes(path_dset, path_data_h5, n_threads=n_proc)
+    idxs_list = _get_chunk_indexes(path_dset, path_data_h5, n_proc=n_proc)
 
     # recipocal space slice from mask
     if mask_detector is not None:

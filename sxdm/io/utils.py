@@ -9,7 +9,7 @@ def list_available_counters(h5f, scan_no):
     return list(h5f[f"{scan_no}/measurement/"].keys())
 
 
-def _get_chunk_indexes(path_h5, path_in_h5, n_threads=None):
+def _get_chunk_indexes(path_h5, path_in_h5, n_proc=None):
     """
     Return a list of indexes. Each range is a range of integer indexes
     corresponding to a portion of the first dimension of `Data/qspace`
@@ -20,12 +20,12 @@ def _get_chunk_indexes(path_h5, path_in_h5, n_threads=None):
     with h5py.File(path_h5, "r") as h5f:
         map_shape_flat = h5f[path_in_h5].shape[0]
 
-    if n_threads is None:
+    if n_proc is None:
         ncpu = os.cpu_count()
-    elif n_threads == 1:
+    elif n_proc == 1:
         return [(0, map_shape_flat)]
     else:
-        ncpu = n_threads
+        ncpu = n_proc
 
     chunk_size = map_shape_flat // ncpu
     last_chunk = chunk_size + map_shape_flat % chunk_size

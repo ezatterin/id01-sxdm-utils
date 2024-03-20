@@ -430,7 +430,7 @@ def calc_roi_sum(path_qspace, mask_reciprocal, mask_direct=None, n_proc=None):
         sh = h5f["Data/qspace"].shape[:1]
 
     # list of idx ranges [(i0, i1), (i0, i1), ...]
-    idxs_list = _get_chunk_indexes(path_qspace, "Data/qspace", n_threads=n_proc)
+    idxs_list = _get_chunk_indexes(path_qspace, "Data/qspace", n_proc=n_proc)
 
     # direct space mask
     mask_dir = mask_direct.flatten() if mask_direct is not None else np.zeros(sh)
@@ -526,7 +526,7 @@ def calc_coms_qspace2d(
     with h5py.File(path_dset, "r") as h5f:
         mask_sh = h5f[path_data_h5].shape[1:]
 
-    idx_list = _get_chunk_indexes(path_dset, path_data_h5, n_threads=n_threads)
+    idx_list = _get_chunk_indexes(path_dset, path_data_h5, n_proc=n_threads)
 
     mask = np.invert(mask_rec) if mask_rec is not None else np.ones(mask_sh)
     mask_idxs = tuple([slice(x.min(), x.max() + 1) for x in np.where(mask)])
