@@ -309,9 +309,14 @@ class InspectSXDMCounter(object):
         try:
             m1, m2 = get_piezo_motor_positions(self.path_dset, self.scan_no)
         except ValueError:  # failed scan: cannot reshape m1, m2 to sh
-            m1m, m2m, m1M, m2M = [
-                float(self.command.split(" ")[i][:-1]) for i in (2, 6, 3, 7)
-            ]
+            try:
+                m1m, m2m, m1M, m2M = [
+                    float(self.command.split(" ")[i][:-1]) for i in (2, 6, 3, 7)
+                ]
+            except ValueError: # no comma
+                m1m, m2m, m1M, m2M = [
+                    float(self.command.split(" ")[i]) for i in (2, 6, 3, 7)
+                ]
             m1, m2 = [
                 np.linspace(m, M, s) for m, M, s in zip([m1m, m2m], [m1M, m2M], sh)
             ]
