@@ -200,6 +200,12 @@ def make_xsocs_links(
         "piz_position": "adcZ",
     }
 
+    pi_motor_names_new = {
+        "pix": "adcY",
+        "piy": "adcX",
+        "piz": "adcZ",
+    }
+
     # open the dataset file
     with h5py.File(path_dset, "r") as h5f:
         name_dset = os.path.basename(path_dset).split(".")[0]
@@ -353,7 +359,15 @@ def make_xsocs_links(
                             f"{scan_num}/instrument/{pp}/value",
                         )
                     except KeyError:
-                        pass
+                        try:
+                            new_c = pi_motor_names_new[pp]
+                            xsocsh5f.add_file_link(
+                                f"{entry_name}/measurement/{new_c}",
+                                path_dset,
+                                f"{scan_num}/instrument/{pp}/value",
+                            )
+                        except KeyError:
+                            pass
 
                 _imgnr = np.arange(entry[f"measurement/{detector}"].shape[0])
                 xsocsh5f._set_array_data(f"{entry_name}/measurement/imgnr", _imgnr)
