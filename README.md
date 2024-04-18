@@ -53,7 +53,7 @@ These steps are necessary as none of these three packages is currently available
 # Install kernel
 
 ```bash
-pip3 install --quiet ipykernel
+pip install --quiet ipykernel
 source /data/id01/inhouse/data_analysis/software/pyenvs/sxdm.slurm/bin/activate
 python3 -m ipykernel install --user --name sxdm.slurm
 ```
@@ -61,7 +61,7 @@ python3 -m ipykernel install --user --name sxdm.slurm
 # Maybe install JS stuff
 
 ```bash
-pip3 install --quiet ipympl
+pip install --quiet ipympl
 /data/id01/inhouse/data_analysis/software/pyenvs/sxdm.slurm/bin/jupyter nbextension install --py --symlink --user --overwrite ipympl
 /data/id01/inhouse/data_analysis/software/pyenvs/sxdm.slurm/bin/jupyter nbextension enable ipympl --user --py
 
