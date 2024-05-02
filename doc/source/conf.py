@@ -73,3 +73,9 @@ html_theme = "furo"
 autoclass_content = 'both' 
 
 # autosummary_generate = True  # Turn on sphinx.ext.autosummary
+
+html_logo = 'logo.gif'
+html_theme_options = {
+    'logo_only': True,
+    'display_version': False,
+}
