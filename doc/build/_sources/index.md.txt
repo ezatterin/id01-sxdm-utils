@@ -1,15 +1,24 @@
 # Welcome to id01-sxdm-utils's documentation!
 
-Contents:
+Hello, world!
 
-```{eval-rst}
-.. toctree::
-   :maxdepth: 1
+%apidocs/index
 
-   install.md
-   api.md
-   examples/4D-SXDM_tutorial-BLISS.ipynb
-   examples/5D-SXDM_tutorial-BLISS.ipynb
-   notebook_templates/experiment_live_inspect.ipynb
+```{toctree}
+:caption: Quickstart
+:maxdepth: 1
+:hidden:
+
+user_guide.md
+api.md
+```
+
+```{toctree}
+:caption: Tutorials
+:hidden:
+
+examples/4D-SXDM_tutorial-BLISS.ipynb
+examples/5D-SXDM_tutorial-BLISS.ipynb
+notebook_templates/experiment_live_inspect.ipynb
 ``` 
 

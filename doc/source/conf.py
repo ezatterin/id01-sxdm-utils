@@ -32,16 +32,33 @@ release = "0.1.0"
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    "myst_parser",
+    "myst_nb",
+    # "autodoc2",
     "sphinx.ext.autodoc",
     # "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
-    "nbsphinx",
+    # "nbsphinx",
     "sphinx.ext.viewcode",
-    'sphinx.ext.mathjax',
-    'jupyter_sphinx.execute',
-    'IPython.sphinxext.ipython_console_highlighting',
+    "sphinx.ext.mathjax",
+    # 'jupyter_sphinx.execute',
+    "IPython.sphinxext.ipython_console_highlighting",
+    "sphinx_copybutton",
+    "sphinx_design",
 ]
+
+# autodoc2_packages = [
+#     "../../sxdm"
+# ]
+
+myst_enable_extensions = [
+    "amsmath",
+    "colon_fence",
+    "deflist",
+    "dollarmath",
+    "html_image",
+]
+
+myst_url_schemes = ("http", "https", "mailto")
 
 napoleon_google_docstring = False
 napoleon_use_param = False
@@ -63,6 +80,7 @@ exclude_patterns = ["_tests.md", "build"]
 #
 html_theme = "furo"
 # html_theme = "pydata_sphinx_theme"
+html_title = "ID01-SXDM Documentation"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -70,12 +88,8 @@ html_theme = "furo"
 # html_static_path = ["_static"]
 
 # get __init__ docstrings under the class
-autoclass_content = 'both' 
+autoclass_content = "both"
 
 # autosummary_generate = True  # Turn on sphinx.ext.autosummary
 
-html_logo = 'logo.gif'
-html_theme_options = {
-    'logo_only': True,
-    'display_version': False,
-}
+html_logo = "logo.gif"

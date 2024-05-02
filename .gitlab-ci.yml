@@ -32,7 +32,7 @@ pages:
   script:
     - apt-get update
     - apt-get install -y --no-install-recommends pandoc
-    - pip install sphinx sphinx-rtd-theme myst-parser furo nbsphinx jupyter_sphinx
+    - pip install sphinx sphinx-rtd-theme myst-parser furo sphinx-copybutton sphinx-design myst-nb
     - cd doc
     - make html
     - mv build/html/ ../public/
