@@ -239,7 +239,7 @@ def make_xsocs_links(
             detector = get_detector_aliases(path_dset, scan_nums[0])
             if len(detector) > 1:
                 msg = f"Found multiple detector groups: {detector}, select"
-                msg += "one by explicitly setting the `det` keyword argument"
+                msg += "one by explicitly setting the `detector` keyword argument"
                 raise Exception(msg)
             else:
                 detector = detector[0]

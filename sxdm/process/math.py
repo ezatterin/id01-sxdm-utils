@@ -259,7 +259,7 @@ def _calc_com_qspace3d(path_qspace, mask_reciprocal, idx, n_pix=None, std=False)
         q-space array.
     std : bool, optional
         Calculates the standard deviation of COMx, COMy, COMz. Useful to check in 2D
-                d-spacing distribution maps
+        d-spacing distribution maps
         whether or not you might have strained/less strained areas in x, y, z
     Returns
     -------
@@ -291,7 +291,7 @@ def _calc_com_qspace3d(path_qspace, mask_reciprocal, idx, n_pix=None, std=False)
 
         # retrieve q-space coordinates
         qx, qy, qz = [h5f[f"Data/{x}"][...] for x in "qx,qy,qz".split(",")]
-        qxm, qym, qzm = [q[roi_rec] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
+        qxm, qym, qzm = [q[roi_rec_sl] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
 
         # compute COM and standard deviation
         if std is True: 
