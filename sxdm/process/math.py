@@ -164,7 +164,7 @@ def calc_com_2d(arr, x, y, n_pix=None, std=False):
     out : tuple
         Coordinates of the COM of `arr` expressed within `x`, `y`, coordinates
         If std=True returns COM and stderr of `arr` expressed as `x`, `y`,`stdx`,
-        `stdy
+        `stdy`.
     """
     arr = arr.ravel()
 

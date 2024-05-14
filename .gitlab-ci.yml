@@ -20,6 +20,8 @@ before_script:
   - pip install --pre --find-links https://kmap.gitlab-pages.esrf.fr/xsocs/wheels/ xsocs
   - pip install -e git+https://gitlab.esrf.fr/id01-science/id01-core.git#egg=id01-core
   - pip install .
+  - pip install ipykernel
+  - python3 -m ipykernel install --user --name sxdm.slurm
 
 test:
   script:
@@ -32,7 +34,7 @@ pages:
   script:
     - apt-get update
     - apt-get install -y --no-install-recommends pandoc
-    - pip install sphinx sphinx-rtd-theme myst-parser furo nbsphinx jupyter_sphinx
+    - pip install sphinx sphinx-rtd-theme myst-parser furo sphinx-copybutton sphinx-design myst-nb 
     - cd doc
     - make html
     - mv build/html/ ../public/
