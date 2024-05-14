@@ -9,4 +9,5 @@ from .utils import (
     add_letter,
     make_hsv,
     gif_sxdm_sums,
+    gif_sxdm,
 )
