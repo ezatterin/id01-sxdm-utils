@@ -92,4 +92,4 @@ autoclass_content = "both"
 
 # autosummary_generate = True  # Turn on sphinx.ext.autosummary
 
-html_logo = "logo.gif"
+# html_logo = "logo.gif"
