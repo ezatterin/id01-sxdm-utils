@@ -91,7 +91,7 @@ def add_scalebar(
     sep=5,
     **font_kwargs,
 ):
-   """
+    """
     Add a scale bar to a Matplotlib axis.
 
     Parameters
