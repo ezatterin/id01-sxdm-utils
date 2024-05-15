@@ -33,7 +33,7 @@ release = "0.1.0"
 # ones.
 extensions = [
     "myst_nb",
-    # "autodoc2",
+    "autodoc2",
     "sphinx.ext.autodoc",
     # "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
@@ -46,9 +46,9 @@ extensions = [
     "sphinx_design",
 ]
 
-# autodoc2_packages = [
-#     "../../sxdm"
-# ]
+autodoc2_packages = [
+    "../../sxdm"
+]
 
 myst_enable_extensions = [
     "amsmath",

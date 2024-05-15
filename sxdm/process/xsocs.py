@@ -14,6 +14,7 @@ import scipy.ndimage as ndi
 from xsocs.io.XsocsH5 import XsocsH5
 from xsocs.process.qspace import qspace_conversion
 from xsocs.process.qspace import QSpaceConverter
+from xsocs.io.QSpaceH5 import QSpaceCoordinates
 
 from id01lib.xrd.qspace.bliss import _det_aliases
 
@@ -42,6 +43,7 @@ def grid_qspace_xsocs(
     det_oop="z-",
     sampleor="det",
     det_roi=None,
+    coordinates="cartesian",
 ):
     converter = QSpaceConverter(
         path_master,
@@ -70,7 +72,14 @@ def grid_qspace_xsocs(
         converter.channels_per_degree = chan_per_deg
     if beam_energy is not None:
         converter.beam_energy = beam_energy
-        
+
+    if coordinates == "cartesian":
+        converter.coordinates = QSpaceCoordinates.CARTESIAN
+    elif coordinates == "spherical":
+        converter.coordinates = QSpaceCoordinates.SPHERICAL
+    else:
+        raise ValueError('Accepted coordinates: "cartesian", "spherical"')
+
     converter.convert(overwrite=overwrite)
 
     rc = converter.status
@@ -96,6 +105,7 @@ def get_qspace_vals_xsocs(
     det_ip="y+",
     det_oop="z-",
     sampleor="det",
+    coordinates="cartesian",
 ):
     h5f = XsocsH5(path_master)
     entry0 = h5f.get_entry_name(entry_idx=0)
@@ -129,17 +139,23 @@ def get_qspace_vals_xsocs(
         chan_per_deg = cpd
     if beam_energy is None:
         beam_energy = nrj
-        
+
     print(f"Using cen_pix: row/y={center_chan[0]:.3f}, col/x={center_chan[1]:.3f}")
     detdist = chan_per_deg[0] * det.pixsize[0] / np.tan(np.radians(1))
     print(f"Using det_dist = {detdist:.5f} m")
     print(f"Using energy = {nrj/1e3:.5f} keV")
 
-
     if det_roi == None:
         img_size = det.pixnum
     else:
         img_size = (det_roi[1] - det_roi[0], det_roi[3] - det_roi[2])
+        
+    if coordinates == "cartesian":
+        coords = QSpaceCoordinates.CARTESIAN
+    elif coordinates == "spherical":
+        coords = QSpaceCoordinates.SPHERICAL
+    else:
+        raise ValueError('Accepted coordinates: "cartesian", "spherical"')
 
     q_array = qspace_conversion(
         img_size,
@@ -154,6 +170,7 @@ def get_qspace_vals_xsocs(
         det_ip=det_ip,
         det_oop=det_oop,
         sampleor=sampleor,
+        coordinates=coords,
     )
 
     qx, qy, qz = q_array.transpose(3, 0, 1, 2)
@@ -267,16 +284,16 @@ def _shift_write_data(path_master, shifts, n_chunks, roi, path_subh5, overwrite=
 
         t2 = 0
         with h5py.File(path_subh5_shift, "a", libver="latest") as f:
-            
+
             # if ROI modify values of central pixel
             if roi is not None:
-                
+
                 cpy, cpx = [
                     f[f"/{root}/instrument/detector/center_chan_dim{i}"] for i in (0, 1)
                 ]
                 cpy[...] = cpy[()] - roi[0]
                 cpx[...] = cpx[()] - roi[2]
-                
+
             # delete original dataset and its link
             det_shift = f[f"{root}/instrument/detector/"]
             det_shift_link = f[f"{root}/measurement/image/"]
@@ -365,7 +382,31 @@ def shift_xsocs_data(
     overwrite=False,
 ):
     """
-    TODO
+    Apply shifts to SXDM data that has been stored in XSOCS-compatible HDF5 files.
+
+    Parameters
+    ----------
+    path_master : str
+        The path to the XSOCS master HDF5 file linking to the original data.
+    path_out : str
+        The output directory where the shifted HDF5 files will be saved.
+    shifts : list
+        A list of [rows, columns] shifts to be applied to the data.
+    subh5_list : list, optional
+        An optional list of sub HDF5 files. If not provided, the function will 
+        generate this list based on the name of `path_master`.
+    n_chunks : int, optional
+        The number of chunks to split the data into for processing to manage 
+        memory usage. Default is 3.
+    roi : tuple, optional
+        Region of interest for the data. Default is None.
+    overwrite : bool, optional
+        A flag to indicate whether existing files should be overwritten. 
+        Default is False.
+
+    Returns
+    -------
+    None
     """
 
     if subh5_list is None:
