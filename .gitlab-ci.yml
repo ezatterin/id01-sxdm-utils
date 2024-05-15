@@ -34,7 +34,7 @@ pages:
   script:
     - apt-get update
     - apt-get install -y --no-install-recommends pandoc
-    - pip install sphinx sphinx-rtd-theme myst-parser furo sphinx-copybutton sphinx-design myst-nb 
+    - pip install sphinx sphinx-rtd-theme myst-parser furo sphinx-copybutton sphinx-design myst-nb sphinx-autodoc2
     - cd doc
     - make html
     - mv build/html/ ../public/
