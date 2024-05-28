@@ -1,5 +1,3 @@
-:orphan:
-
 :py:mod:`sxdm.process.math`
 ===========================
 
@@ -18,6 +16,9 @@ Functions
    :class: autosummary longtable
    :align: left
 
+   * - :py:obj:`gauss_fit <sxdm.process.math.gauss_fit>`
+     - .. autodoc2-docstring:: sxdm.process.math.gauss_fit
+          :summary:
    * - :py:obj:`get_nearest_index <sxdm.process.math.get_nearest_index>`
      - .. autodoc2-docstring:: sxdm.process.math.get_nearest_index
           :summary:
@@ -42,6 +43,11 @@ Functions
 
 API
 ~~~
+
+.. py:function:: gauss_fit(path_qspace, rec_mask, dir_mask=None, multi=False)
+   :canonical: sxdm.process.math.gauss_fit
+
+   .. autodoc2-docstring:: sxdm.process.math.gauss_fit
 
 .. py:function:: get_nearest_index(arr, val)
    :canonical: sxdm.process.math.get_nearest_index

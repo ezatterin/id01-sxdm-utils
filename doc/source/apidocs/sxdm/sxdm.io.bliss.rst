@@ -1,5 +1,3 @@
-:orphan:
-
 :py:mod:`sxdm.io.bliss`
 =======================
 

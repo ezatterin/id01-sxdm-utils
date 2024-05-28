@@ -1,5 +1,3 @@
-:orphan:
-
 :py:mod:`sxdm.plot`
 ===================
 
@@ -15,4 +13,5 @@ Submodules
    :titlesonly:
    :maxdepth: 1
 
+   sxdm.plot.colors
    sxdm.plot.utils

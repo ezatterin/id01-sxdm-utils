@@ -1,5 +1,3 @@
-:orphan:
-
 :py:mod:`sxdm.widgets`
 ======================
 
@@ -8,6 +6,15 @@
 .. autodoc2-docstring:: sxdm.widgets
    :allowtitles:
 
+Subpackages
+-----------
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 3
+
+   sxdm.widgets.bliss
+
 Submodules
 ----------
 
@@ -15,4 +22,6 @@ Submodules
    :titlesonly:
    :maxdepth: 1
 
+   sxdm.widgets.Inspect4DArray
    sxdm.widgets.spec
+   sxdm.widgets.xsocs

@@ -1,5 +1,3 @@
-:orphan:
-
 :py:mod:`sxdm.io`
 =================
 
@@ -15,4 +13,7 @@ Submodules
    :titlesonly:
    :maxdepth: 1
 
+   sxdm.io.bliss
    sxdm.io.spec
+   sxdm.io.utils
+   sxdm.io.xsocs

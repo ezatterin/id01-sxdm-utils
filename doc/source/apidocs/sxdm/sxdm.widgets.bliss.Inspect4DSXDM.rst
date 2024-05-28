@@ -1,5 +1,3 @@
-:orphan:
-
 :py:mod:`sxdm.widgets.bliss.Inspect4DSXDM`
 ==========================================
 
@@ -35,3 +33,6 @@ API
    .. rubric:: Initialization
 
    .. autodoc2-docstring:: sxdm.widgets.bliss.Inspect4DSXDM.Inspect4DSXDM.__init__
+
+   .. py:method:: show()
+      :canonical: sxdm.widgets.bliss.Inspect4DSXDM.Inspect4DSXDM.show
