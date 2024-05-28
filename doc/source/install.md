@@ -1,6 +1,6 @@
-## Installation
+# Installation
 
-### On Jupyter-SLURM
+## On Jupyter-SLURM
 
 To use `id01-sxdm` on the ESRF Jupyter Hub server [Jupyter-SLURM](https://jupyter-slurm.esrf.fr/hub/spawn):
 
@@ -14,7 +14,7 @@ To use `id01-sxdm` on the ESRF Jupyter Hub server [Jupyter-SLURM](https://jupyte
     ```
 * Create or open the `.ipynb` of choice and select the `sxdm.slurm` kernel.
 
-### On a local machine
+## On a local machine
 
 First install `xsocs`:
 
@@ -36,7 +36,7 @@ pip install git+https://gitlab.esrf.fr/id01-science/id01-sxdm-utils.git#egg=id01
 
 These steps are necessary as none of these three packages is currently available from the Python Packaging Index (PyPI), as they are not mature enough to be published.
 
-### Installation of Notebook extensions
+## Installation of Notebook extensions
 
 ```bash
 pip install --quiet ipympl

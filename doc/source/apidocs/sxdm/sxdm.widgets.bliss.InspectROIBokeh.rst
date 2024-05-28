@@ -1,3 +1,5 @@
+:orphan:
+
 :py:mod:`sxdm.widgets.bliss.InspectROIBokeh`
 ============================================
 

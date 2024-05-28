@@ -46,9 +46,9 @@ extensions = [
     "sphinx_design",
 ]
 
-autodoc2_packages = [
-    "../../sxdm"
-]
+autodoc2_packages = ["../../sxdm"]
+autodoc2_hidden_objects = ["undoc", "private"]
+# autodoc2_render_plugin = 'myst'
 
 myst_enable_extensions = [
     "amsmath",

@@ -1,3 +1,5 @@
+:orphan:
+
 :py:mod:`sxdm.utils`
 ====================
 
@@ -13,6 +15,4 @@ Submodules
    :titlesonly:
    :maxdepth: 1
 
-   sxdm.utils.bliss
    sxdm.utils.general
-   sxdm.utils.nanomax
