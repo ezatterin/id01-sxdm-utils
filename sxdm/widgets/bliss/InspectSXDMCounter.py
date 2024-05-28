@@ -209,7 +209,7 @@ class InspectSXDMCounter(object):
         view_motorspecs = ipw.Accordion([self.motorspecs])
         view_motorspecs.set_title(0, "View motors")
         view_motorspecs.selected_index = None
-        view_motorspecs.layout = {"font-family": "Liberation Sans"}
+        view_motorspecs.layout = {"font-family": "Liberation Sans; sans-serif"}
 
         # group all widgets together
         self.selector = ipw.VBox(
