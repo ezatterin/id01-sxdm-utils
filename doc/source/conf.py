@@ -50,6 +50,8 @@ autodoc2_packages = [
     "../../sxdm"
 ]
 
+autodoc2_render_plugin = "myst"
+
 myst_enable_extensions = [
     "amsmath",
     "colon_fence",

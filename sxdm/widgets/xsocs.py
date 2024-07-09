@@ -212,10 +212,13 @@ class Inspect5DQspace(object):
         self.fig.canvas.mpl_connect("key_press_event", self._onkey)
 
     def _change_plot(self, change):
-        darr = self.maps_dict[change["new"]]
+        darr = self.maps_dict[self._select_plot.value]
 
         self._dmap.set_array(darr)
-        self._dmap.set_clim([darr.min(), darr.max()])
+        
+        # if not called twice sometimes it gets it wrong, not sure why
+        self._dmap.set_clim([np.nanmin(darr), np.nanmax(darr)])
+        self._dmap.set_clim([np.nanmin(darr), np.nanmax(darr)])
 
     def _onclick(self, event):
         if event.inaxes == self.ax[0, 0]:
