@@ -22,6 +22,6 @@ Submodules
    :titlesonly:
    :maxdepth: 1
 
-   sxdm.widgets.spec
    sxdm.widgets.Inspect4DArray
+   sxdm.widgets.spec
    sxdm.widgets.xsocs

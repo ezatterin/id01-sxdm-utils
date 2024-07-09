@@ -40,46 +40,6 @@ API
 
       .. autodoc2-docstring:: sxdm.widgets.xsocs.Inspect5DQspace.rec_ax_idx
 
-   .. py:method:: _init_widgets()
-      :canonical: sxdm.widgets.xsocs.Inspect5DQspace._init_widgets
-
-      .. autodoc2-docstring:: sxdm.widgets.xsocs.Inspect5DQspace._init_widgets
-
-   .. py:method:: _update_norm(change)
-      :canonical: sxdm.widgets.xsocs.Inspect5DQspace._update_norm
-
-      .. autodoc2-docstring:: sxdm.widgets.xsocs.Inspect5DQspace._update_norm
-
-   .. py:method:: _get_rsm()
-      :canonical: sxdm.widgets.xsocs.Inspect5DQspace._get_rsm
-
-      .. autodoc2-docstring:: sxdm.widgets.xsocs.Inspect5DQspace._get_rsm
-
-   .. py:method:: _init_fig()
-      :canonical: sxdm.widgets.xsocs.Inspect5DQspace._init_fig
-
-      .. autodoc2-docstring:: sxdm.widgets.xsocs.Inspect5DQspace._init_fig
-
-   .. py:method:: _change_plot(change)
-      :canonical: sxdm.widgets.xsocs.Inspect5DQspace._change_plot
-
-      .. autodoc2-docstring:: sxdm.widgets.xsocs.Inspect5DQspace._change_plot
-
-   .. py:method:: _onclick(event)
-      :canonical: sxdm.widgets.xsocs.Inspect5DQspace._onclick
-
-      .. autodoc2-docstring:: sxdm.widgets.xsocs.Inspect5DQspace._onclick
-
-   .. py:method:: _onkey(event)
-      :canonical: sxdm.widgets.xsocs.Inspect5DQspace._onkey
-
-      .. autodoc2-docstring:: sxdm.widgets.xsocs.Inspect5DQspace._onkey
-
-   .. py:method:: _update()
-      :canonical: sxdm.widgets.xsocs.Inspect5DQspace._update
-
-      .. autodoc2-docstring:: sxdm.widgets.xsocs.Inspect5DQspace._update
-
    .. py:method:: show()
       :canonical: sxdm.widgets.xsocs.Inspect5DQspace.show
 

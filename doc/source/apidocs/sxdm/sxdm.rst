@@ -13,8 +13,8 @@ Subpackages
    :titlesonly:
    :maxdepth: 3
 
-   sxdm.widgets
-   sxdm.process
-   sxdm.utils
    sxdm.io
    sxdm.plot
+   sxdm.process
+   sxdm.utils
+   sxdm.widgets

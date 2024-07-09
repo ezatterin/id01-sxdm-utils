@@ -13,5 +13,5 @@ Submodules
    :titlesonly:
    :maxdepth: 1
 
-   sxdm.plot.utils
    sxdm.plot.colors
+   sxdm.plot.utils

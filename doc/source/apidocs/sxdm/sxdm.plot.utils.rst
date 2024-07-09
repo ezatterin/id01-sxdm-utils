@@ -43,6 +43,12 @@ Functions
    * - :py:obj:`gif_sxdm_sums <sxdm.plot.utils.gif_sxdm_sums>`
      - .. autodoc2-docstring:: sxdm.plot.utils.gif_sxdm_sums
           :summary:
+   * - :py:obj:`gif_sxdm <sxdm.plot.utils.gif_sxdm>`
+     - .. autodoc2-docstring:: sxdm.plot.utils.gif_sxdm
+          :summary:
+   * - :py:obj:`make_5DSXDM_summary_plot <sxdm.plot.utils.make_5DSXDM_summary_plot>`
+     - .. autodoc2-docstring:: sxdm.plot.utils.make_5DSXDM_summary_plot
+          :summary:
 
 API
 ~~~
@@ -82,12 +88,22 @@ API
 
    .. autodoc2-docstring:: sxdm.plot.utils.add_roilabel
 
-.. py:function:: add_directions(ax, text_x, text_y, loc, color='k', transform=None, angle=0, length=0.1, line_width=0.5, aspect_ratio=1, head_width=1.2, head_length=3, arrow_props=None, tpad_x=0.01, tpad_y=0.01, text_props=None, pad=0.4, borderpad=0.5, frameon=False, **obox_kwargs)
+.. py:function:: add_directions(ax, text_x, text_y, loc='lower left', color='k', transform=None, angle=0, length=0.1, line_width=0.5, aspect_ratio=1, head_width=1.2, head_length=3, arrow_props=None, tpad_x=0.01, tpad_y=0.01, text_props=None, pad=0.4, borderpad=0.5, frameon=False, return_artist=False)
    :canonical: sxdm.plot.utils.add_directions
 
    .. autodoc2-docstring:: sxdm.plot.utils.add_directions
 
-.. py:function:: gif_sxdm_sums(path_dset, scan_nos, gif_duration=5, moving_motor='eta', clim_sample=None, clim_detector=None, detector=None)
+.. py:function:: gif_sxdm_sums(path_dset, scan_nos, gif_duration=5, moving_motor='eta', clim_sample=[None, None], clim_detector=[None, None], detector=None)
    :canonical: sxdm.plot.utils.gif_sxdm_sums
 
    .. autodoc2-docstring:: sxdm.plot.utils.gif_sxdm_sums
+
+.. py:function:: gif_sxdm(path_dset, detector_roi=None, scan_nos=None, gif_duration=5, moving_motor='eta', clim_sample=[None, None], detector=None)
+   :canonical: sxdm.plot.utils.gif_sxdm
+
+   .. autodoc2-docstring:: sxdm.plot.utils.gif_sxdm
+
+.. py:function:: make_5DSXDM_summary_plot(roi_int, d, tilt, pix, piy, roi_qcoords, qspace_avg_sliced, cx, cy, inc_rel, azi_rel, qx, qy, qz, qspace_avg, peak_idxs='???', pi_win=np.s_[:, :])
+   :canonical: sxdm.plot.utils.make_5DSXDM_summary_plot
+
+   .. autodoc2-docstring:: sxdm.plot.utils.make_5DSXDM_summary_plot

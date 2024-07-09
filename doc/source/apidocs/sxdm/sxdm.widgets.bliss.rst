@@ -15,5 +15,5 @@ Submodules
 
    sxdm.widgets.bliss.GetShift
    sxdm.widgets.bliss.Inspect4DSXDM
-   sxdm.widgets.bliss.InspectSXDMCounter
    sxdm.widgets.bliss.InspectROIBokeh
+   sxdm.widgets.bliss.InspectSXDMCounter

@@ -13,7 +13,7 @@ Submodules
    :titlesonly:
    :maxdepth: 1
 
-   sxdm.io.spec
    sxdm.io.bliss
+   sxdm.io.spec
    sxdm.io.utils
    sxdm.io.xsocs

@@ -47,11 +47,6 @@ API
 
       .. autodoc2-docstring:: sxdm.io.spec.FastSpecFile.__str__
 
-   .. py:method:: _repr_html_()
-      :canonical: sxdm.io.spec.FastSpecFile._repr_html_
-
-      .. autodoc2-docstring:: sxdm.io.spec.FastSpecFile._repr_html_
-
    .. py:method:: __getitem__(key)
       :canonical: sxdm.io.spec.FastSpecFile.__getitem__
 
@@ -78,11 +73,6 @@ API
       :canonical: sxdm.io.spec.PiezoScan.__str__
 
       .. autodoc2-docstring:: sxdm.io.spec.PiezoScan.__str__
-
-   .. py:method:: _repr_html_()
-      :canonical: sxdm.io.spec.PiezoScan._repr_html_
-
-      .. autodoc2-docstring:: sxdm.io.spec.PiezoScan._repr_html_
 
    .. py:method:: get_roidata(counter)
       :canonical: sxdm.io.spec.PiezoScan.get_roidata
