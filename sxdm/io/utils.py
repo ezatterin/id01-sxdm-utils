@@ -1,9 +1,6 @@
 import h5py
 import os
-import multiprocessing as mp
-import psutil
 
-from memory_profiler import profile
 from id01lib.io.bliss import ioh5
 
 
@@ -76,7 +73,6 @@ def _get_chunk_indexes_detector(path_h5, path_in_h5, n_chunks=3, roi=None):
     return idxs
 
 
-# @profile
 def _get_qspace_avg_chunk(path_h5, path_in_h5, idx_mask, idx_range):
     """
     Return the q-space intensity array summed over the (flattened) sample positons

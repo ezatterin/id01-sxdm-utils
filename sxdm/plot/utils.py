@@ -99,17 +99,17 @@ def add_scalebar(
     ax : matplotlib.axes.Axes
         The axis to which the scale bar is added.
     h_size : float, optional
-        Horizontal size of the scale bar in data units. 
+        Horizontal size of the scale bar in data units.
         If None, defaults to a quarter of the image width.
     v_size : float, optional
-        Vertical size of the scale bar in data units. 
+        Vertical size of the scale bar in data units.
         If None, defaults to 1/100 of the image height.
     label : str, optional
         Label for the scale bar. If None, defaults to the horizontal size.
     color : str, optional
         Color of the scale bar and label. Default is 'black'.
     loc : str or int, optional
-        Location code or descriptive string to position the scale bar. 
+        Location code or descriptive string to position the scale bar.
         Default is 'lower right'.
     pad : float, optional
         Padding between the scale bar and the anchor point. Default is 0.5.
@@ -270,9 +270,9 @@ def add_directions(
     text_y : str
         Label for the y-direction arrow.
     loc : str or int, optional
-        Location code or descriptive string to position the arrows and labels. 
-        Default is 'lower left'. Valid locations are 'upper left', 'upper center', 
-        'upper right', 'center left', 'center', 'center right', 'lower left', 
+        Location code or descriptive string to position the arrows and labels.
+        Default is 'lower left'. Valid locations are 'upper left', 'upper center',
+        'upper right', 'center left', 'center', 'center right', 'lower left',
         'lower center', 'lower right'.
     color : str, optional
         Color for the arrows and labels. Default is 'k' (black).
@@ -285,7 +285,7 @@ def add_directions(
     line_width : float, optional
         Line width of the arrows. Default is 0.5.
     aspect_ratio : float, optional
-        Aspect ratio of the y-direction arrow relative to the x-direction arrow. 
+        Aspect ratio of the y-direction arrow relative to the x-direction arrow.
         Default is 1.
     head_width : float, optional
         Width of the arrow heads. Default is 1.2.
@@ -306,7 +306,7 @@ def add_directions(
     frameon : bool, optional
         Whether to draw a frame around the anchored box. Default is False.
     return_artist : bool, optional
-        If True, returns the anchored box artist instead of adding it to the axis. 
+        If True, returns the anchored box artist instead of adding it to the axis.
         Default is False.
 
     Returns
@@ -387,7 +387,7 @@ def add_directions(
 
 def gif_sxdm_sums(
     path_dset,
-    scan_nos,
+    scan_nos=None,
     gif_duration=5,
     moving_motor="eta",
     clim_sample=[None, None],
@@ -420,6 +420,9 @@ def gif_sxdm_sums(
     -------
     None
     """
+    
+    if scan_nos is None:
+        scan_nos = get_sxdm_scan_numbers(path_dset)
 
     if detector is None:
         det = get_detector_aliases(path_dset, scan_nos[0])[0]
@@ -438,9 +441,14 @@ def gif_sxdm_sums(
         fig, ax = plt.subplots(1, 2, figsize=(6, 3), layout="tight", dpi=120)
 
         m0name, m1name = get_piezo_motor_names(path_dset, scan_no)
-        m0, m1 = [
-            get_counter(path_dset, scan_no, f"{m}_position") for m in (m0name, m1name)
-        ]
+        try:
+            m0, m1 = [
+                get_counter(path_dset, scan_no, f"{m}_position") for m in (m0name, m1name)
+            ]
+        except KeyError:
+            m0, m1 = [
+                get_counter(path_dset, scan_no, f"{m}") for m in (m0name, m1name)
+            ]
         pi_ext = [m0.min(), m0.max(), m1.min(), m1.max()]
 
         _ = ax[0].imshow(
@@ -545,7 +553,13 @@ def gif_sxdm(
         fig, ax = plt.subplots(1, 1, figsize=(4, 3), layout="tight", dpi=120)
 
         m0name, m1name = get_piezo_motor_names(path_dset, scan_no)
-        m0, m1 = [get_counter(path_dset, scan_no, f"{m}") for m in (m0name, m1name)]
+        try:
+            m0, m1 = [get_counter(path_dset, scan_no, f"{m}") for m in (m0name, m1name)]
+        except KeyError:
+            m0, m1 = [
+                get_counter(path_dset, scan_no, f"{m}_position")
+                for m in (m0name, m1name)
+            ]
         pi_ext = [m0.min(), m0.max(), m1.min(), m1.max()]
 
         im = ax.imshow(

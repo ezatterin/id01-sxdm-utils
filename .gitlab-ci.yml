@@ -9,7 +9,8 @@
 #     paths:
 #       - public
 
-image: python:3.8-bullseye
+# image: python:3.8-bullseye
+image: python:3.11-bullseye
 
 before_script:
   - export no_proxy='esrf.fr' 
@@ -17,7 +18,8 @@ before_script:
   - pip install virtualenv
   - virtualenv venv
   - source venv/bin/activate
-  - pip install --pre --find-links https://kmap.gitlab-pages.esrf.fr/xsocs/wheels/ xsocs
+  # - pip install --pre --find-links https://kmap.gitlab-pages.esrf.fr/xsocs/wheels/ xsocs
+  - pip install xsocs
   - pip install -e git+https://gitlab.esrf.fr/id01-science/id01-core.git#egg=id01-core
   - pip install .
   - pip install ipykernel
@@ -34,7 +36,7 @@ pages:
   script:
     - apt-get update
     - apt-get install -y --no-install-recommends pandoc
-    - pip install sphinx sphinx-rtd-theme myst-parser furo sphinx-copybutton sphinx-design myst-nb 
+    - pip install sphinx sphinx-rtd-theme myst-parser furo sphinx-copybutton sphinx-design myst-nb sphinx-autodoc2
     - cd doc
     - make html
     - mv build/html/ ../public/

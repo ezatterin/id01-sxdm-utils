@@ -24,6 +24,22 @@ from .utils import _get_chunk_indexes
 
 @ioh5
 def get_sxdm_scan_numbers(h5f, interrupted_scans=False):
+    """
+    Extracts scan numbers corresponding to SXDM scans from an input BLISS HDF5 dataset.
+
+    Parameters
+    ----------
+    h5f : h5py.File
+        The BLISS HDF5 dataset from which to extract SXDM scan numbers.
+    interrupted_scans : bool, optional
+        A flag indicating whether to include interrupted scans. Default is False.
+
+    Returns
+    -------
+    scan_nos : list
+        A list of scan numbers corresponding to SXDM scans.
+    """
+
     scan_nos = []
     for entry in list(h5f.keys()):
         command = h5f[f"{entry}/title"][()].decode()
@@ -45,6 +61,21 @@ def get_sxdm_scan_numbers(h5f, interrupted_scans=False):
 
 @ioh5
 def get_datetime(h5f, scan_no):
+    """
+    Retrieves and formats the start time of a specific scan from a BLSS HDF5 dataset.
+
+    Parameters
+    ----------
+    h5f : h5py.File
+        The BLISS HDF5 dataset containing the target scan.
+    scan_no : str
+        The scan number for which the start time is to be retrieved.
+
+    Returns
+    -------
+    str
+        The formatted start time of the scan.
+    """
     scan_no = scan_no
     dtime = h5f[f"{scan_no}/start_time"][()].decode()
     dtime = datetime.fromisoformat(dtime).strftime("%b %d | %H:%M:%S")
@@ -53,9 +84,27 @@ def get_datetime(h5f, scan_no):
 
 
 @ioh5
-def get_detcalib(h5f, scan_no):
+def get_det_params(h5f, scan_no):
+    """
+    Retrieves detector calibration parameters from a BLISS HDF5 dataset for a 
+    specific scan.
+
+    Parameters
+    ----------
+    h5f : h5py.File
+        The BLISS HDF5 dataset from which to extract the parameters.
+    scan_no : str
+        The scan number for which the detector parameters are to be retrieved.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the detector calibration parameters.
+    """
+    det_alias = get_detector_aliases(h5f, scan_no)
+
     params = dict(beam_energy=0, center_chan=[], chan_per_deg=[])
-    calib = h5f[f"{scan_no}/instrument/detector"]
+    calib = h5f[f"{scan_no}/instrument/{det_alias}"]
 
     for key in params.keys():
         if key == "beam_energy":
@@ -67,6 +116,27 @@ def get_detcalib(h5f, scan_no):
 
 
 def get_piezo_motor_names(h5f, scan_no):
+    """
+    Retrieve the names of the piezo motors used in the specified scan.
+
+    Parameters:
+    -----------
+    h5f : h5py.File
+        The BLISS HDF5 dataset containing the scan data.
+    scan_no : str
+        The scan number for which to retrieve the piezo motor names.
+
+    Returns:
+    --------
+    tuple
+        A tuple containing the names of the two piezo motors (m1_name, m2_name).
+
+    Raises:
+    -------
+    Exception
+        If the scan is not a mesh or an sxdm scan, an exception is raised with
+        an appropriate message.
+    """
     command = get_command(h5f, scan_no)
     if any([x in command for x in ("sxdm", "kmap", "mesh")]):
         m1_name, m2_name = [command.split(" ")[x] for x in (1, 5)]
@@ -81,7 +151,8 @@ def get_piezo_motor_names(h5f, scan_no):
 
 
 def get_piezo_motor_positions(h5f, scan_no):
-    """Retrieve the sample coordinates of an SXDM scan.
+    """
+    Retrieve the sample coordinates of an SXDM scan.
 
     Parameters
     ----------
@@ -319,7 +390,7 @@ def get_sxdm_pos_sum(
         Number of the SXDM scan, e.g. 4.1.
     mask_detector : np.ndarray, optional
         Array of the same shape as a detector frame whose True values indicate where
-        to perform the sum, by default None (the full detector area is considered for 
+        to perform the sum, by default None (the full detector area is considered for
         the computation)
     detector : str, optional
         Alias of the detector used for the SXDM scan, by default None
