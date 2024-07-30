@@ -240,7 +240,9 @@ def calc_com_3d(arr, x, y, z, n_pix=None, std=False):
         return cx, cy, cz
 
 
-def _calc_com_qspace3d(path_qspace, mask_reciprocal, idx, n_pix=None, std=False):
+def _calc_com_qspace3d(
+    path_qspace, mask_reciprocal, idx, n_pix=None, std=False, spherical=False
+):
     """
     Compute the center of mass (COM) of an XSOCS 4D q-space array in q-space
     coordinates at position `idx`.
@@ -284,17 +286,20 @@ def _calc_com_qspace3d(path_qspace, mask_reciprocal, idx, n_pix=None, std=False)
         # data loaded to mem at idx and then fancy sliced
         if mask_size_cube == mask_size_real:
             arr = h5f["Data/qspace"][roi]
-        # NOTE this will fail if the smallest rec space dimensions is not the 
+        # NOTE this will fail if the smallest rec space dimensions is not the
         # first one!
-        else: 
+        else:
             arr = h5f["Data/qspace"][idx][roi_rec]
 
         # retrieve q-space coordinates
-        qx, qy, qz = [h5f[f"Data/{x}"][...] for x in "qx,qy,qz".split(",")]
+        if spherical:
+            qx, qy, qz = [h5f[f"Data/{x}"][...] for x in "pitch,roll,radial".split(",")]
+        else:
+            qx, qy, qz = [h5f[f"Data/{x}"][...] for x in "qx,qy,qz".split(",")]
         qxm, qym, qzm = [q[roi_rec_sl] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
 
         # compute COM and standard deviation
-        if std is True: 
+        if std is True:
             cx, cy, cz, stdx, stdy, stdz = calc_com_3d(
                 arr, qxm, qym, qzm, n_pix=n_pix, std=True
             )
@@ -304,7 +309,9 @@ def _calc_com_qspace3d(path_qspace, mask_reciprocal, idx, n_pix=None, std=False)
             return cx, cy, cz
 
 
-def calc_coms_qspace3d(path_qspace, mask_reciprocal, n_pix=None, std=False):
+def calc_coms_qspace3d(
+    path_qspace, mask_reciprocal, n_pix=None, std=False, spherical=False
+):
     """
     Compute the center of mass (COM) of an XSOCS 4D array for each direct space
     position. The 4D array is Intensity(direct_space_position, qx, qy, qz).
@@ -339,7 +346,12 @@ def calc_coms_qspace3d(path_qspace, mask_reciprocal, n_pix=None, std=False):
         coms = []
         with mp.Pool(processes=os.cpu_count()) as p:
             _partial_fun = functools.partial(
-                _calc_com_qspace3d, path_qspace, mask_reciprocal, n_pix=n_pix, std=True
+                _calc_com_qspace3d,
+                path_qspace,
+                mask_reciprocal,
+                n_pix=n_pix,
+                std=True,
+                spherical=spherical,
             )
             for res in tqdm(
                 p.imap(_partial_fun, range(map_shape_flat)), total=map_shape_flat
@@ -351,7 +363,11 @@ def calc_coms_qspace3d(path_qspace, mask_reciprocal, n_pix=None, std=False):
         coms = []
         with mp.Pool(processes=os.cpu_count()) as p:
             _partial_fun = functools.partial(
-                _calc_com_qspace3d, path_qspace, mask_reciprocal, n_pix=n_pix
+                _calc_com_qspace3d,
+                path_qspace,
+                mask_reciprocal,
+                n_pix=n_pix,
+                spherical=spherical,
             )
             for res in tqdm(
                 p.imap(_partial_fun, range(map_shape_flat)), total=map_shape_flat
@@ -372,27 +388,27 @@ def _calc_roi_sum_chunk(path_qspace, mask_reciprocal, mask_direct, idx_range):
     """
     i0, i1 = idx_range
     sh0 = i1 - i0
-    
-    # indexes of saught data 
+
+    # indexes of saught data
     roi_rec_idxs = np.where(np.invert(mask_reciprocal))
-    roi_idxs = np.where(np.invert(np.stack([mask_reciprocal.flatten()]*sh0, axis=0)))
+    roi_idxs = np.where(np.invert(np.stack([mask_reciprocal.flatten()] * sh0, axis=0)))
 
     # slices of saught data
     roi_rec_sl = tuple([slice(x.min(), x.max() + 1) for x in roi_rec_idxs])
     roi_sl = (slice(i0, i1, None), *roi_rec_sl)
-    
+
     # check if mask is cube-like or more complicated,
     # will determine how array is retrieved from hdf5 file
     mask_size_cube = np.prod([x.max() + 1 - x.min() for x in roi_rec_idxs])
     mask_size_real = np.count_nonzero(np.invert(mask_reciprocal))
-    
+
     with h5py.File(path_qspace, "r") as h5f:
         # slice full 4D array directly
         if mask_size_cube == mask_size_real:
             arr = h5f["Data/qspace"][roi_sl].sum(axis=(1, 2, 3))
         # first send sub array to memory, then index flattened 3D
         else:
-            arr = h5f["Data/qspace"][i0:i1,...]
+            arr = h5f["Data/qspace"][i0:i1, ...]
             arr = arr.reshape(sh0, mask_reciprocal.size)[roi_idxs]
             arr = arr.reshape(sh0, roi_rec_idxs[0].shape[0]).sum(1)
 
@@ -470,9 +486,7 @@ def calc_coms_qspace2d(
     n_pix=None,
     std=None,
     path_data_h5="/{scan_no}/instrument/{detector}/data",
-
 ):
-    
     """
     Calculate center of masses (COMs) in reciprocal space for a 4D SXDM scan.
 
@@ -507,7 +521,7 @@ def calc_coms_qspace2d(
     numpy.ndarray
         Array containing center of masses (COMs) in reciprocal space.
     """
- 
+
     detlist = get_detector_aliases(path_dset, scan_no)
     if detector is None:
         detector = detlist[0]
