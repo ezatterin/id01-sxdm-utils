@@ -11,7 +11,7 @@ from ..io.bliss import get_positioner
 
 from id01lib.io.bliss import get_detector_aliases
 
-__all__ = ["get_SXDM_info", "parse_scan_commands", "make_xsocs_links"]
+__all__ = ["get_SXDM_info", "parse_scan_command", "make_xsocs_links"]
 
 ScanRange = collections.namedtuple("ScanRange", ["name", "start", "stop", "numpoints"])
 
@@ -161,11 +161,10 @@ def parse_scan_command(command):
 def make_xsocs_links(
     path_dset,
     path_out,
-    scan_nums,
+    scan_nums=None,
     detector=None,
     name_outh5=None,
     stitch_counter=None,
-    roi=None,
 ):
     """
     Generates a set of .h5 files to be fed to XSOCS from a 3D-SXDM dataset.
