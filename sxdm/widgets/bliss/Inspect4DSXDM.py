@@ -221,7 +221,11 @@ class Inspect4DSXDM(Inspect4DArray):
                     )
                 )
 
-            self._update_dict = {"new": self.iflog.value, "axes": self.ax[self.sel_ax_idx]}
+            i = 0 if self.sel_ax_idx == 1 else 1
+            self._update_dict = {
+                "new": self.iflog.value,
+                "axes": [self.ax[i]],
+            }
             self._update_norm(self._update_dict)
 
     def _add_rois(self, change):
