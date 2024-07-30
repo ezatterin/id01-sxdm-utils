@@ -205,7 +205,9 @@ class Inspect4DArray(object):
 
     def _update_norm(self, change):
         islog = change["new"]
-        for im in [a.get_images()[0] for a in self.ax]:
+        whichax = change.get("axes", self.ax)
+
+        for im in [a.get_images()[0] for a in whichax]:
             data = im.get_array()
 
             if self.fixed_clims is None:

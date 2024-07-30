@@ -72,15 +72,15 @@ class Inspect4DSXDM(Inspect4DArray):
             )
 
         m0n, m1n = get_piezo_motor_names(path_dset, scan_no)
-        
+
         self.ax[0].set_xlabel(f"{m0n} (pixels)")
         self.ax[0].set_ylabel(f"{m1n} (pixels)")
-        
+
         self.ax[1].invert_yaxis()
-        
+
         self.ax[1].set_xlabel(f"detector x (pixels)")
         self.ax[1].set_ylabel(f"detector y (pixels)")
-        
+
         self._show_rois = ipw.Checkbox(value=False, description="Show experiment ROIs")
         self._show_rois.observe(self._add_rois, names="value")
         self._show_rois.layout = ipw.Layout(width="auto")
@@ -221,7 +221,8 @@ class Inspect4DSXDM(Inspect4DArray):
                     )
                 )
 
-            self._update_norm({"new": self.iflog.value})
+            self._update_dict = {"new": self.iflog.value, "axes": self.ax[self.sel_ax_idx]}
+            self._update_norm(self._update_dict)
 
     def _add_rois(self, change):
         roi_names = [
