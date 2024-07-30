@@ -565,3 +565,22 @@ def get_scan_table(path_dset):
     table = "\n".join(table)
 
     return ipw.HTML(table)
+
+def get_sxdm_frame_sum_multi(path_framesum, path_dset, scan_nums=None):
+    
+    if scan_nums is None:
+        scan_nums = get_sxdm_scan_numbers(path_dset)
+
+    if not os.path.isfile(path_framesum):
+        fint_tot = np.zeros((516, 516, len(scan_nums)))
+        for i, scan_no in tqdm(enumerate(scan_nums), total=len(scan_nums)):
+            fint_tot[..., i] = get_sxdm_frame_sum(
+                path_dset, scan_no, pbar=False
+            )
+        fint_tot = fint_tot.transpose(2, 0, 1)
+        np.save(path_framesum, fint_tot)
+    else:
+        print(f"Loading: \n\t{path_framesum}\n")
+        fint_tot = np.load(path_framesum)
+        
+    return fint_tot
