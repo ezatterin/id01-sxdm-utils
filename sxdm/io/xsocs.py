@@ -45,9 +45,15 @@ def get_piezo_motorpos(h5f):
     shape_kmap = [h5f[f"{_entry0}/technique/dim{x}"][()] for x in (0, 1)]
     print(f"Returning {m0name},{m1name} of shape {shape_kmap}")
 
-    m0, m1 = [
-        h5f[f"{_entry0}/instrument/positioners/{n}_position"][()].reshape(shape_kmap)
-        for n in (m0name, m1name)
-    ]
+    try:
+        m0, m1 = [
+            h5f[f"{_entry0}/instrument/positioners/{n}_position"][()].reshape(shape_kmap)
+            for n in (m0name, m1name)
+        ]
+    except KeyError: # new hdf5 format
+        m0, m1 = [
+            h5f[f"{_entry0}/instrument/positioners/{n}"][()].reshape(shape_kmap)
+            for n in (m0name, m1name)
+        ]
 
     return m0, m1

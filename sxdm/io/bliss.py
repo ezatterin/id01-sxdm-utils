@@ -172,8 +172,11 @@ def get_piezo_motor_positions(h5f, scan_no):
 
     try:  # sxdm
         m1, m2 = [get_positioner(h5f, scan_no, f"{m}_position") for m in (m1n, m2n)]
-    except KeyError:  # mesh
-        m1, m2 = [get_positioner(h5f, scan_no, m) for m in (m1n, m2n)]
+    except KeyError:  
+        try: # sxdm new
+            m1, m2 = [get_positioner(h5f, scan_no, f"{m}") for m in (m1n, m2n)]
+        except KeyError:  # mesh
+            m1, m2 = [get_positioner(h5f, scan_no, m) for m in (m1n, m2n)]
     m1, m2 = [m.reshape(*sh) for m in (m1, m2)]
 
     return m1, m2
