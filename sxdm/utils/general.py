@@ -289,7 +289,7 @@ def calc_refl_id01(
     ang_dict = {key: np.round(val, 4) for key, val in zip(bounds.keys(), ang)}
 
     if return_q_com:
-        return ang_dict, q_cryst
+        return ang_dict, hxrd.Transform(q_cryst)
     else:
         return ang_dict
 
