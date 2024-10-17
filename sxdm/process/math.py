@@ -216,20 +216,19 @@ def calc_com_3d(arr, x, y, z, n_pix=None, std=False):
         If std=True returns COM and stderr of `arr` expressed as `x`, `y`, `z`,`stdx`,
         `stdy`, `stdz`.
     """
-    arr = arr.ravel()
-
     # indexes of n_pix most intense pixels of array
     if n_pix is not None:
-        idxs = arr.argsort()[::-1][:n_pix]
+        idxs_flat = np.argpartition(arr, -n_pix, axis=None)[-n_pix:]
+        idxs = np.unravel_index(idxs_flat, arr.shape)
     else:
-        idxs = arr.argsort()[::-1]
+        idxs = np.s_[...]
 
     # intensity of such pixels
     arr_idxs = arr[idxs]
 
     # com
     prob = arr_idxs / arr_idxs.sum()
-    cx, cy, cz = [np.sum(prob * q.ravel()[idxs]) for q in (x, y, z)]
+    cx, cy, cz = [np.sum(prob * q[idxs]) for q in (x, y, z)]
     if std is True:
         stdx, stdy, stdz = [
             np.sqrt(np.sum(prob * (q.ravel()[idxs] - com) ** 2))
@@ -270,7 +269,7 @@ def _calc_com_qspace3d(
     """
 
     # indexes of saught data
-    roi_rec = np.where(np.invert(mask_reciprocal))
+    roi_rec = np.where(np.invert(mask_reciprocal)) # SLOW - 50%
 
     # check if mask is cube-like or more complicated,
     # will determine how array is retrieved from hdf5 file
@@ -296,17 +295,19 @@ def _calc_com_qspace3d(
             qx, qy, qz = [h5f[f"Data/{x}"][...] for x in "pitch,roll,radial".split(",")]
         else:
             qx, qy, qz = [h5f[f"Data/{x}"][...] for x in "qx,qy,qz".split(",")]
-        qxm, qym, qzm = [q[roi_rec_sl] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
 
-        # compute COM and standard deviation
-        if std is True:
-            cx, cy, cz, stdx, stdy, stdz = calc_com_3d(
-                arr, qxm, qym, qzm, n_pix=n_pix, std=True
-            )
-            return cx, cy, cz, stdx, stdy, stdz
-        else:
-            cx, cy, cz = calc_com_3d(arr, qxm, qym, qzm, n_pix=n_pix, std=False)
-            return cx, cy, cz
+    # SLOW - 20%            
+    qxm, qym, qzm = [q[roi_rec_sl] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
+
+    # compute COM and standard deviation
+    if std is True:
+        cx, cy, cz, stdx, stdy, stdz = calc_com_3d(
+            arr, qxm, qym, qzm, n_pix=n_pix, std=True
+        )
+        return cx, cy, cz, stdx, stdy, stdz
+    else:
+        cx, cy, cz = calc_com_3d(arr, qxm, qym, qzm, n_pix=n_pix, std=False)
+        return cx, cy, cz
 
 
 def calc_coms_qspace3d(
@@ -469,7 +470,10 @@ def _calc_com_idx(path_h5, path_in_h5, mask_idxs, qx, qy, qz, idx_list, **kwargs
         roi = (slice(i0, i1, None), *mask_idxs)
         frames = h5f[path_in_h5][roi]
 
-        coms = [calc_com_3d(frame, qx, qy, qz, **kwargs) for frame in frames]
+        coms = [
+            calc_com_3d(frame, qx[mask_idxs], qy[mask_idxs], qz[mask_idxs], **kwargs)
+            for frame in frames
+        ]
 
     return coms
 
@@ -486,6 +490,7 @@ def calc_coms_qspace2d(
     n_pix=None,
     std=None,
     path_data_h5="/{scan_no}/instrument/{detector}/data",
+    pbar=True,
 ):
     """
     Calculate center of masses (COMs) in reciprocal space for a 4D SXDM scan.
@@ -558,7 +563,11 @@ def calc_coms_qspace2d(
         std=std,
     )
     with mp.Pool(processes=ncpu) as p:
-        for res in tqdm(p.imap(pfun, idx_list), total=len(idx_list)):
+        if pbar is True:
+            gen = tqdm(p.imap(pfun, idx_list), total=len(idx_list))
+        else:
+            gen = p.imap(pfun, idx_list)
+        for res in gen:
             coms.append(res)
 
     coms = [x for y in coms for x in y]
