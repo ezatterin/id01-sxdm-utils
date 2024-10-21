@@ -6,12 +6,15 @@ import functools
 
 from tqdm.notebook import tqdm
 from xsocs.util import project
+from xsocs.io.QSpaceH5 import QSpaceH5
 from silx.math import fit
 from silx.math.fit import fittheories
 from numpy.linalg import LinAlgError
 
 from ..io.utils import _get_chunk_indexes
 from ..io.bliss import get_detector_aliases
+
+_per_process_cache = None
 
 
 def _gauss_fit_point(path_qspace, roi_slice, rec_axis, qcoords, dir_mask, dir_idx):
@@ -267,6 +270,9 @@ def _calc_com_qspace3d(
     out : tuple
         Coordinates of the q-space COM at position `idx`.
     """
+    # 20242110 - function exec takes 5ms
+    
+    global _per_process_cache
 
     # indexes of saught data
     roi_rec = np.where(np.invert(mask_reciprocal)) # SLOW - 50%
@@ -279,7 +285,18 @@ def _calc_com_qspace3d(
     # if mask is cube-like use these
     roi_rec_sl = tuple([slice(x.min(), x.max() + 1) for x in roi_rec])
     roi = (idx, *roi_rec_sl)
-
+    
+    if _per_process_cache is None:  
+        with h5py.File(path_qspace, "r") as h5f:
+            # retrieve q-space coordinates
+            if spherical:
+                qx, qy, qz = [h5f[f"Data/{x}"][...] for x in "pitch,roll,radial".split(",")]
+            else:
+                qx, qy, qz = [h5f[f"Data/{x}"][...] for x in "qx,qy,qz".split(",")]
+                
+            _per_process_cache = (qx, qy, qz)
+    qx, qy, qz = _per_process_cache
+            
     with h5py.File(path_qspace, "r") as h5f:
         # data sliced straight from hdf5 OR,
         # data loaded to mem at idx and then fancy sliced
@@ -289,12 +306,6 @@ def _calc_com_qspace3d(
         # first one!
         else:
             arr = h5f["Data/qspace"][idx][roi_rec]
-
-        # retrieve q-space coordinates
-        if spherical:
-            qx, qy, qz = [h5f[f"Data/{x}"][...] for x in "pitch,roll,radial".split(",")]
-        else:
-            qx, qy, qz = [h5f[f"Data/{x}"][...] for x in "qx,qy,qz".split(",")]
 
     # SLOW - 20%            
     qxm, qym, qzm = [q[roi_rec_sl] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
