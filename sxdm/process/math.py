@@ -234,7 +234,7 @@ def calc_com_3d(arr, x, y, z, n_pix=None, std=False):
     cx, cy, cz = [np.sum(prob * q[idxs]) for q in (x, y, z)]
     if std is True:
         stdx, stdy, stdz = [
-            np.sqrt(np.sum(prob * (q.ravel()[idxs] - com) ** 2))
+            np.sqrt(np.sum(prob * (q[idxs] - com) ** 2))
             for q, com in zip((x, y, z), (cx, cy, cz))
         ]
         return cx, cy, cz, stdx, stdy, stdz
@@ -271,11 +271,10 @@ def _calc_com_qspace3d(
         Coordinates of the q-space COM at position `idx`.
     """
     # 20242110 - function exec takes 5ms
-    
     global _per_process_cache
 
     # indexes of saught data
-    roi_rec = np.where(np.invert(mask_reciprocal)) # SLOW - 50%
+    roi_rec = np.where(np.invert(mask_reciprocal)) 
 
     # check if mask is cube-like or more complicated,
     # will determine how array is retrieved from hdf5 file
@@ -294,8 +293,13 @@ def _calc_com_qspace3d(
             else:
                 qx, qy, qz = [h5f[f"Data/{x}"][...] for x in "qx,qy,qz".split(",")]
                 
-            _per_process_cache = (qx, qy, qz)
-    qx, qy, qz = _per_process_cache
+        if mask_size_cube == mask_size_real: 
+            qxm, qym, qzm = [q[roi_rec_sl] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
+        else:
+            qxm, qym, qzm = [q[roi_rec] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
+            
+        _per_process_cache = (qxm, qym, qzm)
+    qxm, qym, qzm = _per_process_cache
             
     with h5py.File(path_qspace, "r") as h5f:
         # data sliced straight from hdf5 OR,
@@ -307,8 +311,6 @@ def _calc_com_qspace3d(
         else:
             arr = h5f["Data/qspace"][idx][roi_rec]
 
-    # SLOW - 20%            
-    qxm, qym, qzm = [q[roi_rec_sl] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
 
     # compute COM and standard deviation
     if std is True:
