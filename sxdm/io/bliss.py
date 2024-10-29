@@ -86,7 +86,7 @@ def get_datetime(h5f, scan_no):
 @ioh5
 def get_det_params(h5f, scan_no):
     """
-    Retrieves detector calibration parameters from a BLISS HDF5 dataset for a 
+    Retrieves detector calibration parameters from a BLISS HDF5 dataset for a
     specific scan.
 
     Parameters
@@ -172,8 +172,8 @@ def get_piezo_motor_positions(h5f, scan_no):
 
     try:  # sxdm
         m1, m2 = [get_positioner(h5f, scan_no, f"{m}_position") for m in (m1n, m2n)]
-    except KeyError:  
-        try: # sxdm new
+    except KeyError:
+        try:  # sxdm new
             m1, m2 = [get_positioner(h5f, scan_no, f"{m}") for m in (m1n, m2n)]
         except KeyError:  # mesh
             m1, m2 = [get_positioner(h5f, scan_no, m) for m in (m1n, m2n)]
@@ -569,21 +569,39 @@ def get_scan_table(path_dset):
 
     return ipw.HTML(table)
 
-def get_sxdm_frame_sum_multi(path_framesum, path_dset, scan_nums=None):
-    
+
+def get_sxdm_frame_sum_multi(
+    path_framesum,
+    path_dset,
+    scan_nums=None,
+    detector=None,
+    path_data_h5="/{scan_no}/instrument/{detector}/data",
+):
+
     if scan_nums is None:
         scan_nums = get_sxdm_scan_numbers(path_dset)
 
+    detlist = get_detector_aliases(path_dset, scan_nums[0])
+    if detector is None:
+        detector = detlist[0]
+    if detector not in detlist:
+        raise ValueError(
+            f"Detector {detector} not in data file. Available detectors are: {detlist}."
+        )
+    else:
+        path_data_h5 = path_data_h5.format(scan_no=scan_nums[0], detector=detector)
+
+    with h5py.File(path_dset) as h5f:
+        frame_shape = h5f[path_data_h5].shape[1:3]
+
     if not os.path.isfile(path_framesum):
-        fint_tot = np.zeros((516, 516, len(scan_nums)))
+        fint_tot = np.zeros((*frame_shape, len(scan_nums)))
         for i, scan_no in tqdm(enumerate(scan_nums), total=len(scan_nums)):
-            fint_tot[..., i] = get_sxdm_frame_sum(
-                path_dset, scan_no, pbar=False
-            )
+            fint_tot[..., i] = get_sxdm_frame_sum(path_dset, scan_no, pbar=False)
         fint_tot = fint_tot.transpose(2, 0, 1)
         np.save(path_framesum, fint_tot)
     else:
         print(f"Loading: \n\t{path_framesum}\n")
         fint_tot = np.load(path_framesum)
-        
+
     return fint_tot
