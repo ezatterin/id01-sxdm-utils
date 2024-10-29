@@ -106,6 +106,7 @@ def get_qspace_vals_xsocs(
     det_oop="z-",
     sampleor="det",
     coordinates="cartesian",
+    verbose=True,
 ):
     h5f = XsocsH5(path_master)
     entry0 = h5f.get_entry_name(entry_idx=0)
@@ -139,11 +140,13 @@ def get_qspace_vals_xsocs(
         chan_per_deg = cpd
     if beam_energy is None:
         beam_energy = nrj
-
-    print(f"Using cen_pix: row/y={center_chan[0]:.3f}, col/x={center_chan[1]:.3f}")
+        
     detdist = chan_per_deg[0] * det.pixsize[0] / np.tan(np.radians(1))
-    print(f"Using det_dist = {detdist:.5f} m")
-    print(f"Using energy = {nrj/1e3:.5f} keV")
+
+    if verbose:
+        print(f"Using cen_pix: row/y={center_chan[0]:.3f}, col/x={center_chan[1]:.3f}")
+        print(f"Using det_dist = {detdist:.5f} m")
+        print(f"Using energy = {nrj/1e3:.5f} keV")
 
     if det_roi == None:
         img_size = det.pixnum
@@ -171,6 +174,7 @@ def get_qspace_vals_xsocs(
         det_oop=det_oop,
         sampleor=sampleor,
         coordinates=coords,
+        verbose=verbose,
     )
 
     qx, qy, qz = q_array.transpose(3, 0, 1, 2)
