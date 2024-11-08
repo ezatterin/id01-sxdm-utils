@@ -420,7 +420,7 @@ def gif_sxdm_sums(
     -------
     None
     """
-    
+
     if scan_nos is None:
         scan_nos = get_sxdm_scan_numbers(path_dset)
 
@@ -443,12 +443,11 @@ def gif_sxdm_sums(
         m0name, m1name = get_piezo_motor_names(path_dset, scan_no)
         try:
             m0, m1 = [
-                get_counter(path_dset, scan_no, f"{m}_position") for m in (m0name, m1name)
+                get_counter(path_dset, scan_no, f"{m}_position")
+                for m in (m0name, m1name)
             ]
         except KeyError:
-            m0, m1 = [
-                get_counter(path_dset, scan_no, f"{m}") for m in (m0name, m1name)
-            ]
+            m0, m1 = [get_counter(path_dset, scan_no, f"{m}") for m in (m0name, m1name)]
         pi_ext = [m0.min(), m0.max(), m1.min(), m1.max()]
 
         _ = ax[0].imshow(

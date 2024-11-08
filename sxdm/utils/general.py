@@ -214,7 +214,7 @@ def calc_refl_id01(
     oop_dir,
     nrj,
     bounds={"eta": (-2, 120), "phi": (-180, 180), "nu": 0, "delta": (-2, 130)},
-    return_q_com=False
+    return_q_com=False,
 ):
     """
     Calculate the ID01 diffractometer angles for a given reflection hkl.

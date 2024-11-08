@@ -160,7 +160,7 @@ class GetShift(object):
             layout={"width": "100%"},
         )
         self.shiftit.observe(self._apply_shift_counter)
-        
+
         # save shifts
         self.saveshifts = ipw.Button(
             description="Save shifts",
@@ -207,9 +207,9 @@ class GetShift(object):
             "padding": "2px",
             "align-items": "stretch",
         }
-        
+
     def _save_shifts(self, change):
-        np.save('_shifts.npy', self.shifts)
+        np.save("_shifts.npy", self.shifts)
 
     def _scan_idx_fwd(self, widget):
         try:
@@ -251,7 +251,7 @@ class GetShift(object):
             _ = im.set_norm(mpl.colors.Normalize(*_clims))
 
     def _update_ref(self, x, y):
-        coords = [([0,1], [y,y]), ([x,x], [0,1])]
+        coords = [([0, 1], [y, y]), ([x, x], [0, 1])]
         for m, c in zip(self.refmark, coords):
             m.set_data(c)
 

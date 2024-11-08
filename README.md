@@ -18,11 +18,11 @@ A Jupyter-SLURM instance is automatically spawned.
 
 # How to run the tutorial notebooks on Jupyter-slurm
 
-1. Go to the [Jupyter-SLURM hub](https://jupyter-slurm.esrf.fr/). 
+1. Go to the [Jupyter-SLURM hub](https://jupyter-slurm.esrf.fr/).
 2. Log in with the ESRF SSO.
 3. Spawn an instance with 1/4 of a node (for 4D-SXDM) or the full node (for 5D-SXDM) and the desired time limit.
 4. Once the instance is spawned the interface shows the contents of the user's home directory on the NICE cluster. On the right of the interface click on `New` and then `Terminal`. This opens a terminal in the same directory.
-5. Clone the `sxdm` repository by pasting `git clone https://gitlab.esrf.fr/id01-science/id01-sxdm-utils.git` in the terminal. 
+5. Clone the `sxdm` repository by pasting `git clone https://gitlab.esrf.fr/id01-science/id01-sxdm-utils.git` in the terminal.
     * If a connection error appears, type `export no_proxy='.esrf.fr'` and try again.
 6. Close the terminal.
 7. Navigate to `id01-sxdm-utils/examples/`

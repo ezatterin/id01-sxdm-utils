@@ -42,10 +42,10 @@ scan_nums = None
 ## FUNCTIONS ##
 ###############
 
+
 #  this exists in sxdm.bliss.utils, explicitly defining it here in order to avoid
 #  the script being dependent on the id01-sxdm-utils package (this package!)
 def parse_scan_command(command):
-
     """
     Accepts a BLISS SXDM command and parses it according to the XSOCS
     file structure.
@@ -78,9 +78,7 @@ def parse_scan_command(command):
 
 
 # this is in sxdm.bliss.utils too!
-def make_xsocs_links(
-    path_dset, path_out, scan_nums, detector=None, name_outh5=None
-):
+def make_xsocs_links(path_dset, path_out, scan_nums, detector=None, name_outh5=None):
     """
     Generates a set of .h5 files to be fed to XSOCS from a 3D-SXDM dataset.
     The files contain *links* to the original data, not the data itself.
@@ -153,7 +151,7 @@ def make_xsocs_links(
                 detector = detector[0]
         else:
             detector = detector
-        print(f'> Selecting detector {detector}')
+        print(f"> Selecting detector {detector}")
 
         # generate output master file
         out_h5f_master = f"{path_out}/{name_outh5}_master.h5"

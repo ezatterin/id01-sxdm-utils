@@ -54,7 +54,7 @@ class RoiPlotter(object):
         with plt.ioff():
             self.fig, self.axs = plt.subplots(
                 1, 2, figsize=(6, 2.8), sharex=True, sharey=True, layout="tight"
-            )        
+            )
         with self.figout:
             display(self.fig.canvas)
 
@@ -286,7 +286,6 @@ class RoiPlotter(object):
 
 class FramesExplorer(object):
     def __init__(self, pscan, detector="maxipix", coms=None, img_dir=None):
-
         """
         TODO!
         """

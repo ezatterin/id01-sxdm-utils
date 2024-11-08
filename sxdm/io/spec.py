@@ -378,7 +378,6 @@ class PiezoScan(Scan):
         ndir=(0, 0, 1),
         ignore_mpx_motors=True,
     ):
-
         """
         ID01-specific function to calculate reciprocal space coordinates of a scan.
 

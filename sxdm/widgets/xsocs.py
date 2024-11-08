@@ -13,6 +13,7 @@ from ..utils.bliss import get_qspace_proj
 from silx.math import fit
 from xsocs.util import gaussian
 
+
 class Inspect5DQspace(object):
 
     rec_ax_idx = {0: "qx", 1: "qy", 2: "qz"}
@@ -215,7 +216,7 @@ class Inspect5DQspace(object):
         darr = self.maps_dict[self._select_plot.value]
 
         self._dmap.set_array(darr)
-        
+
         # if not called twice sometimes it gets it wrong, not sure why
         self._dmap.set_clim([np.nanmin(darr), np.nanmax(darr)])
         self._dmap.set_clim([np.nanmin(darr), np.nanmax(darr)])
