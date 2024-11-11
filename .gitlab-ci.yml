@@ -27,7 +27,7 @@ before_script:
 
 precommit:
   script:
-    - pip install pre-commit
+    - pip install pre-commit nbdev
     - pre-commit run --all-files
 
 test:
