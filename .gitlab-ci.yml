@@ -25,6 +25,10 @@ before_script:
   - pip install ipykernel
   - python3 -m ipykernel install --user --name sxdm.slurm
 
+precommit:
+  script:
+    - pre-commit run --all-files
+
 test:
   script:
     - python tests/xsocs_shift.py
