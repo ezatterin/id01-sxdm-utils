@@ -37,7 +37,7 @@ API
 
    .. autodoc2-docstring:: sxdm.process.xsocs.grid_qspace_xsocs
 
-.. py:function:: get_qspace_vals_xsocs(path_master, offsets=dict(), center_chan=None, chan_per_deg=None, beam_energy=None, qconv=None, det_roi=None, sample_ip=[1, 0, 0], sample_oop=[0, 0, 1], det_ip='y+', det_oop='z-', sampleor='det', coordinates='cartesian')
+.. py:function:: get_qspace_vals_xsocs(path_master, offsets=dict(), center_chan=None, chan_per_deg=None, beam_energy=None, qconv=None, det_roi=None, sample_ip=[1, 0, 0], sample_oop=[0, 0, 1], det_ip='y+', det_oop='z-', sampleor='det', coordinates='cartesian', verbose=True)
    :canonical: sxdm.process.xsocs.get_qspace_vals_xsocs
 
    .. autodoc2-docstring:: sxdm.process.xsocs.get_qspace_vals_xsocs

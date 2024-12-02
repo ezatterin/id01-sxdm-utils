@@ -49,6 +49,9 @@ Functions
    * - :py:obj:`get_scan_table <sxdm.io.bliss.get_scan_table>`
      - .. autodoc2-docstring:: sxdm.io.bliss.get_scan_table
           :summary:
+   * - :py:obj:`get_sxdm_frame_sum_multi <sxdm.io.bliss.get_sxdm_frame_sum_multi>`
+     - .. autodoc2-docstring:: sxdm.io.bliss.get_sxdm_frame_sum_multi
+          :summary:
 
 API
 ~~~
@@ -107,3 +110,8 @@ API
    :canonical: sxdm.io.bliss.get_scan_table
 
    .. autodoc2-docstring:: sxdm.io.bliss.get_scan_table
+
+.. py:function:: get_sxdm_frame_sum_multi(path_framesum, path_dset, scan_nums=None, detector=None, path_data_h5='/{scan_no}/instrument/{detector}/data')
+   :canonical: sxdm.io.bliss.get_sxdm_frame_sum_multi
+
+   .. autodoc2-docstring:: sxdm.io.bliss.get_sxdm_frame_sum_multi

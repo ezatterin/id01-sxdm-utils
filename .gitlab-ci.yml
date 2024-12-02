@@ -13,8 +13,8 @@
 image: python:3.11-bullseye
 
 before_script:
-  - export no_proxy='esrf.fr' 
-  - python -V  
+  - export no_proxy='esrf.fr'
+  - python -V
   - pip install virtualenv
   - virtualenv venv
   - source venv/bin/activate
@@ -24,6 +24,11 @@ before_script:
   - pip install .
   - pip install ipykernel
   - python3 -m ipykernel install --user --name sxdm.slurm
+
+precommit:
+  script:
+    - pip install pre-commit nbdev
+    - pre-commit run --all-files
 
 test:
   script:

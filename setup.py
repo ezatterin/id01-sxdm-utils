@@ -28,9 +28,9 @@ setup(
         "silx>=1.0.0",
         "pandas",
         "xrayutilities",
-        "ipympl", 
+        "ipympl",
         "scikit-image",
-        "hdf5plugin" # xsocs, id01lib
+        "hdf5plugin",  # xsocs, id01lib
     ],
 )
 

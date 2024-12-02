@@ -274,7 +274,7 @@ def _calc_com_qspace3d(
     global _per_process_cache
 
     # indexes of saught data
-    roi_rec = np.where(np.invert(mask_reciprocal)) 
+    roi_rec = np.where(np.invert(mask_reciprocal))
 
     # check if mask is cube-like or more complicated,
     # will determine how array is retrieved from hdf5 file
@@ -284,23 +284,27 @@ def _calc_com_qspace3d(
     # if mask is cube-like use these
     roi_rec_sl = tuple([slice(x.min(), x.max() + 1) for x in roi_rec])
     roi = (idx, *roi_rec_sl)
-    
-    if _per_process_cache is None:  
+
+    if _per_process_cache is None:
         with h5py.File(path_qspace, "r") as h5f:
             # retrieve q-space coordinates
             if spherical:
-                qx, qy, qz = [h5f[f"Data/{x}"][...] for x in "pitch,roll,radial".split(",")]
+                qx, qy, qz = [
+                    h5f[f"Data/{x}"][...] for x in "pitch,roll,radial".split(",")
+                ]
             else:
                 qx, qy, qz = [h5f[f"Data/{x}"][...] for x in "qx,qy,qz".split(",")]
-                
-        if mask_size_cube == mask_size_real: 
-            qxm, qym, qzm = [q[roi_rec_sl] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
+
+        if mask_size_cube == mask_size_real:
+            qxm, qym, qzm = [
+                q[roi_rec_sl] for q in np.meshgrid(qx, qy, qz, indexing="ij")
+            ]
         else:
             qxm, qym, qzm = [q[roi_rec] for q in np.meshgrid(qx, qy, qz, indexing="ij")]
-            
+
         _per_process_cache = (qxm, qym, qzm)
     qxm, qym, qzm = _per_process_cache
-            
+
     with h5py.File(path_qspace, "r") as h5f:
         # data sliced straight from hdf5 OR,
         # data loaded to mem at idx and then fancy sliced
@@ -310,7 +314,6 @@ def _calc_com_qspace3d(
         # first one!
         else:
             arr = h5f["Data/qspace"][idx][roi_rec]
-
 
     # compute COM and standard deviation
     if std is True:

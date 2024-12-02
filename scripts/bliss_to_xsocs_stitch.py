@@ -1,5 +1,5 @@
 """
-Same as bliss_to_xsocs but stitching multiple datasets. 
+Same as bliss_to_xsocs but stitching multiple datasets.
 """
 
 import os
@@ -40,6 +40,7 @@ detector = "mpx1x4"
 ###############
 ## FUNCTIONS ##
 ###############
+
 
 #  this exists in sxdm.bliss.utils, explicitly defining it here in order to avoid
 #  the script being dependent on the id01-sxdm-utils package (this package!)

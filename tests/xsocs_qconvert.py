@@ -4,7 +4,7 @@ import time
 from xsocs.process.qspace.helpers import kmap_2_qspace
 
 path_out = "doc/source/examples/data/MA1234/id01/20230710/sample_analysis"
-path_master = f"{path_out}/sample_0001_master_shifted.h5"  
+path_master = f"{path_out}/sample_0001_master_shifted.h5"
 path_qspace = f"{path_out}/qspace_shift.h5"
 
 try:
@@ -18,7 +18,7 @@ try:
     )
     t1 = time.time()
 
-except (TypeError, ValueError): # offsets not defined
+except (TypeError, ValueError):  # offsets not defined
     print("Using xsocs-upstream\n")
     t0 = time.time()
     kmap_2_qspace(path_master, path_qspace, (10, 10, 10), overwrite=True)

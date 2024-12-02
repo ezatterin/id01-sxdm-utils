@@ -313,7 +313,7 @@ class InspectSXDMCounter(object):
                 m1m, m2m, m1M, m2M = [
                     float(self.command.split(" ")[i][:-1]) for i in (2, 6, 3, 7)
                 ]
-            except ValueError: # no comma
+            except ValueError:  # no comma
                 m1m, m2m, m1M, m2M = [
                     float(self.command.split(" ")[i]) for i in (2, 6, 3, 7)
                 ]

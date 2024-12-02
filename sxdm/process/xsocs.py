@@ -140,7 +140,7 @@ def get_qspace_vals_xsocs(
         chan_per_deg = cpd
     if beam_energy is None:
         beam_energy = nrj
-        
+
     detdist = chan_per_deg[0] * det.pixsize[0] / np.tan(np.radians(1))
 
     if verbose:
@@ -152,7 +152,7 @@ def get_qspace_vals_xsocs(
         img_size = det.pixnum
     else:
         img_size = (det_roi[1] - det_roi[0], det_roi[3] - det_roi[2])
-        
+
     if coordinates == "cartesian":
         coords = QSpaceCoordinates.CARTESIAN
     elif coordinates == "spherical":
@@ -397,15 +397,15 @@ def shift_xsocs_data(
     shifts : list
         A list of [rows, columns] shifts to be applied to the data.
     subh5_list : list, optional
-        An optional list of sub HDF5 files. If not provided, the function will 
+        An optional list of sub HDF5 files. If not provided, the function will
         generate this list based on the name of `path_master`.
     n_chunks : int, optional
-        The number of chunks to split the data into for processing to manage 
+        The number of chunks to split the data into for processing to manage
         memory usage. Default is 3.
     roi : tuple, optional
         Region of interest for the data. Default is None.
     overwrite : bool, optional
-        A flag to indicate whether existing files should be overwritten. 
+        A flag to indicate whether existing files should be overwritten.
         Default is False.
 
     Returns

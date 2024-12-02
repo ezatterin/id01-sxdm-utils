@@ -69,7 +69,7 @@ API
 
    .. autodoc2-docstring:: sxdm.process.math.calc_com_3d
 
-.. py:function:: calc_coms_qspace3d(path_qspace, mask_reciprocal, n_pix=None, std=False)
+.. py:function:: calc_coms_qspace3d(path_qspace, mask_reciprocal, n_pix=None, std=False, spherical=False)
    :canonical: sxdm.process.math.calc_coms_qspace3d
 
    .. autodoc2-docstring:: sxdm.process.math.calc_coms_qspace3d
@@ -79,7 +79,7 @@ API
 
    .. autodoc2-docstring:: sxdm.process.math.calc_roi_sum
 
-.. py:function:: calc_coms_qspace2d(path_dset, scan_no, qx, qy, qz, mask_rec=None, n_threads=None, detector='mpx1x4', n_pix=None, std=None, path_data_h5='/{scan_no}/instrument/{detector}/data')
+.. py:function:: calc_coms_qspace2d(path_dset, scan_no, qx, qy, qz, mask_rec=None, n_threads=None, detector='mpx1x4', n_pix=None, std=None, path_data_h5='/{scan_no}/instrument/{detector}/data', pbar=True)
    :canonical: sxdm.process.math.calc_coms_qspace2d
 
    .. autodoc2-docstring:: sxdm.process.math.calc_coms_qspace2d

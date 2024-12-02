@@ -93,7 +93,7 @@ API
 
    .. autodoc2-docstring:: sxdm.plot.utils.add_directions
 
-.. py:function:: gif_sxdm_sums(path_dset, scan_nos, gif_duration=5, moving_motor='eta', clim_sample=[None, None], clim_detector=[None, None], detector=None)
+.. py:function:: gif_sxdm_sums(path_dset, scan_nos=None, gif_duration=5, moving_motor='eta', clim_sample=[None, None], clim_detector=[None, None], detector=None)
    :canonical: sxdm.plot.utils.gif_sxdm_sums
 
    .. autodoc2-docstring:: sxdm.plot.utils.gif_sxdm_sums

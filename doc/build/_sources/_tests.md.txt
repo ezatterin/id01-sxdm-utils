@@ -21,11 +21,11 @@ Contents:
    This is an `{admonition}` directive!
 ```
 
-```{danger} 
+```{danger}
    Dangerousssssss
 ```
 
-(subsec)= 
+(subsec)=
 ## This is a subsection
 
 Hello!
@@ -38,4 +38,3 @@ Some python code:
 ```python
 print('Hello!')
 ```
-
