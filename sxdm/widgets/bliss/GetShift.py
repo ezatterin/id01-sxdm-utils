@@ -33,6 +33,7 @@ class GetShift(object):
         scan_nos=None,
         counter_name=None,
         fixed_clims=None,
+        shifts=None,
     ):
         """
         Estimate shift between images of counters acquired during an SXDM experiment.
@@ -75,10 +76,10 @@ class GetShift(object):
             path_h5, self.scan_nos[0], counter_name, return_pi_motors=False
         )
 
-        self.shifts = np.zeros((len(self.scan_nos), 2))
         self.marks = {s: None for s in self.scan_nos}
         self.marked = {s: False for s in self.scan_nos}
         self._click_counter = 0
+        self.shifts_init = shifts
 
         self._load_counters_list()
         self._init_fig()
@@ -160,7 +161,7 @@ class GetShift(object):
             layout={"width": "100%"},
         )
         self.shiftit.observe(self._apply_shift_counter)
-        
+
         # save shifts
         self.saveshifts = ipw.Button(
             description="Save shifts",
@@ -207,9 +208,9 @@ class GetShift(object):
             "padding": "2px",
             "align-items": "stretch",
         }
-        
+
     def _save_shifts(self, change):
-        np.save('_shifts.npy', self.shifts)
+        np.save("_shifts.npy", self.shifts)
 
     def _scan_idx_fwd(self, widget):
         try:
@@ -251,7 +252,7 @@ class GetShift(object):
             _ = im.set_norm(mpl.colors.Normalize(*_clims))
 
     def _update_ref(self, x, y):
-        coords = [([0,1], [y,y]), ([x,x], [0,1])]
+        coords = [([0, 1], [y, y]), ([x, x], [0, 1])]
         for m, c in zip(self.refmark, coords):
             m.set_data(c)
 
@@ -363,9 +364,12 @@ class GetShift(object):
             self.marks[x] if self.marks[x] is not None else self.marks[self.scan_nos[0]]
             for x in self.scan_nos
         ]
-        shifts = np.array(pos) - np.array(pos[0])
 
-        self.shifts = np.fliplr(-shifts)
+        if self.shifts_init is None:
+            self.shifts = np.array(pos) - np.array(pos[0])
+            self.shifts = np.fliplr(-self.shifts)
+            # self.shifts = np.zeros((len(self.scan_nos), 2))
+
         self._update_shifts_tab()
 
     def _update_shifts_tab(self):
@@ -381,12 +385,14 @@ class GetShift(object):
             '<table class="specs rendered_html output_html">',
             "  <tbody>",
             "    <tr>",
-            "      <th>rows</th>",
+            "      <th> # </th>" "      <th>rows</th>",
             "      <th>cols</th>",
             "    </tr>",
             *[
-                f"     <tr><td>{x:.3f}</td><td>{y:.3f}</td></tr>"
-                for x, y in self.shifts
+                f"     <tr><td>{n}</td><td>{float(x):.3f}</td><td>{float(y):.3f}</td></tr>"
+                for n, x, y in np.hstack(
+                    (np.array(self.scan_nos)[:, None], self.shifts)
+                )
             ],
             "  </tbody>",
             "</table>",
