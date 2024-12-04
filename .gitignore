@@ -8,3 +8,4 @@
 tests/data/test-output
 tests/data/sample_analysis
 **/core
+dist/
