@@ -1,6 +1,10 @@
 [tool.poetry]
 name = "id01-sxdm"
 version = "0.1.0"
+homepage = "https://gitlab.esrf.fr/id01-science/id01-sxdm-utils"
+repository = "https://gitlab.esrf.fr/id01-science/id01-sxdm-utils"
+documentation = "https://id01-science.gitlab-pages.esrf.fr/id01-sxdm-utils/"
+
 description = "Treat Scanning X-ray Diffraction Microscopy data collected on beamline ID01 at ESRF"
 authors = ["Edoardo Zatterin <ezatterin@yahoo.it>"]
 license = "MIT"

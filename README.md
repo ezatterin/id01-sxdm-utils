@@ -2,11 +2,9 @@
 
 [[_TOC_]]
 
-> **NOTE** \
-> This readme is a work in progress! Send me an email if needed.
+# Documentation
 
-
-[Documentation](https://id01-science.gitlab-pages.esrf.fr/id01-sxdm-utils)
+Find it [here](https://id01-science.gitlab-pages.esrf.fr/id01-sxdm-utils)
 
 # Quick access to tutorials
 
