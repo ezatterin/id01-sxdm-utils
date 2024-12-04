@@ -16,9 +16,10 @@ setup(
         "sxdm.widgets.bliss",
     ],
     license="LICENSE.txt",
-    description="Code to treat Scanning X-ray Diffraction Microscopy data\
+    description="Treat Scanning X-ray Diffraction Microscopy data\
          collected on beamline ID01 at ESRF",
     long_description=open("README.md").read(),
+    requires_python=">=3.8.10",
     install_requires=[
         "numpy",
         "matplotlib",

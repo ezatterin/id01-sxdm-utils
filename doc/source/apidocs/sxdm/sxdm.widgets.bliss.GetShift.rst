@@ -43,7 +43,7 @@ API
 
    .. autodoc2-docstring:: sxdm.widgets.bliss.GetShift.ipython
 
-.. py:class:: GetShift(path_h5, scan_nos=None, counter_name=None, fixed_clims=None)
+.. py:class:: GetShift(path_h5, scan_nos=None, counter_name=None, fixed_clims=None, shifts=None)
    :canonical: sxdm.widgets.bliss.GetShift.GetShift
 
    Bases: :py:obj:`object`
