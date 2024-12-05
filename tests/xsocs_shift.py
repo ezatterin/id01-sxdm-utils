@@ -17,13 +17,12 @@ if not os.path.isdir(path_out):
 sxdm.utils.bliss.make_xsocs_links(path_dset, path_out, None)
 path_master = f"{path_out}/sample_0001_master.h5"
 
-N = 50
-
-print(f"using N={N}")
-
 t0 = time.time()
 sxdm.process.xsocs.shift_xsocs_data(
-    path_master, path_out, shifts, overwrite=True, n_chunks=N
+    path_master,
+    path_out,
+    shifts,
+    overwrite=True,
 )
 t1 = time.time()
 
