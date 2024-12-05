@@ -2101,11 +2101,11 @@ gui = ["PyOpenGL", "PyQt5", "matplotlib"]
 
 [package.source]
 type = "git"
-url = "http://gitlab.esrf.fr/zatterin/xsocs.git"
+url = "https://gitlab.esrf.fr/zatterin/xsocs.git"
 reference = "HEAD"
 resolved_reference = "f85001026679b7980722adceeef2c32b038e1b4a"
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "2429d67419e8f3e57586ab998502923e4d526572d2a999ea4d255ebd9e452e2d"
+content-hash = "352f068d13a990f23cb65d4468e05671ed5e0d161a1d76d391e3b896d25a2c99"

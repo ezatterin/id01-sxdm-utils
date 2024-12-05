@@ -24,8 +24,8 @@ xrayutilities = "^1.7.8"
 ipympl = "^0.9.4"
 scikit-image = "^0.24.0"
 hdf5plugin = "^5.0.0"
-xsocs = {git = "http://gitlab.esrf.fr/zatterin/xsocs.git"}
-id01-core = {git = "https://gitlab.esrf.fr/id01-science/id01-core.git"}
+id01-core = { git = "https://gitlab.esrf.fr/id01-science/id01-core.git" }
+xsocs = {git = "https://gitlab.esrf.fr/zatterin/xsocs.git"}
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.0.1"
