@@ -29,6 +29,12 @@ id01-core = {git = "https://gitlab.esrf.fr/id01-science/id01-core.git"}
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.0.1"
+black = "^24.10.0"
+flake8 = "^7.1.1"
+
+
+[tool.poetry.group.test.dependencies]
+pytest = "^8.3.4"
 
 [build-system]
 requires = ["poetry-core"]
