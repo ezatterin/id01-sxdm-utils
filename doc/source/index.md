@@ -3,11 +3,19 @@
 %apidocs/index
 
 ```{toctree}
-:caption: User Guide
+:caption: Getting started
 :maxdepth: 1
 :hidden:
 
 install.md
+```
+
+
+```{toctree}
+:caption: User Guide
+:maxdepth: 1
+:hidden:
+
 apidocs/index
 ```
 
@@ -27,3 +35,7 @@ ID01-SXDM is a python package to analyse [scanning X-ray diffraction microscopy]
 [esrf]: https://www.esrf.fr/home.html
 [id01]: https://www.esrf.fr/UsersAndScience/Experiments/XNP/ID01
 [sxdm]: https://journals.aps.org/prapplied/abstract/10.1103/PhysRevApplied.18.064015
+
+% a couple of quick code snippets to show functionality
+
+% widget gallery?
