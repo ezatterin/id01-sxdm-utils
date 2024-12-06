@@ -6,7 +6,7 @@ variables:
 cache:
   paths:
     - .cache/pip
-    - .cache/pre-commit
+    - $CI_PROJECT_DIR/.cache/pre-commit
     - .venv
 
 before_script:
