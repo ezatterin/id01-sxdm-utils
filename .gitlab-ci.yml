@@ -43,6 +43,7 @@ pages:
   script:
     - apt-get update
     - apt-get install -y --no-install-recommends pandoc
+    - poetry python -m ipykernel install --user --name sxdm.slurm
     - cd doc
     - poetry run make html
     - mv build/html/ ../public/
