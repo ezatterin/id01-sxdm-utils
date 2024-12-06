@@ -39,6 +39,7 @@ testing:
     - if: $CI_COMMIT_MESSAGE =~ /run_tests/
 
 pages:
+  stage: build
   script:
     - apt-get update
     - apt-get install -y --no-install-recommends pandoc
