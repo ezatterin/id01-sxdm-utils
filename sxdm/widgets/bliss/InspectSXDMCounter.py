@@ -75,7 +75,7 @@ class InspectSXDMCounter(object):
         scan_nos = get_sxdm_scan_numbers(path_dset, interrupted_scans=False)
         if show_scan_nos is not None:
             for s in show_scan_nos[:]:
-                s = f"{s}.1" if type(s) is int else s
+                s = f"{s}.1" if isinstance(s, int) else s
                 if s not in scan_nos:
                     show_scan_nos.remove(s)
                     msg = f"Removing {s} from the scan list as this is either not an "
@@ -88,7 +88,7 @@ class InspectSXDMCounter(object):
             commands = {s: h5f[f"{s}/title"][()].decode() for s in scan_nos}
 
         # get first scan to show in widget
-        s0 = f"{init_scan_no}.1" if type(init_scan_no) is int else init_scan_no
+        s0 = f"{init_scan_no}.1" if isinstance(init_scan_no, int) else init_scan_no
         scan_no = scan_nos[0] if s0 is None else s0
 
         # get ROI to be displayed first
