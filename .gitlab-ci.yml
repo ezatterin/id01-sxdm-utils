@@ -2,11 +2,12 @@ image: python:3.11-bullseye
 
 variables:
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
+  PRE_COMMIT_HOME: $CI_PROJECT_DIR/.cache/pre-commit
 
 cache:
   paths:
     - .cache/pip
-    - $HOME/.cache/pre-commit
+    - .cache/pre-commit
     - .venv
 
 before_script:
