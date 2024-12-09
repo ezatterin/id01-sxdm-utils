@@ -19,11 +19,10 @@ def test_xsocs_shift():
     ret = sxdm.process.xsocs.shift_xsocs_data(
         path_master, path_out, shifts, overwrite=True
     )
-    assert ret == None  # TODO this is baaaaaad
+    assert ret is None  # TODO this is baaaaaad
 
 
 def test_xsocs_qconv():
-
     path_out = "doc/source/examples/data/MA1234/id01/20230710/sample_analysis"
     path_master = f"{path_out}/sample_0001_master_shifted.h5"
     path_qspace = f"{path_out}/qspace_shift.h5"

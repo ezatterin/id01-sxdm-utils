@@ -577,7 +577,6 @@ def get_sxdm_frame_sum_multi(
     detector=None,
     path_data_h5="/{scan_no}/instrument/{detector}/data",
 ):
-
     if scan_nums is None:
         scan_nums = get_sxdm_scan_numbers(path_dset)
 

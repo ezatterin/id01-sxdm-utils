@@ -279,7 +279,7 @@ def calc_refl_id01(
 
     # q-space lab coordinates of hkl
     if len(hkl) != 3:
-        raise ValueError(f"Reflection hkl must be a list or array of lenght 3.")
+        raise ValueError("Reflection hkl must be a list or array of lenght 3.")
     q_cryst = mat.Q(hkl)
     q_lab = hxrd.Transform(q_cryst)
 

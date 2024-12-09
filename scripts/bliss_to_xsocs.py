@@ -14,6 +14,7 @@ import xrayutilities as xu
 import re
 
 from xsocs.io import XsocsH5
+from id01lib.io.bliss import get_detector_aliases
 
 ###########
 ## INPUT ##
@@ -160,7 +161,6 @@ def make_xsocs_links(path_dset, path_out, scan_nums, detector=None, name_outh5=N
 
         # load counters, positioners, and other params for each scan
         for scan_num, command in zip(_scan_nums, _commands):
-
             _entry = h5f[scan_num]
             _instr = _entry["instrument/"]
 
@@ -202,7 +202,6 @@ def make_xsocs_links(path_dset, path_out, scan_nums, detector=None, name_outh5=N
 
             # write links to individual XSOCS-compatible files
             with XsocsH5.XsocsH5Writer(out_h5f, "w") as xsocsh5f:  # overwrite
-
                 """
                 XsocsH5Writer methods
                 --> make links to scan parameters

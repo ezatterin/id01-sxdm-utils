@@ -30,4 +30,4 @@ print(f"\n\n >> Shifting took {t1-t0:.1f}s")
 
 ls = os.listdir(path_out)
 print("Output directory contents:")
-_ = [print(f"\t > {l}") for l in ls]
+_ = [print(f"\t > {f}") for f in ls]

@@ -36,7 +36,6 @@ class RoiPlotter(object):
     """
 
     def __init__(self, fast_spec_file, detector="maxipix"):
-
         # init variables
         self.detector = detector
         self.fsf = fast_spec_file
@@ -158,7 +157,6 @@ class RoiPlotter(object):
 
     # writes the HTML table with scan specs
     def _update_specs(self):
-
         angles = "eta,del,phi,nu".split(",")
         angles = [self.pscan.get_positioner(ang) for ang in angles]
 

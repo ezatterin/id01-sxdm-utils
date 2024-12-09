@@ -78,8 +78,8 @@ class Inspect4DSXDM(Inspect4DArray):
 
         self.ax[1].invert_yaxis()
 
-        self.ax[1].set_xlabel(f"detector x (pixels)")
-        self.ax[1].set_ylabel(f"detector y (pixels)")
+        self.ax[1].set_xlabel("detector x (pixels)")
+        self.ax[1].set_ylabel("detector y (pixels)")
 
         self._show_rois = ipw.Checkbox(value=False, description="Show experiment ROIs")
         self._show_rois.observe(self._add_rois, names="value")

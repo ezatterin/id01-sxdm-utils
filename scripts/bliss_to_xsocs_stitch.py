@@ -78,7 +78,6 @@ def _parse_scan_command(command):
 
 # this will eventually end up in sxdm.bliss.utils too
 def make_links(path_dset, path_out, scan_nums, detector, name_outh5=None):
-
     global scan_counter
 
     # open the dataset file
@@ -106,7 +105,6 @@ def make_links(path_dset, path_out, scan_nums, detector, name_outh5=None):
 
         # load counters, positioners, and other params for each scan
         for scan_num, command in zip(_scan_nums, _commands):
-
             _entry = h5f[scan_num]
             _instr = _entry["instrument/"]
 
@@ -154,7 +152,6 @@ def make_links(path_dset, path_out, scan_nums, detector, name_outh5=None):
 
             # write links to individual XSOCS-compatible files
             with XsocsH5.XsocsH5Writer(out_h5f, "w") as xsocsh5f:  # overwrite
-
                 """
                 XsocsH5Writer methods
                 --> make links to scan parameters

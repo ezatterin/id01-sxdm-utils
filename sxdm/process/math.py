@@ -6,7 +6,6 @@ import functools
 
 from tqdm.notebook import tqdm
 from xsocs.util import project
-from xsocs.io.QSpaceH5 import QSpaceH5
 from silx.math import fit
 from silx.math.fit import fittheories
 from numpy.linalg import LinAlgError

@@ -431,7 +431,6 @@ def gif_sxdm_sums(
 
     @gif.frame
     def plot_sxdm_sums(scan_no):
-
         fint = get_sxdm_frame_sum(path_dset, scan_no, detector=det, pbar=False)
         try:
             dint = get_roidata(path_dset, scan_no, f"{det}_int")
@@ -540,7 +539,6 @@ def gif_sxdm(
 
     @gif.frame
     def plot_sxdm_sums(scan_no):
-
         if detector_roi is None:
             try:
                 dint = get_roidata(path_dset, scan_no, f"{det}_int")
@@ -591,150 +589,3 @@ def gif_sxdm(
         unit="seconds",
         between="startend",
     )
-
-
-def make_5DSXDM_summary_plot(
-    roi_int,
-    d,
-    tilt,
-    pix,
-    piy,
-    roi_qcoords,
-    qspace_avg_sliced,
-    cx,
-    cy,
-    inc_rel,
-    azi_rel,
-    qx,
-    qy,
-    qz,
-    qspace_avg,
-    peak_idxs="???",
-    pi_win=np.s_[:, :],
-):
-
-    fig = plt.figure(figsize=(10, 6), layout="constrained", dpi=95)
-    subfigs = fig.subfigures(1, 2, wspace=None, width_ratios=[3, 1])
-
-    # Local parameters
-
-    # figure init
-    titles = [
-        r"Intensity (a.u.)",
-        rf"$d_{{{peak_idxs}}}~(\AA)$",
-        rf"$\vec{{q}}_{{{peak_idxs}}}$ relative tilt",
-        rf"$\vec{{q}}_{{{peak_idxs}}}$ distibution",
-    ]
-
-    ax = subfigs[0].subplots(2, 2).flatten()
-
-    # plots
-    roi_int_plot, d_plot, tilt_plot = [x[pi_win] for x in (roi_int, d, tilt)]
-    pi_ext = [
-        pix[pi_win].min(),
-        pix[pi_win].max(),
-        piy[pi_win].min(),
-        piy[pi_win].max(),
-    ]
-
-    ax[0].imshow(roi_int_plot, extent=pi_ext, cmap="viridis")
-    ax[1].imshow(d_plot, extent=pi_ext, cmap="viridis")
-    ax[2].imshow(tilt_plot, extent=pi_ext, cmap="hsv")
-
-    qxr, qyr, qzr = roi_qcoords
-    qext = [qxr.min(), qxr.max(), qyr.min(), qyr.max()]
-
-    ax[3].imshow(
-        qspace_avg_sliced.sum(2).T,
-        extent=qext,
-        norm=mpl.colors.LogNorm(5e4, 1e7),
-        cmap="magma",
-        origin="lower",
-    )
-    ax[3].scatter(
-        cx, cy, marker="o", s=0.5, c=azi_rel, cmap="hsv", alpha=0.5, vmin=-180, vmax=180
-    )
-
-    # normal colorbars
-    for a, t in zip(ax, titles):
-        a.set_title(t, pad=20)
-        if a != ax[2]:
-            cbar = add_colorbar(a, a.get_images()[0])
-            try:
-                cbar.ax.ticklabel_format(scilimits=(0, 0), useMathText=True)
-            except:
-                pass
-
-    # tilt colorbar
-    labels = [
-        "$[\overline{2}11]$",
-        "$[01\overline{1}]$",
-        "$[2\overline{1}\overline{1}]$",
-    ]
-    labels += ["$[0\overline{1}1]$", labels[0]]
-    add_hsv_colorbar(inc_rel, ax[2], labels)
-
-    # labels
-    _ = [a.set_xlabel("x $(\mathsf{\mu m})$") for a in ax[:3]]
-    _ = [a.set_ylabel("y $(\mathsf{\mu m})$") for a in ax[:3]]
-
-    ax[3].set_ylabel(r"$q_y$ ($\AA^{-1}$)")
-    ax[3].set_xlabel(r"$q_x$ ($\AA^{-1}$)")
-
-    # more labels
-    _ = add_directions(
-        ax[2], r"$[0\overline{1}1]$", r"$[\overline{2}11]$", "lower left"
-    )
-
-    # Projections and VOI
-
-    ax = subfigs[1].subplots(3, 1)
-
-    # draw the _roi as rectangles
-    _roi = [y for x in roi_qcoords for y in [x.min(), x.max()]]
-    r2 = Rectangle(
-        (_roi[0], _roi[2]),
-        _roi[1] - _roi[0],
-        _roi[3] - _roi[2],
-        edgecolor="r",
-        facecolor="none",
-        transform=ax[2].transData,
-    )  # xy
-    r1 = Rectangle(
-        (_roi[0], _roi[4]),
-        _roi[1] - _roi[0],
-        _roi[5] - _roi[4],
-        edgecolor="r",
-        facecolor="none",
-        transform=ax[1].transData,
-    )  # xz
-    r0 = Rectangle(
-        (_roi[2], _roi[4]),
-        _roi[3] - _roi[2],
-        _roi[5] - _roi[4],
-        edgecolor="r",
-        facecolor="none",
-        transform=ax[0].transData,
-    )  # yz
-
-    _qext = get_q_extents(qx, qy, qz)
-    for i, r in zip(range(3), [r0, r1, r2]):
-        ax[i].imshow(
-            qspace_avg.sum(i).T,
-            extent=_qext[i],
-            origin="lower",
-            aspect="equal",
-            norm=mpl.colors.LogNorm(1e5, 5e6),
-        )
-        ax[i].add_patch(r)
-        cbar = add_colorbar(ax[i], ax[i].get_images()[0], size="7%")
-
-    # labels etc.
-    ax[0].set_xlabel(r"$q_y~(\AA^{-1})$")
-    ax[2].set_ylabel(r"$q_y~(\AA^{-1})$")
-
-    for i in (1, 2):
-        ax[i].set_xlabel(r"$q_x~(\AA^{-1})$")
-
-    for i in (0, 1):
-        ax[i].set_ylabel(r"$q_z~(\AA^{-1})$")
