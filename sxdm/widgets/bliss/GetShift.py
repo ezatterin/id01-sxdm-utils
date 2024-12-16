@@ -182,7 +182,6 @@ class GetShift(object):
         view_shifts = ipw.Accordion([self.shifts_widget])
         view_shifts.set_title(0, "View shifts")
         view_shifts.selected_index = None
-        view_shifts.layout = {"font-family": "Liberation Sans"}
 
         # group checkboxes
         cblayout = {
@@ -377,7 +376,6 @@ class GetShift(object):
             "<div>",
             "<style>",
             "    .specs tbody {",
-            "        font-family: Liberation Sans, sans-serif ;",
             "        font-size: small ;",
             "        text-align: right ;",
             "    }",
@@ -517,7 +515,6 @@ class GetShiftCustom(object):
         view_shifts = ipw.Accordion([self.shifts_widget])
         view_shifts.set_title(0, "View shifts")
         view_shifts.selected_index = None
-        view_shifts.layout = {"font-family": "Liberation Sans"}
 
         # group checkboxes
         cblayout = {
@@ -676,7 +673,6 @@ class GetShiftCustom(object):
             "<div>",
             "<style>",
             "    .specs tbody {",
-            "        font-family: Liberation Sans, sans-serif ;",
             "        font-size: small ;",
             "        text-align: right ;",
             "    }",
