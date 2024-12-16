@@ -41,7 +41,7 @@ testing:
   rules:
     - if: $CI_COMMIT_MESSAGE =~ /run_tests/
 
-build-docs:
+pages:
   stage: build
   script:
     - apt-get update
