@@ -198,9 +198,7 @@ def get_shift(images, med_filt=None, **xcorr_kwargs):
             p, n = [median_filter(s, med_filt) for s in (images[i - 1], images[i])]
         else:
             p, n = [s for s in (images[i - 1], images[i])]
-        sh = registration.phase_cross_correlation(
-            p, n, return_error=False, **xcorr_kwargs
-        )
+        sh, _, _ = registration.phase_cross_correlation(p, n, **xcorr_kwargs)
         shifts.append(sh + shifts[i - 1])
     shifts = np.array(shifts)  # col0: y shifts. col1: x shifts
 

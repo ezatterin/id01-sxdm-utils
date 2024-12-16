@@ -24,4 +24,4 @@ Follow these steps for a developer installation:
 
 **Under construction!**
 
-* Make sure to commit the `poetry.lock` file
+* Make sure **not to commit** the `poetry.lock` file.

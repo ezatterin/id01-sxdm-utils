@@ -34,8 +34,8 @@ release = "0.1.0"
 extensions = [
     "myst_nb",
     "autodoc2",
-    "sphinx.ext.autodoc",
-    "sphinx.ext.autosummary",
+    # "sphinx.ext.autodoc",
+    # "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
     # "nbsphinx",
     "sphinx.ext.viewcode",
@@ -48,7 +48,7 @@ extensions = [
 
 autodoc2_packages = ["../../sxdm"]
 autodoc2_hidden_objects = ["private"]
-# autodoc2_render_plugin = 'myst'
+autodoc2_render_plugin = "myst"
 
 myst_enable_extensions = [
     "amsmath",
@@ -59,6 +59,10 @@ myst_enable_extensions = [
 ]
 
 myst_url_schemes = ("http", "https", "mailto")
+
+nb_execution_mode = "force"
+nb_execution_show_tb = True
+nb_execution_excludepatterns = ["inspect"]
 
 napoleon_google_docstring = False
 napoleon_use_param = False
