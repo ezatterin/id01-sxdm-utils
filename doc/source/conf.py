@@ -34,13 +34,9 @@ release = "0.1.0"
 extensions = [
     "myst_nb",
     "autodoc2",
-    # "sphinx.ext.autodoc",
-    # "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
-    # "nbsphinx",
     "sphinx.ext.viewcode",
     "sphinx.ext.mathjax",
-    # 'jupyter_sphinx.execute',
     "IPython.sphinxext.ipython_console_highlighting",
     "sphinx_copybutton",
     "sphinx_design",
@@ -62,7 +58,8 @@ myst_url_schemes = ("http", "https", "mailto")
 
 nb_execution_mode = "force"
 nb_execution_show_tb = True
-nb_execution_excludepatterns = ["inspect"]
+nb_execution_excludepatterns = ["notebook_templates/*"]
+nb_execution_timeout = 600
 
 napoleon_google_docstring = False
 napoleon_use_param = False
@@ -79,11 +76,7 @@ exclude_patterns = ["_tests.md", "build"]
 
 # -- Options for HTML output -------------------------------------------------
 
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes.
-#
 html_theme = "furo"
-# html_theme = "pydata_sphinx_theme"
 html_title = "ID01-SXDM Documentation"
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -92,8 +85,5 @@ html_title = "ID01-SXDM Documentation"
 # html_static_path = ["_static"]
 
 # get __init__ docstrings under the class
-autoclass_content = "both"
-
-# autosummary_generate = True  # Turn on sphinx.ext.autosummary
-
+# autoclass_content = "both"
 html_logo = "logo.png"
