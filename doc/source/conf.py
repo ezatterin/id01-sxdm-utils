@@ -85,5 +85,7 @@ html_title = "ID01-SXDM Documentation"
 # html_static_path = ["_static"]
 
 # get __init__ docstrings under the class
-# autoclass_content = "both"
+autoclass_content = "both"
+
+# logo
 html_logo = "logo.png"
