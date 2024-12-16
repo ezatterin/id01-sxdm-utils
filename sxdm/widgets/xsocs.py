@@ -15,7 +15,6 @@ from xsocs.util import gaussian
 
 
 class Inspect5DQspace(object):
-
     rec_ax_idx = {0: "qx", 1: "qy", 2: "qz"}
 
     def __init__(
@@ -134,7 +133,6 @@ class Inspect5DQspace(object):
         return rsm
 
     def _init_fig(self):
-
         with plt.ioff():
             self.fig, self.ax = plt.subplots(2, 2, figsize=(6, 5))
         with self._figout:

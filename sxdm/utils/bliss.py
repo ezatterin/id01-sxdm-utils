@@ -397,7 +397,7 @@ def make_xsocs_links_stitch(
 
     # generate output master file
     out_h5f_master = f"{path_out}/{name_outh5}_master.h5"
-    with XsocsH5.XsocsH5MasterWriter(out_h5f_master, "w") as master:
+    with XsocsH5.XsocsH5MasterWriter(out_h5f_master, "w") as _:
         pass  # overwrite master file
 
     scan_counter = 0

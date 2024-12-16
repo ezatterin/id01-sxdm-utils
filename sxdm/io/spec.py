@@ -77,7 +77,6 @@ class FastSpecFile(SpecFile):
         return frepr
 
     def _repr_html_(self):
-
         fname = os.path.basename(self.filename)
 
         table = [
@@ -210,7 +209,6 @@ class PiezoScan(Scan):
         return rep
 
     def _repr_html_(self):
-
         table = [
             "<div>",
             "<style scoped>",  # why scoped?
@@ -442,7 +440,7 @@ class PiezoScan(Scan):
         # central pixel
         if cen_pix is not None:
             _type = type(cen_pix)
-            if _type != list and _type != tuple:
+            if _type is not list and _type is not tuple:
                 raise ValueError(
                     "cen_pix must be a two-membered list or tuple, not {}".format(_type)
                 )
@@ -655,7 +653,6 @@ class PiezoScan(Scan):
     #     return frames[roi].sum(0), frames[roi].sum(1)
 
     def fit_gaussian(self, index, roi=None, **qspace_kwargs):
-
         # roi
         if roi is not None:
             roi = np.s_[roi[2] : roi[3], roi[0] : roi[1]]
@@ -684,7 +681,6 @@ class PiezoScan(Scan):
 
         p = {"qy": None, "qz": None}
         for name, ax, proj in zip(["qy", "qz"], [qyy, qzz], [py, pz]):
-
             # load profile
             x, y = ax, proj.astype("float64")
 

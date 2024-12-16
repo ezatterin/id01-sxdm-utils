@@ -1,49 +1,54 @@
-# image: ruby:2.7
-
-# pages:
-#   script:
-#     - gem install bundler
-#     - bundle install
-#     - bundle exec jekyll build -d public
-#   artifacts:
-#     paths:
-#       - public
-
-# image: python:3.8-bullseye
 image: python:3.11-bullseye
 
+# https://pre-commit.com/#managing-ci-caches
+# https://docs.gitlab.com/ee/ci/caching/#cache-python-dependencies
+variables:
+  PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
+  PRE_COMMIT_HOME: $CI_PROJECT_DIR/.cache/pre-commit
+
+cache:
+  paths:
+    - .cache/pip
+    - .cache/pre-commit
+    - .venv
+
 before_script:
-  - export no_proxy='esrf.fr'
-  - python -V
-  - pip install virtualenv
-  - virtualenv venv
-  - source venv/bin/activate
-  # - pip install --pre --find-links https://kmap.gitlab-pages.esrf.fr/xsocs/wheels/ xsocs
-  - pip install xsocs
-  - pip install -e git+https://gitlab.esrf.fr/id01-science/id01-core.git#egg=id01-core
-  - pip install .
-  - pip install ipykernel
-  - python3 -m ipykernel install --user --name sxdm.slurm
+  - pip install --upgrade pip
+  - pip install poetry
+  - poetry config virtualenvs.in-project true
+  - poetry install -vv --with dev
 
-precommit:
-  script:
-    - pip install pre-commit nbdev
-    - pre-commit run --all-files
+stages:
+  - lint
+  - test
+  - build
 
-test:
+precommit-linting:
+  stage: lint
   script:
-    - python tests/xsocs_shift.py
-    - python tests/xsocs_qconvert.py
+    - poetry run pre-commit install
+    - poetry run pre-commit run --all-files
+
+testing:
+  stage: test
+  script:
+    - poetry run pytest tests --junitxml=tests/report.xml
+  artifacts:
+    when: always
+    reports:
+      junit: tests/report.xml
+
   rules:
     - if: $CI_COMMIT_MESSAGE =~ /run_tests/
 
-pages:
+build-docs:
+  stage: build
   script:
     - apt-get update
     - apt-get install -y --no-install-recommends pandoc
-    - pip install sphinx sphinx-rtd-theme myst-parser furo sphinx-copybutton sphinx-design myst-nb sphinx-autodoc2
+    - poetry run python -m ipykernel install --user --name sxdm.slurm
     - cd doc
-    - make html
+    - poetry run make html
     - mv build/html/ ../public/
   artifacts:
     paths:

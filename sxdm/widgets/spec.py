@@ -13,8 +13,6 @@ from IPython.display import display
 from ..utils import get_detector_roilist
 from ..plot.utils import add_colorbar
 
-mpl.rcParams["font.family"] = "Liberation Sans, sans-serif"
-
 
 class RoiPlotter(object):
     """
@@ -36,7 +34,6 @@ class RoiPlotter(object):
     """
 
     def __init__(self, fast_spec_file, detector="maxipix"):
-
         # init variables
         self.detector = detector
         self.fsf = fast_spec_file
@@ -131,7 +128,6 @@ class RoiPlotter(object):
         view_motorspecs = ipw.Accordion([self.motorspecs])
         view_motorspecs.set_title(0, "View motors")
         view_motorspecs.selected_index = None
-        view_motorspecs.layout = {"font-family": "Liberation Sans"}
 
         # group all widgets together
         self.selector = ipw.VBox(
@@ -158,7 +154,6 @@ class RoiPlotter(object):
 
     # writes the HTML table with scan specs
     def _update_specs(self):
-
         angles = "eta,del,phi,nu".split(",")
         angles = [self.pscan.get_positioner(ang) for ang in angles]
 
@@ -166,7 +161,6 @@ class RoiPlotter(object):
             "<div>",
             "<style>",
             "    .specs tbody {",
-            "        font-family: Liberation Sans, sans-serif ;",
             "        font-size: small ;",
             "        text-align: right ;",
             "    }",

@@ -1,6 +1,5 @@
 import os
 import numpy as np
-import multiprocessing as mp
 import shutil
 import glob
 import h5py
@@ -85,10 +84,9 @@ def grid_qspace_xsocs(
     rc = converter.status
     if rc != QSpaceConverter.DONE:
         raise ValueError(
-            "Conversion failed with CODE={0} :\n"
-            "{1}"
-            ""
-            "".format(converter.status, converter.status_msg)
+            "Conversion failed with CODE={0} :\n" "{1}" "" "".format(
+                converter.status, converter.status_msg
+            )
         )
 
 
@@ -148,7 +146,7 @@ def get_qspace_vals_xsocs(
         print(f"Using det_dist = {detdist:.5f} m")
         print(f"Using energy = {nrj/1e3:.5f} keV")
 
-    if det_roi == None:
+    if det_roi is None:
         img_size = det.pixnum
     else:
         img_size = (det_roi[1] - det_roi[0], det_roi[3] - det_roi[2])
@@ -288,10 +286,8 @@ def _shift_write_data(path_master, shifts, n_chunks, roi, path_subh5, overwrite=
 
         t2 = 0
         with h5py.File(path_subh5_shift, "a", libver="latest") as f:
-
             # if ROI modify values of central pixel
             if roi is not None:
-
                 cpy, cpx = [
                     f[f"/{root}/instrument/detector/center_chan_dim{i}"] for i in (0, 1)
                 ]
