@@ -230,7 +230,7 @@ def calc_refl_id01(
         Crystal direction parallel to the z laboratory axis and perpedincular to the
         incident beam expressed, as a list or array of length 3.
     nrj : float
-        X-ray energy in keV.
+        X-ray energy in eV.
     bounds : dict, optional
         Dictionary specifying the bounds for diffractometer angles. A single value
         denotes a fixed angle. A maximum of three non-fixed angles is allowed.
