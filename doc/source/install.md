@@ -32,6 +32,6 @@ nbextension install --py ipympl
 nbextension enable --py ipympl
 
 pip install ipyvolume
-nbextension install --py --symlink --user --overwrite ipyvolume
+nbextension install --py ipyvolume
 nbextension enable --py ipyvolume
 ```
