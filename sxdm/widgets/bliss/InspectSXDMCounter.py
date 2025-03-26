@@ -29,7 +29,7 @@ from ...io.bliss import (
 ipython = get_ipython()
 if ipython is not None:
     try:
-        ipython.magic("matplotlib widget")
+        ipython.run_line_magic(magic_name="matplotlib", line="widget")
     except UnknownBackend:
         pass
 
