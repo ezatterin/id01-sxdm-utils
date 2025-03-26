@@ -28,6 +28,7 @@ class Inspect5DQspace(object):
         coms=None,
         gauss_fits=None,
         xsocs_gauss=False,
+        mask_reciprocal=None,
     ):
         """
         Inspect intensity(x, y, q_x, q_y, q_z) data output by XSOCS.
@@ -53,6 +54,8 @@ class Inspect5DQspace(object):
             TODO
         xsocs_gauss : bool
             TODO
+        mask_reciprocal : np.ndarray
+            Boolean 3D array representing the mask in reciprocal space.
         """
 
         self.init_map_name = list(maps_dict.keys())[0]
@@ -69,6 +72,7 @@ class Inspect5DQspace(object):
         self.coms = coms
         self.gauss_fits = gauss_fits
         self.xsocs_gauss = xsocs_gauss
+        self.mask_reciprocal = mask_reciprocal
 
         self._init_fig()
         self._init_widgets()
@@ -123,7 +127,9 @@ class Inspect5DQspace(object):
             else:
                 idx_allowed = np.arange(self._init_darr.size)
 
-            rsm = h5f["/Data/qspace"][idx][self.roi]
+            rsm = np.ma.masked_array(
+                data=h5f["/Data/qspace"][idx], mask=self.mask_reciprocal
+            )[self.roi]
             if idx not in idx_allowed:
                 rsm = np.ones_like(rsm)
         self.selected_idx = idx
