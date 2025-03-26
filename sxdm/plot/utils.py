@@ -405,7 +405,7 @@ def gif_sxdm_sums(
     scan_nos : list
         List of scan numbers.
     gif_duration : int, optional
-        Duration of the GIF in seconds. Defaults to 5.
+        Duration of the GIF in milliseconds. Defaults to 5000.
     moving_motor : str, optional
         Name of the BLISS motor whose value is changing between one SXDM scan and the
         next. Defaults to "eta".
@@ -488,8 +488,6 @@ def gif_sxdm_sums(
         frames,
         f"macro_{os.path.basename(path_dset)}_framesums.gif",
         duration=gif_duration,
-        unit="seconds",
-        between="startend",
     )
 
 
