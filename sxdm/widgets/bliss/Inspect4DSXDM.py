@@ -2,6 +2,7 @@ import numpy as np
 import h5py
 import ipywidgets as ipw
 import matplotlib as mpl
+import os
 
 from tqdm.notebook import tqdm
 
@@ -80,6 +81,7 @@ class Inspect4DSXDM(Inspect4DArray):
 
         self.ax[1].set_xlabel("detector x (pixels)")
         self.ax[1].set_ylabel("detector y (pixels)")
+        self.fig.suptitle(f"{os.path.basename(path_dset)} #{self.scan_no}", y=1.0)
 
         self._show_rois = ipw.Checkbox(value=False, description="Show experiment ROIs")
         self._show_rois.observe(self._add_rois, names="value")
