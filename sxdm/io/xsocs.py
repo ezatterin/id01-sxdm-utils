@@ -42,7 +42,7 @@ def get_piezo_motorpos(h5f):
     _entry0 = list(h5f.keys())[0]
 
     m0name, m1name = [h5f[f"{_entry0}/scan/motor_{x}"][()].decode() for x in (0, 1)]
-    shape_kmap = [h5f[f"{_entry0}/technique/dim{x}"][()] for x in (0, 1)]
+    shape_kmap = [h5f[f"{_entry0}/scan/motor_{x}_steps"][()] for x in (0, 1)]
     print(f"Returning {m0name},{m1name} of shape {shape_kmap}")
 
     try:
