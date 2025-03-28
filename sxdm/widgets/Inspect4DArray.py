@@ -49,7 +49,7 @@ class Inspect4DArray(object):
         ax[0].set_title("Sum over full detector space")
         ax[1].set_title("Sum over full sample space")
 
-        fig.subplots_adjust(left=0.05, right=0.9, wspace=0.4)
+        fig.subplots_adjust(left=0.08, right=0.94, wspace=0.4, bottom=0.15)
         fig.canvas.mpl_connect("button_press_event", self._onclick_callback)
         fig.canvas.mpl_connect("key_press_event", self._onkey)
 
