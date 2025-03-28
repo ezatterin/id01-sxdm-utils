@@ -23,7 +23,7 @@
 
 ### API
 
-`````{py:class} Inspect5DQspace(maps_dict, path_qspace, projections='2d', init_idx=[10, 10], qspace_roi=np.s_[:, :, :], relim_int=True, coms=None, gauss_fits=None, xsocs_gauss=False)
+`````{py:class} Inspect5DQspace(maps_dict, path_qspace, projections='2d', init_idx=[10, 10], qspace_roi=np.s_[:, :, :], relim_int=True, coms=None, gauss_fits=None, xsocs_gauss=False, mask_reciprocal=None)
 :canonical: sxdm.widgets.xsocs.Inspect5DQspace
 
 Bases: {py:obj}`object`

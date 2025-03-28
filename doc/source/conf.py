@@ -88,4 +88,4 @@ html_title = "ID01-SXDM Documentation"
 autoclass_content = "both"
 
 # logo
-html_logo = "logo.png"
+html_logo = "img/logo.png"
