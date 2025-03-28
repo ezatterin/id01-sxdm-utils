@@ -37,6 +37,13 @@ ID01-SXDM is a python package to analyse [scanning X-ray diffraction microscopy]
 
 ## What is SXDM?
 
+```{figure} img/sxdm_setup.png
+:align: right
+:width: 200
+
+SXDM schematic.
+```
+
 An SXDM experiment consists in scanning a nano-focused X-ray beam across a crystal using a piezoelectric stage. The crystal is rotated so that it fulfils a Bragg condition, and at each position of the nano-focused beam a nano-diffraction pattern is produced. This pattern is recorded on a 2D detector.
 
 ### Definitions
@@ -157,3 +164,4 @@ To cite the version published to Zenodo:
 ## Publications using ID01-SXDM
 
 ```{include} publist.md
+```
