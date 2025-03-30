@@ -87,15 +87,21 @@ html_theme_options = {
             "name": "GitLab",
             "url": "https://gitlab.esrf.fr/id01-science/id01-sxdm-utils",
             "html": "",
-            "class": "fa-brands fa-solid fa-gitlab fa-2x",
+            "class": "fa-brands fa-solid fa-gitlab fa-lg",
+        },
+        {
+            "name": "GitHub",
+            "url": "https://github.com/ezatterin/id01-sxdm-utils",
+            "html": "",
+            "class": "fa-brands fa-solid fa-github fa-lg",
         },
     ],
 }
 
 html_css_files = [
-    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/fontawesome.min.css",
-    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/solid.min.css",
-    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/brands.min.css",
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/fontawesome.min.css",
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/solid.min.css",
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/brands.min.css",
 ]
 
 # Add any paths that contain custom static files (such as style sheets) here,
