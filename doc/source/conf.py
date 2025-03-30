@@ -80,9 +80,8 @@ html_theme = "furo"
 html_title = "ID01-SXDM Documentation"
 
 html_theme_options = {
-    "source_repository": "https://gitlab.esrf.fr/id01-science/id01-sxdm-utils",
-    "source_branch": "main",
-    "source_directory": "doc/",
+    "source_view_link": "https://gitlab.esrf.fr/id01-science/id01-sxdm-utils/raw/main/doc/source/{filename}",
+    "source_edit_link": "https://gitlab.esrf.fr/id01-science/id01-sxdm-utils/edit/main/doc/source/{filename}",
     "footer_icons": [
         {
             "name": "GitLab",
