@@ -1,4 +1,4 @@
-[tool.poetry]
+[project]
 name = "id01-sxdm"
 version = "0.1.0"
 homepage = "https://gitlab.esrf.fr/id01-science/id01-sxdm-utils"
@@ -6,13 +6,14 @@ repository = "https://gitlab.esrf.fr/id01-science/id01-sxdm-utils"
 documentation = "https://id01-science.gitlab-pages.esrf.fr/id01-sxdm-utils/"
 
 description = "Treat Scanning X-ray Diffraction Microscopy data collected on beamline ID01 at ESRF"
-authors = ["Edoardo Zatterin <ezatterin@yahoo.it>"]
+authors = [{name = "Edoardo Zatterin",  email= "ezatterin@yahoo.it"}]
 license = "MIT"
 readme = "README.md"
-packages = [{include = "sxdm"}]
+packages = [{ include = "sxdm" }]
+requires-python = ">=3.11,<4.0"
+dynamic = [ "dependencies" ]
 
 [tool.poetry.dependencies]
-python = "^3.11"
 numpy = "^2.1.3"
 matplotlib = "3.9.3"
 ipywidgets = "^8.1.5"
@@ -25,7 +26,7 @@ ipympl = "0.9.4"
 scikit-image = "^0.24.0"
 hdf5plugin = "^5.0.0"
 id01-core = { git = "https://gitlab.esrf.fr/id01-science/id01-core.git" }
-xsocs = {git = "https://gitlab.esrf.fr/zatterin/xsocs.git"}
+xsocs = { git = "https://gitlab.esrf.fr/zatterin/xsocs.git" }
 ipykernel = "^6.29.5"
 h5glance = "^0.9.0"
 
@@ -36,6 +37,7 @@ pytest-sugar = "^1.0.0"
 nbdev = "^2.3.34"
 ruff = "^0.8.2"
 ipyvolume = "^0.6.3"
+ipykernel = "^6.29.5"
 
 
 [tool.poetry.group.doc.dependencies]

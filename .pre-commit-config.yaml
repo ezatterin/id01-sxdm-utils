@@ -25,3 +25,8 @@ repos:
     rev: ea0800cb1f4a7c5a847e840cf18bfecba95fd707
     hooks:
     - id: nbdev_clean
+
+-   repo: https://github.com/python-poetry/poetry
+    rev: '2.1.2'
+    hooks:
+    -   id: poetry-check

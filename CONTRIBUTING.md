@@ -1,6 +1,6 @@
-# Contributing to ID01-SXDM
+# Contribute
 
-Thanks for considering doing this!
+Thanks for considering contributing to `id01-sxdm`!
 
 ## How?
 
@@ -15,6 +15,27 @@ In different ways:
 
 Follow these steps for a developer installation:
 
+### On SLURM @ ESRF
+
+Source the `poetry` virtual environment,
+
+```bash
+source /data/id01/inhouse/data_analysis/software/pyenvs/poetry.jupyter-slurm/bin/activate
+```
+clone the repo:
+
+```bash
+git clone https://gitlab.esrf.fr/id01-science/id01-sxdm-utils.git
+```
+in the `id01-sxdm-utils` folder run:
+```bash
+poetry install
+poetry run pre-commit install
+poetry run pre-commit run --all-files
+```
+
+### On a local machine
+
 1. Install the packaging and dependency manager [poetry](https://python-poetry.org/docs/#installation);
 2. Clone the [id01-sxdm](https://gitlab.esrf.fr/id01-science/id01-sxdm-utils) repository;
 3. Run `poetry install` into the cloned repo, to install all dependencies;
@@ -24,4 +45,4 @@ Follow these steps for a developer installation:
 
 **Under construction!**
 
-* Make sure **not to commit** the `poetry.lock` file.
+<!-- * Make sure **not to commit** the `poetry.lock` file. -->
