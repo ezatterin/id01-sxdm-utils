@@ -41,6 +41,7 @@ nbdev = "^2.3.34"
 ruff = "^0.8.2"
 ipyvolume = "^0.6.3"
 ipykernel = "^6.29.5"
+black = "^25.1.0"
 
 
 [tool.poetry.group.doc.dependencies]
