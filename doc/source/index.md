@@ -31,6 +31,10 @@ examples/5D-SXDM_tutorial-BLISS.ipynb
 
 ID01-SXDM is a python package to analyse [scanning X-ray diffraction microscopy][sxdm] (SXDM) data collected on [beamline ID01][id01] at the [European Synchrotron Radiation Facility][esrf] (ESRF). The package has limited capabilities to treat SXDM data from other beamlines too.
 
+```{warning}
+This library and its documentation are under active development. If you find something fishy please [open an issue](https://gitlab.esrf.fr/id01-science/id01-sxdm-utils/-/issues/new)!
+```
+
 [esrf]: https://www.esrf.fr/home.html
 [id01]: https://www.esrf.fr/UsersAndScience/Experiments/XNP/ID01
 [sxdm]: https://journals.aps.org/prapplied/abstract/10.1103/PhysRevApplied.18.064015
@@ -101,7 +105,6 @@ viz = sxdm.widgets.bliss.Inspect4DSXDM(path_dset, scan_no='2.1')
 viz.fig.subplots_adjust(left=0.08, right=0.94, wspace=0.4, bottom=0.15)
 viz.show()
 ```
-
 
 ## Widget gallery
 

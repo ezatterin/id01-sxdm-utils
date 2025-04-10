@@ -79,6 +79,31 @@ exclude_patterns = ["_tests.md", "build"]
 html_theme = "furo"
 html_title = "ID01-SXDM Documentation"
 
+html_theme_options = {
+    "source_view_link": "https://gitlab.esrf.fr/id01-science/id01-sxdm-utils/raw/main/doc/source/{filename}",
+    "source_edit_link": "https://gitlab.esrf.fr/id01-science/id01-sxdm-utils/edit/main/doc/source/{filename}",
+    "footer_icons": [
+        {
+            "name": "GitLab",
+            "url": "https://gitlab.esrf.fr/id01-science/id01-sxdm-utils",
+            "html": "",
+            "class": "fa-brands fa-solid fa-gitlab fa-lg",
+        },
+        {
+            "name": "GitHub",
+            "url": "https://github.com/ezatterin/id01-sxdm-utils",
+            "html": "",
+            "class": "fa-brands fa-solid fa-github fa-lg",
+        },
+    ],
+}
+
+html_css_files = [
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/fontawesome.min.css",
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/solid.min.css",
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/brands.min.css",
+]
+
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
