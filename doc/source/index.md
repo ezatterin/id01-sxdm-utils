@@ -17,6 +17,7 @@ install.md
 :hidden:
 
 apidocs/index
+contribute.md
 ```
 
 ```{toctree}
