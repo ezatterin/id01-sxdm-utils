@@ -56,3 +56,8 @@ pages:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_COMMIT_MESSAGE =~ /build_docs/
+
+update_inhouse_repo:
+  stage: build
+  script:
+    git -C /data/id01/inhouse/zatterin/shared/id01-sxdm-utils/ pull origin main
