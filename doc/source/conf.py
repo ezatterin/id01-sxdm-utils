@@ -51,7 +51,7 @@ myst_heading_anchors = 3
 
 myst_url_schemes = ("http", "https", "mailto")
 
-nb_execution_mode = "force"
+nb_execution_mode = "cache"
 nb_execution_show_tb = True
 nb_execution_excludepatterns = ["notebook_templates/*"]
 nb_execution_timeout = 600
