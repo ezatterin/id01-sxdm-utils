@@ -10,3 +10,5 @@ tests/data/sample_analysis
 **/core
 dist/
 poetry.lock
+/doc/source/examples/data/MA1234/id01/20230710/PROCESSED_DATA/
+/doc/source/examples/*.gif
