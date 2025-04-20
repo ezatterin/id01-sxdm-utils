@@ -24,6 +24,7 @@ from ..io.bliss import (
     get_counter,
     get_positioner,
     get_sxdm_scan_numbers,
+    get_scan_shape,
 )
 
 from ..utils import get_q_extents
@@ -387,8 +388,9 @@ def add_directions(
 
 def gif_sxdm_sums(
     path_dset,
+    path_out=None,
     scan_nos=None,
-    gif_duration=5,
+    time_between_frames=500,
     moving_motor="eta",
     clim_sample=[None, None],
     clim_detector=[None, None],
@@ -402,10 +404,12 @@ def gif_sxdm_sums(
     ----------
     path_dset : str
         Path to the HDF5 BLISS dataset.
+    path_out : str, optional
+        Output path for the .gif file. Defaults to '.'.
     scan_nos : list
         List of scan numbers.
-    gif_duration : int, optional
-        Duration of the GIF in milliseconds. Defaults to 5000.
+    time_between_frames : int, optional
+        Interval between frames of the GIF in milliseconds. Defaults to 500.
     moving_motor : str, optional
         Name of the BLISS motor whose value is changing between one SXDM scan and the
         next. Defaults to "eta".
@@ -420,6 +424,9 @@ def gif_sxdm_sums(
     -------
     None
     """
+
+    if path_out is None:
+        path_out = os.path.abspath(".")
 
     if scan_nos is None:
         scan_nos = get_sxdm_scan_numbers(path_dset)
@@ -436,6 +443,8 @@ def gif_sxdm_sums(
             dint = get_roidata(path_dset, scan_no, f"{det}_int")
         except KeyError:
             dint = get_sxdm_pos_sum(path_dset, scan_no, detector=det, pbar=False)
+            map_shape = get_scan_shape(path_dset, scan_no)
+            dint = dint.reshape(map_shape)
 
         fig, ax = plt.subplots(1, 2, figsize=(6, 3), layout="tight", dpi=120)
 
@@ -454,6 +463,7 @@ def gif_sxdm_sums(
             cmap="viridis",
             extent=pi_ext,
             norm=mpl.colors.LogNorm(*clim_sample),
+            origin="lower",
         )
         _ = ax[1].imshow(
             fint,
@@ -486,8 +496,8 @@ def gif_sxdm_sums(
 
     gif.save(
         frames,
-        f"macro_{os.path.basename(path_dset)}_framesums.gif",
-        duration=gif_duration,
+        f"{path_out}/macro_{os.path.basename(path_dset)}_framesums.gif",
+        duration=time_between_frames,
     )
 
 
