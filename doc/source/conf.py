@@ -56,6 +56,9 @@ nb_execution_show_tb = True
 nb_execution_excludepatterns = ["notebook_templates/*"]
 nb_execution_timeout = 600
 
+# Remap any notebook kernel name matching the regex to "python3"
+nb_kernel_rgx_aliases = {r".*": "python3"}
+
 napoleon_google_docstring = False
 napoleon_use_param = False
 napoleon_use_ivar = True
