@@ -30,13 +30,22 @@ from ..io.bliss import (
 from ..utils import get_q_extents
 
 
-def add_hsv_colorbar(tiltmag, ax, labels, size="20%", pad=0.05, magnitude_precision=2):
+def add_hsv_colorbar(
+    tiltmag,
+    ax,
+    labels,
+    size="20%",
+    pad=0.05,
+    magnitude_precision=2,
+    origin="lower",
+    **kwargs,
+):
     prec = magnitude_precision
     a, b = np.meshgrid(np.linspace(0, 1, 100), np.linspace(180, -180, 100))
-    cmap = make_hsv(a, b)
+    cmap = make_hsv(a, b, **kwargs)
 
     cax = make_axes_locatable(ax).append_axes("right", size=size, pad=pad)
-    cax.imshow(cmap, aspect="auto")
+    cax.imshow(cmap, aspect="auto", origin=origin)
 
     cax.tick_params(
         labelsize="small", left=False, right=True, labelleft=False, labelright=True
