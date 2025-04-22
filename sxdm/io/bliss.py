@@ -594,9 +594,8 @@ def get_sxdm_frame_sum_multi(
         frame_shape = h5f[path_data_h5].shape[1:3]
 
     # if no fname specified or if fname does not exist
-    if path_save_framesum is None or path_save_framesum is not os.path.isfile(
-        path_save_framesum
-    ):
+    if path_save_framesum is None or not os.path.isfile(path_save_framesum):
+        print
         fint_tot = np.zeros((*frame_shape, len(scan_nums)))
         for i, scan_no in tqdm(enumerate(scan_nums), total=len(scan_nums)):
             fint_tot[..., i] = get_sxdm_frame_sum(path_dset, scan_no, pbar=False)
