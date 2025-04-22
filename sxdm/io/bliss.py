@@ -571,8 +571,8 @@ def get_scan_table(path_dset):
 
 
 def get_sxdm_frame_sum_multi(
-    path_framesum,
     path_dset,
+    path_save_framesum=None,
     scan_nums=None,
     detector=None,
     path_data_h5="/{scan_no}/instrument/{detector}/data",
@@ -593,14 +593,20 @@ def get_sxdm_frame_sum_multi(
     with h5py.File(path_dset) as h5f:
         frame_shape = h5f[path_data_h5].shape[1:3]
 
-    if not os.path.isfile(path_framesum):
+    # if no fname specified or if fname does not exist
+    if path_save_framesum is None or path_save_framesum is not os.path.isfile(
+        path_save_framesum
+    ):
         fint_tot = np.zeros((*frame_shape, len(scan_nums)))
         for i, scan_no in tqdm(enumerate(scan_nums), total=len(scan_nums)):
             fint_tot[..., i] = get_sxdm_frame_sum(path_dset, scan_no, pbar=False)
         fint_tot = fint_tot.transpose(2, 0, 1)
-        np.save(path_framesum, fint_tot)
+        # if fname
+        if path_save_framesum is not None:
+            np.save(path_save_framesum, fint_tot)
+    # if fname specified and exists
     else:
-        print(f"Loading: \n\t{path_framesum}\n")
-        fint_tot = np.load(path_framesum)
+        print(f"Loading: \n\t{path_save_framesum}\n")
+        fint_tot = np.load(path_save_framesum)
 
     return fint_tot
