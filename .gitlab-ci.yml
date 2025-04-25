@@ -56,19 +56,19 @@ pages:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_COMMIT_MESSAGE =~ /build_docs/
 
-publish-package:
-  stage: publish
-  image: python:3.11-bullseye
-  script:
-    - poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi"
-    - poetry config http-basic.gitlab gitlab-ci-token $CI_JOB_TOKEN
-    - poetry build
-    - poetry publish -r gitlab
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  needs:
-    - pages   # wait for docs to build first
-  artifacts:
-    paths:
-      - dist/*.whl
-      - dist/*.tar.gz
+# publish-package:
+#   stage: publish
+#   image: python:3.11-bullseye
+#   script:
+#     - poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi"
+#     - poetry config http-basic.gitlab gitlab-ci-token $CI_JOB_TOKEN
+#     - poetry build
+#     - poetry publish -r gitlab
+#   rules:
+#     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+#   needs:
+#     - pages   # wait for docs to build first
+#   artifacts:
+#     paths:
+#       - dist/*.whl
+#       - dist/*.tar.gz
