@@ -69,3 +69,6 @@ exclude = ["*.ipynb"]
 
 [tool.ruff.format]
 exclude = ['*.ipynb']
+
+[tool.poetry.repositories.gitlab]
+url = "https://gitlab.esrf.fr/api/v4/projects/${CI_PROJECT_ID}/packages/pypi/simple"

@@ -22,6 +22,7 @@ stages:
   - lint
   - test
   - build
+  - publish    
 
 precommit-linting:
   stage: lint
@@ -54,3 +55,19 @@ pages:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_COMMIT_MESSAGE =~ /build_docs/
+
+publish-package:
+  stage: publish
+  image: python:3.11-bullseye
+  script:
+    - poetry config http-basic.gitlab gitlab-ci-token $CI_JOB_TOKEN
+    - poetry build
+    - poetry publish -r gitlab
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  needs:
+    - pages   # wait for docs to build first
+  artifacts:
+    paths:
+      - dist/*.whl
+      - dist/*.tar.gz
