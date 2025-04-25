@@ -60,6 +60,7 @@ publish-package:
   stage: publish
   image: python:3.11-bullseye
   script:
+    - poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi"
     - poetry config http-basic.gitlab gitlab-ci-token $CI_JOB_TOKEN
     - poetry build
     - poetry publish -r gitlab

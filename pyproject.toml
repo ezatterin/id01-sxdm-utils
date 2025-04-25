@@ -10,7 +10,7 @@ dynamic = ["dependencies"]
 
 [project.urls]
 homepage = "https://gitlab.esrf.fr/id01-science/id01-sxdm-utils"
-repository = "https://gitlab.esrf.fr/id01-science/id01-sxdm-utils"
+repository = "https://gitlab.esrf.fr/id01-science/id01-sxdm-utils.git"
 documentation = "https://id01-science.gitlab-pages.esrf.fr/id01-sxdm-utils/"
 
 [tool.poetry]
@@ -69,6 +69,3 @@ exclude = ["*.ipynb"]
 
 [tool.ruff.format]
 exclude = ['*.ipynb']
-
-[tool.poetry.repositories.gitlab]
-url = "https://gitlab.esrf.fr/api/v4/projects/${CI_PROJECT_ID}/packages/pypi/simple"
