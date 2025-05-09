@@ -1,22 +1,21 @@
-# Configuration file for the Sphinx documentation builder.
-#
-# This file only contains a selection of the most common options. For a full
-# list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-# -- Path setup --------------------------------------------------------------
+## imports and path setop
 
 import os
 import sys
 
 sys.path.insert(0, os.path.abspath("../.."))
 
+from datetime import date
 
-# -- Project information -----------------------------------------------------
+
+## project info
 
 project = "id01-sxdm-utils"
 copyright = "2024, Edoardo Zatterin"
 author = "Edoardo Zatterin"
+year = date.today().year
 
 release = "0.1.0"
 
