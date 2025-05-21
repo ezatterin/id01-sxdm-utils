@@ -32,7 +32,7 @@ git clone https://gitlab.esrf.fr/id01-science/id01-sxdm-utils.git
 in the `id01-sxdm-utils` folder run:
 
 ```bash
-poetry config virtualenvs.in-project true # isolate sxdm venv from poetry venv
+poetry config virtualenvs.in-project true # isolate sxdm venv from poetry venv - installs in .venv within project directory
 poetry install
 poetry run pre-commit install
 poetry run pre-commit run --all-files
