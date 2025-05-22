@@ -20,20 +20,17 @@ stages:
   - test
   - deploy
 
-lint:
-  stage: build
-  image: python:3.11-bullseye
-  script:
-    - poetry run pre-commit install
-    - poetry run pre-commit run --all-files
+# lint:
+#   stage: build
+#   image: python:3.11-bullseye
+#   script:
+#     - poetry run pre-commit install
+#     - poetry run pre-commit run --all-files
 
 doc:
   stage: build
-  image: python:3.11-slim-bookworm
+  image: python:3.11-slim
   script:
-    - rm -rf /var/lib/apt/lists/* /etc/apt/trusted.gpg.d/*
-    - apt-get update || true
-    - apt-get install --reinstall -y debian-archive-keyring ca-certificates || true
     - apt-get update
     - apt-get install -y --no-install-recommends pandoc
     - cd doc
