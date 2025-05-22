@@ -29,10 +29,12 @@ stages:
 
 doc:
   stage: build
-  image: python:3.11-slim
+  image: python:3.11-bullseye
   script:
-    - apt-get update
-    - apt-get install -y --no-install-recommends pandoc
+    - export PANDOC_VER=2.19.2
+    - wget https://github.com/jgm/pandoc/releases/download/$PANDOC_VER/pandoc-$PANDOC_VER-linux-amd64.tar.gz
+    - tar xzf pandoc-$PANDOC_VER-linux-amd64.tar.gz
+    - mv pandoc-$PANDOC_VER/bin/pandoc /usr/local/bin/
     - cd doc
     - poetry run make html
   artifacts:
@@ -59,6 +61,7 @@ test:
 pages:
   stage: deploy
   image: debian:latest
+  before_script: []
   script:
       - mv doc/build/html public
   artifacts:
