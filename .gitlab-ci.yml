@@ -1,4 +1,4 @@
-image: python:3.11-slim-bullseye
+image: python:3.11-bullseye
 
 # https://pre-commit.com/#managing-ci-caches
 # https://docs.gitlab.com/ee/ci/caching/#cache-python-dependencies
