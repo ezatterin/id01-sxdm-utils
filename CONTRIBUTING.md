@@ -23,6 +23,17 @@ Source the `poetry` virtual environment,
 source /data/id01/inhouse/data_analysis/software/pyenvs/poetry.jupyter-slurm/bin/activate
 ```
 
+````{warning}
+It may also be necessary to load the latest `jupyter-slurm` python module,
+
+```bash
+module load jupyter-slurm/2025.04.2
+```
+
+changing `2025.04.2` with the right version. Use `module avail jupy` to obtain a list of
+available versions.
+````
+
 clone the repo:
 
 ```bash

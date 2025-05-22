@@ -1,96 +1,73 @@
 # https://pre-commit.com/#managing-ci-caches
 # https://docs.gitlab.com/ee/ci/caching/#cache-python-dependencies
-# -------------------------
-# Global defaults
-# -------------------------
-default:
-  image: python:3.11
-  before_script:
-    - pip install poetry --progress-bar off
-    - poetry config virtualenvs.in-project true
-    - poetry install -vv --with dev
-  cache:
-    key: "${CI_PROJECT_NAME}-${CI_COMMIT_REF_SLUG}"
-    paths:
-      - .cache/pip
-      - .cache/pre-commit
-      - .venv
+variables:
+  PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
+  PRE_COMMIT_HOME: $CI_PROJECT_DIR/.cache/pre-commit
+
+cache:
+  paths:
+    - .cache/pip
+    - .cache/pre-commit
+    - .venv
+
+before_script:
+  - pip install --upgrade pip
+  - pip install poetry
+  - poetry config virtualenvs.in-project true
+  - poetry install -vv --with dev
 
 stages:
   - build
   - test
   - deploy
 
-# -------------------------
-# Build job template
-# -------------------------
-.build_base: &build_base
-  stage: build
-  rules:
-    # run on default branch commits or if commit message requests it
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    - if: $CI_COMMIT_MESSAGE =~ /build_docs/
-
-# -------------------------
-# Linting (pre-commit)
-# -------------------------
 lint:
-  <<: *build_base
-  script:
-    - poetry run pre-commit install --install-hooks
-    - poetry run pre-commit run --all-files
-
-# -------------------------
-# Documentation build
-# -------------------------
-doc:
-  <<: *build_base
+  stage: build
   image: python:3.11-slim-bookworm
   script:
-    - apt-get update && apt-get install -y --no-install-recommends pandoc
+    - poetry run pre-commit install
+    - poetry run pre-commit run --all-files
+
+doc:
+  stage: build
+  image: python:3.11-slim-bookworm
+  script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends pandoc
     - cd doc
     - poetry run make html
   artifacts:
     paths:
-      - doc/build/html
+      - build/
     when: on_success
     expire_in: 2h
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_MESSAGE =~ /build_docs/
 
-# -------------------------
-# Test suite
-# -------------------------
 test:
   stage: test
-  rules:
-    - if: $CI_COMMIT_MESSAGE =~ /run_tests/
+  image: python:3.11
   script:
     - poetry run pytest tests --junitxml=tests/report.xml
   artifacts:
     when: always
     reports:
       junit: tests/report.xml
+  rules:
+    - if: $CI_COMMIT_MESSAGE =~ /run_tests/
 
-# -------------------------
-# Pages deployment
-# -------------------------
 pages:
   stage: deploy
   image: debian:stable
-  needs:
-    - job: doc
-      artifacts: true
   script:
-    # Move the generated HTML into 'public/' for GitLab Pages
-    - mv doc/build/html public
+      - mv doc/build/html public
   artifacts:
     paths:
       - public
   rules:
-    # Only run when docs were built on the default branch
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: always
-    - when: never
-
+  - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  - if: $CI_COMMIT_MESSAGE =~ /build_docs/
 
 
 
