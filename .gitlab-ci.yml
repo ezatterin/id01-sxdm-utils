@@ -51,7 +51,7 @@ doc:
 
 test:
   stage: test
-  image: python:3.11
+  image: python:3.11-bullseye
   script:
     - poetry run pytest tests --junitxml=tests/report.xml
   artifacts:
