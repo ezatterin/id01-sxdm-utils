@@ -31,9 +31,9 @@ doc:
   stage: build
   image: python:3.11-slim-bullseye
   script:
+    - rm -rf /var/lib/apt/lists/* /etc/apt/trusted.gpg.d/*
     - apt-get update || true
-    - apt-get install --reinstall -y debian-archive-keyring ca-certificates
-    - rm -rf /var/lib/apt/lists/*
+    - apt-get install --reinstall -y debian-archive-keyring ca-certificates || true
     - apt-get update
     - apt-get install -y --no-install-recommends pandoc
     - cd doc
