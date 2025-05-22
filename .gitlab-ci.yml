@@ -31,6 +31,9 @@ doc:
   stage: build
   image: python:3.11-slim-bullseye
   script:
+    - apt-get update || true
+    - apt-get install --reinstall -y debian-archive-keyring ca-certificates
+    - rm -rf /var/lib/apt/lists/*
     - apt-get update
     - apt-get install -y --no-install-recommends pandoc
     - cd doc
