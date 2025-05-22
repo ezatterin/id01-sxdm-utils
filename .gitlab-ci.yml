@@ -1,3 +1,5 @@
+image: python:3.11-slim-bookworm
+
 # https://pre-commit.com/#managing-ci-caches
 # https://docs.gitlab.com/ee/ci/caching/#cache-python-dependencies
 variables:
@@ -11,7 +13,7 @@ cache:
     - .venv
 
 before_script:
-  - pip install poetry --progress-bar off
+  - pip install poetry
   - poetry config virtualenvs.in-project true
   - poetry install -vv --with dev
 
@@ -22,14 +24,12 @@ stages:
 
 lint:
   stage: build
-  image: python:3.11-slim-bookworm
   script:
     - poetry run pre-commit install
     - poetry run pre-commit run --all-files
 
 doc:
   stage: build
-  image: python:3.11-slim-bookworm
   script:
     - apt-get update
     - apt-get install -y --no-install-recommends pandoc
@@ -46,7 +46,6 @@ doc:
 
 test:
   stage: test
-  image: python:3.11
   script:
     - poetry run pytest tests --junitxml=tests/report.xml
   artifacts:
@@ -58,7 +57,6 @@ test:
 
 pages:
   stage: deploy
-  image: debian:stable
   script:
       - mv doc/build/html public
   artifacts:
