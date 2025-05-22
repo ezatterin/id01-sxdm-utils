@@ -27,19 +27,22 @@ stages:
 #     - poetry run pre-commit install
 #     - poetry run pre-commit run --all-files
 
+.pandoc-download: &pandoc-download |
+  export PANDOC_VER=2.19.2
+  wget -q https://github.com/jgm/pandoc/releases/download/$PANDOC_VER/pandoc-$PANDOC_VER-linux-amd64.tar.gz
+  tar xzf pandoc-$PANDOC_VER-linux-amd64.tar.gz
+  mv pandoc-$PANDOC_VER/bin/pandoc /usr/local/bin/
+
 doc:
   stage: build
   image: python:3.11-bullseye
   script:
-    - export PANDOC_VER=2.19.2
-    - wget https://github.com/jgm/pandoc/releases/download/$PANDOC_VER/pandoc-$PANDOC_VER-linux-amd64.tar.gz
-    - tar xzf pandoc-$PANDOC_VER-linux-amd64.tar.gz
-    - mv pandoc-$PANDOC_VER/bin/pandoc /usr/local/bin/
+    - *pandoc-download
     - cd doc
     - poetry run make html
   artifacts:
     paths:
-      - build/
+      - doc/build/
     when: on_success
     expire_in: 2h
   rules:
