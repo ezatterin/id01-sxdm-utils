@@ -29,7 +29,7 @@ lint:
 
 doc:
   stage: build
-  image: python:3.11-slim-bullseye
+  image: python:3.11-slim-bookworm
   script:
     - rm -rf /var/lib/apt/lists/* /etc/apt/trusted.gpg.d/*
     - apt-get update || true
