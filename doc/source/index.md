@@ -24,6 +24,7 @@ contribute.md
 :caption: Tutorials
 :hidden:
 
+examples/RSM_tutorial.ipynb
 examples/4D-SXDM_tutorial-BLISS.ipynb
 examples/5D-SXDM_tutorial-BLISS.ipynb
 ```

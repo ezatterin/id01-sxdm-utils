@@ -1,5 +1,3 @@
-image: python:3.11-bullseye
-
 # https://pre-commit.com/#managing-ci-caches
 # https://docs.gitlab.com/ee/ci/caching/#cache-python-dependencies
 variables:
@@ -19,19 +17,37 @@ before_script:
   - poetry install -vv --with dev
 
 stages:
-  - lint
-  - test
   - build
-  - publish
+  - test
+  - deploy
 
-precommit-linting:
-  stage: lint
+lint:
+  stage: build
+  image: python:3.11
   script:
     - poetry run pre-commit install
     - poetry run pre-commit run --all-files
 
-testing:
+doc:
+  stage: build
+  image: python:3.11-slim-bookworm
+  script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends pandoc
+    - cd doc
+    - poetry run make html
+  artifacts:
+    paths:
+      - build/
+    when: on_success
+    expire_in: 2h
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_MESSAGE =~ /build_docs/
+
+test:
   stage: test
+  image: python:3.11
   script:
     - poetry run pytest tests --junitxml=tests/report.xml
   artifacts:
@@ -42,19 +58,19 @@ testing:
     - if: $CI_COMMIT_MESSAGE =~ /run_tests/
 
 pages:
-  stage: build
+  stage: deploy
+  image: debian:stable
   script:
-    - apt-get update
-    - apt-get install -y --no-install-recommends pandoc
-    - cd doc
-    - poetry run make html
-    - mv build/html/ ../public/
+      - mv doc/build/html public
   artifacts:
     paths:
       - public
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    - if: $CI_COMMIT_MESSAGE =~ /build_docs/
+  - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  - if: $CI_COMMIT_MESSAGE =~ /build_docs/
+
+
+
 
 # publish-package:
 #   stage: publish
