@@ -20,12 +20,12 @@ stages:
   - test
   - deploy
 
-# lint:
-#   stage: build
-#   image: python:3.11-bullseye
-#   script:
-#     - poetry run pre-commit install
-#     - poetry run pre-commit run --all-files
+lint:
+  stage: build
+  image: python:3.11-bullseye
+  script:
+    - poetry run pre-commit install
+    - poetry run pre-commit run --all-files
 
 .pandoc-download: &pandoc-download |
   export PANDOC_VER=2.19.2
