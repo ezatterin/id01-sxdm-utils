@@ -1,16 +1,15 @@
-# GitLab CI configuration for id01-sxdm-utils
-# https://pre-commit.com/#managing-ci-caches
-# https://docs.gitlab.com/ee/ci/caching/#cache-python-dependencies
-
-###################
-# Global settings #
-###################
+#########################
+# Environment Variables #
+#########################
 
 variables:
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
   PRE_COMMIT_HOME: $CI_PROJECT_DIR/.cache/pre-commit
 
-# Enhanced cache configuration for faster builds
+#######################
+# Caching Strategy   #
+#######################
+
 cache:
   key: ${CI_COMMIT_REF_SLUG}  # Cache per branch
   paths:
@@ -51,24 +50,24 @@ cache:
         - "**/*.md"
         - "**/*.rst"
 
-##########
-# Stages #
-##########
+#########################
+# Pipeline Definition   #
+#########################
 
 stages:
-  - verify
-  - build
-  - test
-  - deploy
+  - verify    # Code quality and formatting checks
+  - build     # Build documentation and assets
+  - test      # Run test suites
+  - deploy    # Deploy documentation and packages
 
 ############
 # Verify   #
 ############
 
-# Fast preliminary checks
 lint:
   <<: *poetry-install
   stage: verify
+  description: "Run pre-commit hooks for linting and formatting"
   script:
     - poetry run pre-commit install
     - poetry run pre-commit run --all-files
@@ -82,8 +81,9 @@ lint:
 
 # Build docs
 doc:
-  <<: *poetry-install
+  <<: [*poetry-install, *doc-rules]
   stage: build
+  description: "Build Sphinx documentation"
   script:
     - *pandoc-install
     - cd doc
@@ -93,8 +93,6 @@ doc:
       - doc/build/
     when: on_success
     expire_in: 2h
-  rules:
-
 
 #########
 # Test  #
@@ -104,6 +102,8 @@ test:
   <<: *poetry-install
   stage: test
   parallel: 2  # Run tests in parallel
+  name: "pytest ($CI_NODE_INDEX)"
+  description: "Run unit tests split across two jobs"
   script:
     # Split tests across parallel jobs
     - |
@@ -128,6 +128,7 @@ test:
 pages:
   stage: deploy
   image: debian:latest
+  description: "Deploy documentation to GitLab Pages"
   before_script: []
   script:
     - mv doc/build/html public
