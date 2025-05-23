@@ -1,43 +1,79 @@
+# GitLab CI configuration for id01-sxdm-utils
 # https://pre-commit.com/#managing-ci-caches
 # https://docs.gitlab.com/ee/ci/caching/#cache-python-dependencies
+
+###################
+# Global settings #
+###################
+
 variables:
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
   PRE_COMMIT_HOME: $CI_PROJECT_DIR/.cache/pre-commit
 
+# Enhanced cache configuration for faster builds
 cache:
+  key: ${CI_COMMIT_REF_SLUG}  # Cache per branch
   paths:
     - .cache/pip
     - .cache/pre-commit
     - .venv
+    - doc/build/.doctrees  # Cache Sphinx doctrees
+  policy: pull-push  # More efficient cache policy
 
-before_script:
-  - pip install poetry
-  - poetry config virtualenvs.in-project true
-  - poetry install -v --with dev
+##################
+# Job templates  #
+##################
 
-stages:
-  - build
-  - test
-  - deploy
-
-lint:
-  stage: build
+# Poetry installation script
+.poetry-install: &poetry-install
   image: python:3.11-bullseye
-  script:
-    - poetry run pre-commit install
-    - poetry run pre-commit run --all-files
+  before_script:
+    - pip install poetry
+    - poetry config virtualenvs.in-project true
+    - poetry install -v --with dev
 
-.pandoc-download: &pandoc-download |
+# Pandoc installation script
+.pandoc-install: &pandoc-install |
   export PANDOC_VER=2.19.2
   wget -q https://github.com/jgm/pandoc/releases/download/$PANDOC_VER/pandoc-$PANDOC_VER-linux-amd64.tar.gz
   tar xzf pandoc-$PANDOC_VER-linux-amd64.tar.gz
   mv pandoc-$PANDOC_VER/bin/pandoc /usr/local/bin/
 
-doc:
-  stage: build
-  image: python:3.11-bullseye
+##########
+# Stages #
+##########
+
+stages:
+  - verify
+  - build
+  - test
+  - deploy
+
+############
+# Verify   #
+############
+
+# Fast preliminary checks
+lint:
+  <<: *poetry-install
+  stage: verify
   script:
-    - *pandoc-download
+    - poetry run pre-commit install
+    - poetry run pre-commit run --all-files
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+#########
+# Build #
+#########
+
+# Documentation build
+doc:
+  <<: *poetry-install
+  stage: build
+  script:
+    - *pandoc-install
     - cd doc
     - poetry run make html
   artifacts:
@@ -45,41 +81,63 @@ doc:
       - doc/build/
     when: on_success
     expire_in: 2h
-  rules:
+    rules:
+    # The commit is to the main branch AND contains "build_docs" in the message, OR
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_MESSAGE =~ /build_docs/
+    # The commit is to the main branch AND changes documentation files
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    - if: $CI_COMMIT_MESSAGE =~ /build_docs/
+      changes:
+        - "doc/**/*"
+        - "**/*.md"
+        - "**/*.rst"
+
+#########
+# Test  #
+#########
 
 test:
+  <<: *poetry-install
   stage: test
-  image: python:3.11-bullseye
+  parallel: 2  # Run tests in parallel
   script:
-    - poetry run pytest tests --junitxml=tests/report.xml
+    # Split tests across parallel jobs
+    - |
+      if [[ $CI_NODE_INDEX == 1 ]]; then
+        poetry run pytest tests/test_sxdm.py --junitxml=tests/report1.xml
+      else
+        poetry run pytest tests/test_xsocs.py --junitxml=tests/report2.xml
+      fi
   artifacts:
     when: always
     reports:
-      junit: tests/report.xml
+      junit: tests/report*.xml
   rules:
-    - if: $CI_COMMIT_MESSAGE =~ /run_tests/
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_MESSAGE =~ /run_tests/
 
+###########
+# Deploy  #
+###########
+
+# Documentation deployment to GitLab Pages
 pages:
   stage: deploy
   image: debian:latest
   before_script: []
   script:
-      - mv doc/build/html public
+    - mv doc/build/html public
   artifacts:
     paths:
       - public
   rules:
-  - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  - if: $CI_COMMIT_MESSAGE =~ /build_docs/
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  needs:
+    - doc
 
-
-
-
+# Package publishing (commented out for future use)
 # publish-package:
-#   stage: publish
-#   image: python:3.11-bullseye
+#   <<: *poetry-install
+#   stage: deploy
 #   script:
 #     - poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi"
 #     - poetry config http-basic.gitlab gitlab-ci-token $CI_JOB_TOKEN
@@ -88,7 +146,7 @@ pages:
 #   rules:
 #     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 #   needs:
-#     - pages   # wait for docs to build first
+#     - pages
 #   artifacts:
 #     paths:
 #       - dist/*.whl
