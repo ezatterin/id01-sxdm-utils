@@ -67,7 +67,6 @@ stages:
 lint:
   <<: *poetry-install
   stage: verify
-  description: "Run pre-commit hooks for linting and formatting"
   script:
     - poetry run pre-commit install
     - poetry run pre-commit run --all-files
@@ -83,7 +82,6 @@ lint:
 doc:
   <<: [*poetry-install, *doc-rules]
   stage: build
-  description: "Build Sphinx documentation"
   script:
     - *pandoc-install
     - cd doc
@@ -103,7 +101,6 @@ test:
   stage: test
   parallel: 2  # Run tests in parallel
   name: "pytest ($CI_NODE_INDEX)"
-  description: "Run unit tests split across two jobs"
   script:
     # Split tests across parallel jobs
     - |
@@ -128,7 +125,6 @@ test:
 pages:
   stage: deploy
   image: debian:latest
-  description: "Deploy documentation to GitLab Pages"
   before_script: []
   script:
     - mv doc/build/html public
