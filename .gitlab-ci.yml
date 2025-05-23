@@ -100,7 +100,6 @@ test:
   <<: *poetry-install
   stage: test
   parallel: 2  # Run tests in parallel
-  name: "pytest ($CI_NODE_INDEX)"
   script:
     # Split tests across parallel jobs
     - |
