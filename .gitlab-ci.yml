@@ -39,6 +39,18 @@ cache:
   tar xzf pandoc-$PANDOC_VER-linux-amd64.tar.gz
   mv pandoc-$PANDOC_VER/bin/pandoc /usr/local/bin/
 
+# Only build and deploy docs when
+.doc-rules: &doc-rules
+  rules:
+    # The commit is to the main branch AND contains "build_docs" in the message, OR
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_MESSAGE =~ /build_docs/
+    # The commit is to the main branch AND changes documentation files
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - "doc/**/*"
+        - "**/*.md"
+        - "**/*.rst"
+
 ##########
 # Stages #
 ##########
@@ -68,7 +80,7 @@ lint:
 # Build #
 #########
 
-# Documentation build
+# Build docs
 doc:
   <<: *poetry-install
   stage: build
@@ -82,14 +94,7 @@ doc:
     when: on_success
     expire_in: 2h
   rules:
-    # The commit is to the main branch AND contains "build_docs" in the message, OR
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_MESSAGE =~ /build_docs/
-    # The commit is to the main branch AND changes documentation files
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      changes:
-        - "doc/**/*"
-        - "**/*.md"
-        - "**/*.rst"
+
 
 #########
 # Test  #
@@ -119,7 +124,7 @@ test:
 # Deploy  #
 ###########
 
-# Documentation deployment to GitLab Pages
+# Deploy docs
 pages:
   stage: deploy
   image: debian:latest
@@ -129,8 +134,7 @@ pages:
   artifacts:
     paths:
       - public
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  <<: *doc-rules
   needs:
     - doc
 
