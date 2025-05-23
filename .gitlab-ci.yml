@@ -81,7 +81,7 @@ doc:
       - doc/build/
     when: on_success
     expire_in: 2h
-    rules:
+  rules:
     # The commit is to the main branch AND contains "build_docs" in the message, OR
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_MESSAGE =~ /build_docs/
     # The commit is to the main branch AND changes documentation files
