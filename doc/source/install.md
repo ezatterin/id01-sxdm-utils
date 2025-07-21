@@ -4,7 +4,7 @@
 
 To use `id01-sxdm` on the ESRF Jupyter Hub server [Jupyter-SLURM](https://jupyter-slurm.esrf.fr/hub/spawn):
 
-* [Spawn a Jupyter-SLURM instance](https://confluence.esrf.fr/display/DAUWK/Jupyter+at+ESRF#JupyteratESRF-StartingJupyterServerStartingaJupyter(Lab)Server).
+* [Spawn a Jupyter-SLURM instance](https://confluence.esrf.fr/display/DAUWK/Jupyter+at+ESRF#JupyteratESRF-StartingJupyterServerStartingaJupyter(Lab)Server) using the `jupyter-nice` partition.
 * Once the instance is spawned the interface shows the contents of the user's home directory on the ESRF cluster. On the right of the interface click on `New` and then `Terminal`. This opens a terminal in the same directory.
 * In the terminal, run:
     ```bash
