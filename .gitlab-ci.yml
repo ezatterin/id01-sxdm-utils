@@ -104,8 +104,10 @@ test:
     # Split tests across parallel jobs
     - |
       if [[ $CI_NODE_INDEX == 1 ]]; then
-        poetry run pytest tests/test_sxdm.py --junitxml=tests/report1.xml
+        # Run package-level and plot tests
+        poetry run pytest tests/test_sxdm.py tests/plot/ --junitxml=tests/report1.xml
       else
+        # Run xsocs tests
         poetry run pytest tests/test_xsocs.py --junitxml=tests/report2.xml
       fi
   artifacts:

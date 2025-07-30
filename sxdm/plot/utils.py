@@ -27,8 +27,6 @@ from ..io.bliss import (
     get_scan_shape,
 )
 
-from ..utils import get_q_extents
-
 
 def add_hsv_colorbar(
     tiltmag,
@@ -514,38 +512,54 @@ def gif_sxdm(
     path_dset,
     detector_roi=None,
     scan_nos=None,
-    gif_duration=5,
+    outfile=None,
+    time_between_frames=500,
     moving_motor="eta",
-    clim_sample=[None, None],
+    norm="lin",
+    clims=[None, None],
     detector=None,
+    fig_kwargs=None,
+    cmap="viridis",
 ):
     """
-    Generate a GIF for a series of SXDM scans for a selected detector ROI.
+    Generate a GIF from a series of SXDM scans plotting a selected detector ROI counter.
 
     Parameters
     ----------
     path_dset : str
         Path to the HDF5 BLISS dataset.
     detector_roi : str or None, optional
-        Region of interest (ROI) for the detector. If None, the full detector is used.
-        Defaults to None.
+        BLISS detector ROI counter of choice, e.g. `mpx1x4_roi1`. If None, and
+        `<detector_name>_int` counter is available, that is used. Otherwise, the data
+        is integrated over the full detector area. Defaults to None.
     scan_nos : list or None, optional
-        List of scan numbers. If None, all SXDM scan numbers are used. Defaults to None.
-    gif_duration : int, optional
-        Duration of the GIF in seconds. Defaults to 5.
+        List of scan numbers. If None, all scan numbers corresponding to SXDM scans
+        within the chosen BLISS dataset are used. Defaults to None.
+    time_between_frames : int, optional
+        Interval between GIF frames in milliseconds. Defaults to 500.
     moving_motor : str, optional
         Name of the BLISS motor whose value is changing between one SXDM scan and the
         next. Defaults to "eta".
-    clim_sample : list, optional
-        Color limit range for the sample plot. Defaults to [None, None].
+    norm : str, optional
+        Normalisation of the colour scale. Defaults to 'lin' indicating linear
+        normalisation. Also possible is 'log', for logarithmic normalisation.
+    clims : list, optional
+        Color limit range for the plot. Defaults to [None, None].
     detector : str or None, optional
-        Detector alias. If None, the first detector found is used. Defaults to None.
+        Detector alias. If None, the first detector defined in the BLISS dataset
+        is used. Defaults to None.
+    fig_kwargs : dict or None, optional
+        Dictionary of keyword arguments to pass to plt.subplots(). Defaults to None.
+    cmap : str, optional
+        Matplotlib colormap name to use for the plot. Defaults to 'viridis'.
+    outfile : str, optional
+        Full path for the output GIF file. If None, saves in current directory with
+        auto-generated name based on dataset and ROI. Defaults to None.
 
     Returns
     -------
     None
     """
-
     if scan_nos is None:
         scan_nos = get_sxdm_scan_numbers(path_dset)
 
@@ -560,28 +574,34 @@ def gif_sxdm(
             try:
                 dint = get_roidata(path_dset, scan_no, f"{det}_int")
             except KeyError:
+                map_sh = get_scan_shape(path_dset, scan_no)
                 dint = get_sxdm_pos_sum(path_dset, scan_no, detector=det, pbar=False)
+                dint = dint.reshape(map_sh)
         else:
             dint = get_roidata(path_dset, scan_no, detector_roi)
 
-        fig, ax = plt.subplots(1, 1, figsize=(4, 3), layout="tight", dpi=120)
+        fig, ax = plt.subplots(1, 1, **(fig_kwargs or {}))
 
         m0name, m1name = get_piezo_motor_names(path_dset, scan_no)
         try:
             m0, m1 = [get_counter(path_dset, scan_no, f"{m}") for m in (m0name, m1name)]
-        except KeyError:
+        except KeyError:  # handle old version of BLISS datasets
             m0, m1 = [
                 get_counter(path_dset, scan_no, f"{m}_position")
                 for m in (m0name, m1name)
             ]
         pi_ext = [m0.min(), m0.max(), m1.min(), m1.max()]
 
-        im = ax.imshow(
-            dint,
-            cmap="viridis",
-            extent=pi_ext,
-            norm=mpl.colors.LogNorm(*clim_sample),
-        )
+        if norm == "lin":
+            norm_mpl = mpl.colors.Normalize(*clims)
+        elif norm == "log":
+            norm_mpl = mpl.colors.LogNorm(*clims)
+        else:
+            raise ValueError(
+                f"Unknown normalisation type: {norm}. Should be one of ['lin', 'log']."
+            )
+
+        im = ax.imshow(dint, cmap=cmap, extent=pi_ext, norm=norm_mpl, origin="lower")
 
         _ = add_colorbar(ax, im)
 
@@ -589,9 +609,10 @@ def gif_sxdm(
         ax.set_xlabel(f"{m0name} (um)")
         ax.set_ylabel(f"{m1name} (um)")
 
-        moving_mot = get_positioner(path_dset, scan_no, moving_motor)
-        title = f"{os.path.basename(path_dset)} #{scan_no}"
-        title += f"@ {moving_motor}$={moving_mot:.3f}$"
+        title = f"{os.path.basename(path_dset)} #{scan_no} | {detector_roi}"
+        if isinstance(moving_motor, str):
+            moving_mot = get_positioner(path_dset, scan_no, moving_motor)
+            title += f"@ {moving_motor}$={moving_mot:.3f}$"
 
         ax.set_title(title)
 
@@ -599,10 +620,7 @@ def gif_sxdm(
     for s in tqdm(scan_nos):
         frames.append(plot_sxdm_sums(s))
 
-    gif.save(
-        frames,
-        f"macro_{os.path.basename(path_dset)}_roi_int.gif",
-        duration=gif_duration,
-        unit="seconds",
-        between="startend",
-    )
+    if outfile is None:
+        outfile = f"macro_{os.path.basename(path_dset)}_{detector_roi}.gif"
+
+    gif.save(frames, outfile, duration=time_between_frames)
