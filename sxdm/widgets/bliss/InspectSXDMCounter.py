@@ -24,6 +24,7 @@ from ...io.bliss import (
     get_scan_shape,
     get_detector_aliases,
     get_sxdm_scan_numbers,
+    get_counter_sxdm,
 )
 
 ipython = get_ipython()
@@ -106,7 +107,7 @@ class InspectSXDMCounter(object):
         self.path_dset = path_dset
         self.fixed_clims = fixed_clims
         self.counter_list = counter_list
-        self.roidata = get_roidata(path_dset, scan_no, self.roiname)
+        self.roidata = get_counter_sxdm(path_dset, scan_no, self.roiname)
         self.scan_no = scan_no
         self._scan_nos = scan_nos
         self._commands = commands
