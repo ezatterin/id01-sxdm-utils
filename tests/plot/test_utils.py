@@ -2,6 +2,7 @@
 
 import os
 import pytest
+import tempfile
 import sxdm
 
 # Constants at module level
@@ -13,28 +14,29 @@ SAMPLE_DATASET = os.path.join(
 class TestGifSxdm:
     """Tests for the gif_sxdm function."""
 
-    # note tmp_path is a pytest fixture
-    def test_default_parameters(self, tmp_path):
+    def test_default_parameters(self):
         """Test gif_sxdm with default parameters."""
-        outfile = os.path.join(tmp_path, "test_output.gif")
-        sxdm.plot.utils.gif_sxdm(path_dset=SAMPLE_DATASET, outfile=outfile)
-        assert os.path.exists(outfile)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            outfile = os.path.join(tmp_dir, "test_output.gif")
+            sxdm.plot.utils.gif_sxdm(path_dset=SAMPLE_DATASET, outfile=outfile)
+            assert os.path.exists(outfile)
 
-    def test_specific_parameters(self, tmp_path):
+    def test_specific_parameters(self):
         """Test gif_sxdm with custom ROI, scan numbers and visualization parameters."""
-        outfile = os.path.join(tmp_path, "test_output_roi.gif")
-        sxdm.plot.utils.gif_sxdm(
-            path_dset=SAMPLE_DATASET,
-            detector_roi="mpx1x4_roi1",
-            scan_nos=[1, 2],
-            outfile=outfile,
-            time_between_frames=200,
-            moving_motor="eta",
-            norm="log",
-            clims=[1, 1000],
-            cmap="inferno",
-        )
-        assert os.path.exists(outfile)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            outfile = os.path.join(tmp_dir, "test_output_roi.gif")
+            sxdm.plot.utils.gif_sxdm(
+                path_dset=SAMPLE_DATASET,
+                detector_roi="mpx1x4_roi1",
+                scan_nos=[1, 2],
+                outfile=outfile,
+                time_between_frames=200,
+                moving_motor="eta",
+                norm="log",
+                clims=[1, 1000],
+                cmap="inferno",
+            )
+            assert os.path.exists(outfile)
 
     def test_invalid_normalization(self):
         """Test that invalid normalization raises appropriate error."""
